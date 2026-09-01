@@ -24,4 +24,8 @@ export class CategoryService {
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
+
+  reorder(orderedIds: number[]): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/reorder`, { orderedIds });
+  }
 }

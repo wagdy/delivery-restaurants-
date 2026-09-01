@@ -36,6 +36,19 @@ public class CategoriesController : ControllerBase
     }
 
     [Authorize(Roles = "Admin")]
+    [HttpPut("reorder")]
+    public async Task<IActionResult> Reorder(ReorderCategoriesRequest request)
+    {
+        var result = await _service.ReorderAsync(request.OrderedIds);
+        if (!result.Succeeded)
+        {
+            return BadRequest(new { errors = result.Errors });
+        }
+
+        return NoContent();
+    }
+
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id:int}")]
     public async Task<ActionResult<CategoryResponse>> Update(int id, CategoryRequest request)
     {

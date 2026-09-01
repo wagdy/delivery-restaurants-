@@ -104,7 +104,8 @@ public static class DataSeeder
             existingCategoryNames = new List<string> { "Starters", "Mains", "Drinks" };
         }
 
-        context.Categories.AddRange(existingCategoryNames.Select(name => new Category { Name = name }));
+        context.Categories.AddRange(existingCategoryNames.Select(
+            (name, index) => new Category { Name = name, DisplayOrder = index }));
         await context.SaveChangesAsync();
     }
 

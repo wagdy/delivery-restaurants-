@@ -31,9 +31,17 @@
   } @else if (categories().length === 0) {
     <p class="empty-state">No categories yet. Add one above.</p>
   } @else {
-    <ul class="category-list">
+    <ul class="category-list" cdkDropList (cdkDropListDropped)="drop($event)">
       @for (category of categories(); track category.id) {
-        <li class="category-row">
+        <li
+          class="category-row"
+          cdkDrag
+          [cdkDragDisabled]="editingId() === category.id"
+        >
+          <div class="drag-handle" cdkDragHandle aria-label="Drag to reorder">
+            <mat-icon>drag_indicator</mat-icon>
+          </div>
+
           @if (editingId() === category.id) {
             <mat-form-field appearance="outline" subscriptSizing="dynamic" class="edit-field">
               <input

@@ -12,7 +12,10 @@ public class CategoryRepository : GenericRepository<Category>, ICategoryReposito
     }
 
     public Task<List<Category>> GetAllOrderedAsync() =>
-        DbSet.OrderBy(c => c.Name).ToListAsync();
+        DbSet.OrderBy(c => c.DisplayOrder).ToListAsync();
+
+    public Task<List<Category>> GetByIdsAsync(List<int> ids) =>
+        DbSet.Where(c => ids.Contains(c.Id)).ToListAsync();
 
     public Task<Category?> GetByNameAsync(string name) =>
         DbSet.FirstOrDefaultAsync(c => c.Name.ToLower() == name.ToLower());

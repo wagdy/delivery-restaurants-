@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -18,6 +19,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
   imports: [
     CommonModule,
     FormsModule,
+    DragDropModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
@@ -41,6 +43,7 @@ export class CategoryManagementDialogComponent {
   readonly editingId = signal<number | null>(null);
   readonly editingName = signal('');
   readonly savingEdit = signal(false);
+  readonly reordering = signal(false);
   private mutated = false;
 
   constructor() {
@@ -144,6 +147,31 @@ export class CategoryManagementDialogComponent {
           });
         }
       });
+    });
+  }
+
+  drop(event: CdkDragDrop<Category[]>): void {
+    if (event.previousIndex === event.currentIndex) {
+      return;
+    }
+
+    // Reorder optimistically so the drag feels instant, then persist. On failure,
+    // reload from the server rather than trying to hand-unwind the local reorder.
+    const reordered = [...this.categories()];
+    moveItemInArray(reordered, event.previousIndex, event.currentIndex);
+    this.categories.set(reordered);
+    this.mutated = true;
+
+    this.reordering.set(true);
+    this.categoryService.reorder(reordered.map((c) => c.id)).subscribe({
+      next: () => this.reordering.set(false),
+      error: (err) => {
+        this.reordering.set(false);
+        this.snackBar.open(err.error?.errors?.[0] ?? 'Failed to save new order.', 'Dismiss', {
+          duration: 4000
+        });
+        this.load();
+      }
     });
   }
 
