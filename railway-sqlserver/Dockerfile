@@ -7,5 +7,10 @@
 # logs a warning) - simplest fix is to not drop privileges, since this container isn't
 # exposed publicly anyway (no public domain; only the api service reaches it over
 # Railway's private network). Same fix otantik-loyalty's railway-mssql/Dockerfile uses.
-FROM mcr.microsoft.com/mssql/server:2022-latest
+#
+# Pinned to 2019, not 2022: 2022-latest crashes on startup here with a SQLPAL stack
+# overflow in NUMA node initialization (a known SQL Server-on-Linux bug triggered by
+# Railway containers reporting a very high visible CPU count). otantik-loyalty's
+# identical setup on Railway uses 2019 and is proven stable.
+FROM mcr.microsoft.com/mssql/server:2019-latest
 USER root
