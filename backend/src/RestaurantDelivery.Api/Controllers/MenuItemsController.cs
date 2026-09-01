@@ -23,12 +23,9 @@ public class MenuItemsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<MenuItemResponse>>> GetAll(
-        [FromQuery] string? category,
-        [FromQuery] string? search,
-        [FromQuery] bool? isAvailable)
+    public async Task<ActionResult<List<MenuItemResponse>>> GetAll([FromQuery] MenuItemFilterRequest filter)
     {
-        return Ok(await _service.GetAllAsync(category, search, isAvailable));
+        return Ok(await _service.GetAllAsync(filter));
     }
 
     [HttpGet("{id:int}")]

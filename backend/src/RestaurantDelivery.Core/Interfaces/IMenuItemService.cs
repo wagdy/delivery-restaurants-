@@ -5,7 +5,7 @@ namespace RestaurantDelivery.Core.Interfaces;
 
 public interface IMenuItemService
 {
-    Task<List<MenuItemResponse>> GetAllAsync(string? category, string? search, bool? isAvailable);
+    Task<List<MenuItemResponse>> GetAllAsync(MenuItemFilterRequest filter);
     Task<ServiceResult<MenuItemResponse>> GetByIdAsync(int id);
     Task<ServiceResult<MenuItemResponse>> CreateAsync(MenuItemRequest request);
     Task<ServiceResult<MenuItemResponse>> UpdateAsync(int id, MenuItemRequest request);

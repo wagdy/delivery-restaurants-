@@ -2,6 +2,13 @@
   background: white;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   gap: 12px;
+  // Material's default toolbar is a fixed-height single row - with a search field, three
+  // filter dropdowns, and four action buttons all sharing it, it needs to wrap onto a
+  // second line on narrower screens instead of clipping or forcing horizontal scroll.
+  height: auto;
+  min-height: 64px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
 
   h1 {
     font-size: 1.25rem;
@@ -14,7 +21,11 @@
 }
 
 .search-field {
-  width: 240px;
+  width: 220px;
+}
+
+.filter-field {
+  width: 160px;
 }
 
 .loading-state {

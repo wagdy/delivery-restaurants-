@@ -2,18 +2,19 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { MenuItem, MenuItemRequest } from '../models/menu-item.model';
+import { MenuItem, MenuItemFilter, MenuItemRequest } from '../models/menu-item.model';
 
 @Injectable({ providedIn: 'root' })
 export class MenuItemService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/menuitems`;
 
-  getAll(category?: string, search?: string, isAvailable?: boolean): Observable<MenuItem[]> {
+  getAll(filter?: MenuItemFilter): Observable<MenuItem[]> {
     let params = new HttpParams();
-    if (category) params = params.set('category', category);
-    if (search) params = params.set('search', search);
-    if (isAvailable !== undefined) params = params.set('isAvailable', isAvailable);
+    if (filter?.searchQuery) params = params.set('searchQuery', filter.searchQuery);
+    if (filter?.categoryId !== undefined) params = params.set('categoryId', filter.categoryId);
+    if (filter?.isAvailable !== undefined) params = params.set('isAvailable', filter.isAvailable);
+    if (filter?.hasAddons !== undefined) params = params.set('hasAddons', filter.hasAddons);
     return this.http.get<MenuItem[]>(this.baseUrl, { params });
   }
 

@@ -11,16 +11,37 @@ public class MenuItemService : IMenuItemService
 {
     private readonly IMenuItemRepository _repository;
     private readonly IAddOnRepository _addOnRepository;
+    private readonly ICategoryRepository _categoryRepository;
 
-    public MenuItemService(IMenuItemRepository repository, IAddOnRepository addOnRepository)
+    public MenuItemService(
+        IMenuItemRepository repository,
+        IAddOnRepository addOnRepository,
+        ICategoryRepository categoryRepository)
     {
         _repository = repository;
         _addOnRepository = addOnRepository;
+        _categoryRepository = categoryRepository;
     }
 
-    public async Task<List<MenuItemResponse>> GetAllAsync(string? category, string? search, bool? isAvailable)
+    public async Task<List<MenuItemResponse>> GetAllAsync(MenuItemFilterRequest filter)
     {
-        var items = await _repository.GetFilteredAsync(category, search, isAvailable);
+        // MenuItem.Category is a free-text field, not a foreign key, so a categoryId
+        // filter has to be resolved to that category's name first.
+        string? categoryName = null;
+        if (filter.CategoryId.HasValue)
+        {
+            var category = await _categoryRepository.GetByIdAsync(filter.CategoryId.Value);
+            if (category is null)
+            {
+                // An unknown categoryId should return no results, not silently ignore
+                // the filter and return everything.
+                return new List<MenuItemResponse>();
+            }
+
+            categoryName = category.Name;
+        }
+
+        var items = await _repository.GetFilteredAsync(categoryName, filter.SearchQuery, filter.IsAvailable, filter.HasAddons);
         return items.Select(MapResponse).ToList();
     }
 

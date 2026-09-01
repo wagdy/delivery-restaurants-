@@ -11,6 +11,13 @@ export interface MenuItem {
   addOns: AddOn[];
 }
 
+export interface MenuItemFilter {
+  searchQuery?: string;
+  categoryId?: number;
+  isAvailable?: boolean;
+  hasAddons?: boolean;
+}
+
 export interface MenuItemRequest {
   name: string;
   description?: string | null;

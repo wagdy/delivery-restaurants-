@@ -106,7 +106,7 @@ export class StorefrontComponent {
   readonly fabActiveCategory = computed(() => this.selectedCategory() ?? this.activeScrollCategory());
 
   constructor() {
-    this.menuItemService.getAll(undefined, undefined, true).subscribe({
+    this.menuItemService.getAll({ isAvailable: true }).subscribe({
       next: (items) => {
         this.menuItems.set(items);
         this.loading.set(false);

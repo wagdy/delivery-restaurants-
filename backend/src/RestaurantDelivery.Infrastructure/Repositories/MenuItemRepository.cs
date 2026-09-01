@@ -11,7 +11,7 @@ public class MenuItemRepository : GenericRepository<MenuItem>, IMenuItemReposito
     {
     }
 
-    public async Task<List<MenuItem>> GetFilteredAsync(string? category, string? search, bool? isAvailable)
+    public async Task<List<MenuItem>> GetFilteredAsync(string? category, string? searchQuery, bool? isAvailable, bool? hasAddons)
     {
         var query = DbSet
             .Include(m => m.MenuItemAddOns)
@@ -23,14 +23,23 @@ public class MenuItemRepository : GenericRepository<MenuItem>, IMenuItemReposito
             query = query.Where(m => m.Category == category);
         }
 
-        if (!string.IsNullOrWhiteSpace(search))
+        if (!string.IsNullOrWhiteSpace(searchQuery))
         {
-            query = query.Where(m => EF.Functions.ILike(m.Name, $"%{search}%"));
+            // Item name only - category has its own dedicated filter, so this doesn't
+            // also match against m.Category the way the old client-side filter did.
+            query = query.Where(m => EF.Functions.ILike(m.Name, $"%{searchQuery}%"));
         }
 
         if (isAvailable.HasValue)
         {
             query = query.Where(m => m.IsAvailable == isAvailable.Value);
+        }
+
+        if (hasAddons.HasValue)
+        {
+            query = hasAddons.Value
+                ? query.Where(m => m.MenuItemAddOns.Any())
+                : query.Where(m => !m.MenuItemAddOns.Any());
         }
 
         return await query.OrderBy(m => m.Category).ThenBy(m => m.Name).ToListAsync();
