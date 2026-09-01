@@ -27,6 +27,14 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasConversion<string>()
             .HasMaxLength(20);
 
+        builder.Property(o => o.ExternalSource).HasMaxLength(50);
+        builder.Property(o => o.ExternalOrderId).HasMaxLength(100);
+
+        // Postgres treats every NULL as distinct in a unique index, so orders placed
+        // normally (both columns null) never collide with each other here - only an
+        // actual repeat (same source + same external id) is rejected.
+        builder.HasIndex(o => new { o.ExternalSource, o.ExternalOrderId }).IsUnique();
+
         builder.HasIndex(o => o.Status);
         builder.HasIndex(o => o.CreatedAt);
 

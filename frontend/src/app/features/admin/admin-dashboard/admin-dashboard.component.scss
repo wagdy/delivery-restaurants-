@@ -2,6 +2,13 @@
   background: white;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   gap: 12px;
+  // Material's default toolbar is a fixed-height single row - with search + refresh +
+  // sync + new-order all sharing it, it needs to wrap onto a second line on narrower
+  // screens instead of the buttons overlapping each other.
+  height: auto;
+  min-height: 64px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
 
   h1 {
     font-size: 1.25rem;

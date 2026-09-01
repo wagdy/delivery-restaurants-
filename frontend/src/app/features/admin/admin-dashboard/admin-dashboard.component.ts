@@ -8,7 +8,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { OrderService } from '../../../core/services/order.service';
+import { DgteraSyncService } from '../../../core/services/dgtera-sync.service';
 import { ORDER_STATUSES, Order, OrderStatus } from '../../../core/models/order.model';
 import { OrderDetailsDialogComponent } from '../order-details-dialog/order-details-dialog.component';
 import { OrderFormDialogComponent } from '../order-form-dialog/order-form-dialog.component';
@@ -32,13 +34,16 @@ import { OrderFormDialogComponent } from '../order-form-dialog/order-form-dialog
 })
 export class AdminDashboardComponent {
   private readonly orderService = inject(OrderService);
+  private readonly dgteraSyncService = inject(DgteraSyncService);
   private readonly dialog = inject(MatDialog);
+  private readonly snackBar = inject(MatSnackBar);
 
   readonly statuses = ORDER_STATUSES;
   readonly loading = signal(true);
   readonly errorMessage = signal<string | null>(null);
   readonly orders = signal<Order[]>([]);
   readonly searchTerm = signal('');
+  readonly syncing = signal(false);
 
   readonly filteredOrders = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
@@ -76,6 +81,43 @@ export class AdminDashboardComponent {
       error: () => {
         this.loading.set(false);
         this.errorMessage.set('Failed to load orders.');
+      }
+    });
+  }
+
+  syncDgteraOrders(): void {
+    if (this.syncing()) {
+      return;
+    }
+
+    this.syncing.set(true);
+    this.dgteraSyncService.syncOrders().subscribe({
+      next: (result) => {
+        this.syncing.set(false);
+
+        if (result.errors.length > 0) {
+          // Partial failures still land here with HTTP 200 (see SyncController) - a
+          // sync that created/updated some orders but skipped others isn't a hard
+          // error, so it gets a longer-lived warning toast instead of the error one.
+          this.snackBar.open(
+            `Synced with ${result.errors.length} issue${result.errors.length === 1 ? '' : 's'}: ${result.errors[0]}`,
+            'Dismiss',
+            { duration: 8000 }
+          );
+        } else {
+          this.snackBar.open(
+            `Dgtera sync complete: ${result.ordersCreated} created, ${result.ordersUpdated} updated.`,
+            'Dismiss',
+            { duration: 5000 }
+          );
+        }
+
+        this.loadOrders();
+      },
+      error: (err) => {
+        this.syncing.set(false);
+        const message = err.error?.errors?.[0] ?? 'Failed to sync Dgtera orders.';
+        this.snackBar.open(message, 'Dismiss', { duration: 6000 });
       }
     });
   }

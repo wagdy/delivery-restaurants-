@@ -18,6 +18,11 @@ public class OrderRepository : GenericRepository<Order>, IOrderRepository
             .Include(o => o.OrderItems).ThenInclude(oi => oi.AddOns)
             .FirstOrDefaultAsync(o => o.Id == id);
 
+    public Task<Order?> GetByExternalIdAsync(string externalSource, string externalOrderId) =>
+        DbSet
+            .Include(o => o.OrderItems)
+            .FirstOrDefaultAsync(o => o.ExternalSource == externalSource && o.ExternalOrderId == externalOrderId);
+
     public async Task<(List<Order> Orders, int TotalCount)> GetPagedWithItemsAsync(OrderStatus? status, int page, int pageSize)
     {
         var query = DbSet

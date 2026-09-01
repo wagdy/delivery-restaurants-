@@ -45,6 +45,9 @@ public class MenuItemRepository : GenericRepository<MenuItem>, IMenuItemReposito
         return await query.OrderBy(m => m.Category).ThenBy(m => m.Name).ToListAsync();
     }
 
+    public Task<MenuItem?> GetByNameAsync(string name) =>
+        DbSet.FirstOrDefaultAsync(m => m.Name.ToLower() == name.ToLower());
+
     public Task<MenuItem?> GetByIdWithAddOnsAsync(int id) =>
         DbSet
             .Include(m => m.MenuItemAddOns)

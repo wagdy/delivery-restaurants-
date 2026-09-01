@@ -11,6 +11,7 @@ using RestaurantDelivery.Core.Entities;
 using RestaurantDelivery.Core.Interfaces;
 using RestaurantDelivery.Infrastructure.Data;
 using RestaurantDelivery.Infrastructure.Data.Seed;
+using RestaurantDelivery.Infrastructure.ExternalServices.Dgtera;
 using RestaurantDelivery.Infrastructure.Repositories;
 using RestaurantDelivery.Infrastructure.Services;
 
@@ -103,6 +104,10 @@ builder.Services.AddScoped<IAddOnRepository, AddOnRepository>();
 builder.Services.AddScoped<IAddOnService, AddOnService>();
 
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+
+builder.Services.Configure<DgteraOptions>(builder.Configuration.GetSection("Dgtera"));
+builder.Services.AddHttpClient<IDgteraClient, DgteraClient>();
+builder.Services.AddScoped<IDgteraSyncService, DgteraSyncService>();
 
 var vapidSection = builder.Configuration.GetSection("Vapid");
 var vapidPublicKey = vapidSection["PublicKey"] ?? throw new InvalidOperationException("Vapid:PublicKey is not configured.");
