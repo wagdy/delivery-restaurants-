@@ -1,27 +1,21 @@
 services:
-  sqlserver:
-    # azure-sql-edge (not the full mssql/server image) - it has an arm64 build, so this
-    # runs natively on Apple Silicon without Rosetta emulation. Same T-SQL surface as
-    # Azure SQL Database for local dev purposes.
-    image: mcr.microsoft.com/azure-sql-edge:latest
+  postgres:
+    image: postgres:16-alpine
     container_name: restaurant-delivery-db
     restart: unless-stopped
     environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "LocalDev@2026"
+      POSTGRES_DB: restaurant_delivery
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
-      # Host 1433 and 14330 are already taken by other local SQL Server containers on
-      # this machine - 14332 is this project's own port.
-      - "14332:1433"
+      - "5432:5432"
     volumes:
-      - sqlserver_data:/var/opt/mssql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      # azure-sql-edge doesn't ship mssql-tools/sqlcmd, so this checks the port directly
-      # rather than running a real query.
-      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/1433' || exit 1"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d restaurant_delivery"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 5
 
 volumes:
-  sqlserver_data:
+  postgres_data:

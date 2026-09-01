@@ -25,9 +25,7 @@ public class MenuItemRepository : GenericRepository<MenuItem>, IMenuItemReposito
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            // SQL Server's default collation is case-insensitive, so Contains() here
-            // matches the case-insensitive search Postgres needed EF.Functions.ILike for.
-            query = query.Where(m => m.Name.Contains(search));
+            query = query.Where(m => EF.Functions.ILike(m.Name, $"%{search}%"));
         }
 
         if (isAvailable.HasValue)
