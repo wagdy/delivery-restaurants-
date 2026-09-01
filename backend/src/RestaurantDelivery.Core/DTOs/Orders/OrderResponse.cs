@@ -11,6 +11,7 @@ public class OrderResponse
     public string DeliveryAddress { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
     public OrderStatus Status { get; set; }
+    public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public List<OrderItemResponse> Items { get; set; } = new();

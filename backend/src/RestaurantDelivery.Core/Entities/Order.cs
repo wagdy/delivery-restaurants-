@@ -16,6 +16,7 @@ public class Order
 
     public decimal TotalAmount { get; set; }
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
+    public string? Notes { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

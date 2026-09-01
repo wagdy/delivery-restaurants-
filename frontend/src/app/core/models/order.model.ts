@@ -31,9 +31,17 @@ export interface Order {
   deliveryAddress: string;
   totalAmount: number;
   status: OrderStatus;
+  notes?: string | null;
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
+}
+
+export interface BulkOrderImportResult {
+  rowsProcessed: number;
+  ordersCreated: number;
+  rowsSkipped: number;
+  errors: string[];
 }
 
 export interface OrderItemRequest {

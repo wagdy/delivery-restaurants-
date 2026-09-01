@@ -211,6 +211,7 @@ public class OrderService : IOrderService
         DeliveryAddress = order.DeliveryAddress,
         TotalAmount = order.TotalAmount,
         Status = order.Status,
+        Notes = order.Notes,
         CreatedAt = order.CreatedAt,
         UpdatedAt = order.UpdatedAt,
         Items = order.OrderItems.Select(oi => new OrderItemResponse

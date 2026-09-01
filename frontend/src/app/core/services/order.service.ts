@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  BulkOrderImportResult,
   CreateOrderRequest,
   Order,
   OrderStatus,
@@ -45,5 +46,15 @@ export class OrderService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  downloadExcelTemplate(): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/excel-template`, { responseType: 'blob' });
+  }
+
+  bulkUpload(file: File): Observable<BulkOrderImportResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<BulkOrderImportResult>(`${this.baseUrl}/bulk-upload`, formData);
   }
 }

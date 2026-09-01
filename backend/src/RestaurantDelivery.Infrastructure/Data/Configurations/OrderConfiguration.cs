@@ -23,6 +23,8 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(o => o.TotalAmount)
             .HasPrecision(10, 2);
 
+        builder.Property(o => o.Notes).HasMaxLength(1000);
+
         builder.Property(o => o.Status)
             .HasConversion<string>()
             .HasMaxLength(20);

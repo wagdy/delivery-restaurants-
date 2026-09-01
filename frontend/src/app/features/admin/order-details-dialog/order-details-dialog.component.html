@@ -14,6 +14,9 @@
     <p>{{ order().customerName }}</p>
     <p>{{ order().customerPhone }}</p>
     <p>{{ order().deliveryAddress }}</p>
+    @if (order().notes) {
+      <p class="order-notes">{{ order().notes }}</p>
+    }
   </div>
 
   <div class="section">

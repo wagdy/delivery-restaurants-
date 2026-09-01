@@ -11,11 +11,15 @@ namespace RestaurantDelivery.Api.Controllers;
 [Route("api/orders")]
 public class OrdersController : ControllerBase
 {
-    private readonly IOrderService _service;
+    private const long MaxBulkUploadSizeBytes = 5 * 1024 * 1024; // 5 MB
 
-    public OrdersController(IOrderService service)
+    private readonly IOrderService _service;
+    private readonly IBulkOrderImportService _bulkImportService;
+
+    public OrdersController(IOrderService service, IBulkOrderImportService bulkImportService)
     {
         _service = service;
+        _bulkImportService = bulkImportService;
     }
 
     // Public: supports both guest checkout and authenticated checkout.
@@ -120,5 +124,51 @@ public class OrdersController : ControllerBase
         }
 
         return NoContent();
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("excel-template")]
+    public IActionResult GetExcelTemplate()
+    {
+        var stream = _bulkImportService.GenerateTemplate();
+        return File(
+            stream,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "bulk-order-template.xlsx");
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost("bulk-upload")]
+    [RequestSizeLimit(MaxBulkUploadSizeBytes)]
+    public async Task<ActionResult<BulkOrderImportResult>> BulkUpload(IFormFile file)
+    {
+        if (file.Length == 0)
+        {
+            return BadRequest(new { errors = new[] { "No file was uploaded." } });
+        }
+
+        var extension = Path.GetExtension(file.FileName);
+        if (!string.Equals(extension, ".xlsx", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(extension, ".xls", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { errors = new[] { "Only .xlsx or .xls files are accepted." } });
+        }
+
+        await using var stream = file.OpenReadStream();
+
+        BulkOrderImportResult result;
+        try
+        {
+            result = await _bulkImportService.ImportOrdersAsync(stream);
+        }
+        catch (Exception ex)
+        {
+            // A workbook ClosedXML can't even open (corrupt file, not really an Excel
+            // file despite the extension) fails here, before any per-row handling -
+            // everything else is caught inside ImportOrdersAsync per-order instead.
+            return BadRequest(new { errors = new[] { $"Could not read the uploaded file: {ex.Message}" } });
+        }
+
+        return Ok(result);
     }
 }
