@@ -9,6 +9,7 @@
     [categories]="categories()"
     (searchChanged)="searchTerm.set($event)"
     (categorySelected)="selectedCategory.set($event)"
+    (viewChanged)="viewMode.set($event)"
   ></app-menu-search-filter>
 
   @if (loading()) {
@@ -23,7 +24,7 @@
     @for (group of itemsByCategory(); track group[0]) {
       <section class="category-section" #categorySection [attr.data-category]="group[0]">
         <h2>{{ group[0] }}</h2>
-        <div class="items-grid">
+        <div class="items-grid" [class.list-view]="viewMode() === 'list'">
           @for (item of group[1]; track item.id) {
             <mat-card class="menu-card" (click)="openDetails(item)">
               @if (item.imageUrl) {

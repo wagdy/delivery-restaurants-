@@ -51,6 +51,15 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 16px;
+
+  // One row per item instead of a card grid - the .menu-card / .menu-card-image rules
+  // below switch from a vertical card to a horizontal row when this is applied, so the
+  // markup itself doesn't need to change between the two modes.
+  &.list-view {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
 }
 
 .menu-card {
@@ -71,6 +80,22 @@
   width: 100%;
   height: 140px;
   object-fit: cover;
+}
+
+.list-view .menu-card {
+  flex-direction: row;
+  align-items: center;
+
+  mat-card-content {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.list-view .menu-card-image {
+  width: 88px;
+  height: 88px;
+  flex-shrink: 0;
 }
 
 .in-cart-badge {

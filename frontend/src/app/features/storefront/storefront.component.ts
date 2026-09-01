@@ -19,7 +19,7 @@ import { CartService } from '../../core/services/cart.service';
 import { MenuItem } from '../../core/models/menu-item.model';
 import { MenuItemDetailsDialogComponent } from './menu-item-details-dialog/menu-item-details-dialog.component';
 import { CategoryFabComponent } from './category-fab/category-fab.component';
-import { MenuSearchFilterComponent } from '../../shared/menu-search-filter/menu-search-filter.component';
+import { MenuSearchFilterComponent, MenuViewMode } from '../../shared/menu-search-filter/menu-search-filter.component';
 
 @Component({
   selector: 'app-storefront',
@@ -52,6 +52,7 @@ export class StorefrontComponent {
   readonly menuItems = signal<MenuItem[]>([]);
   readonly searchTerm = signal('');
   readonly selectedCategory = signal<string | null>(null);
+  readonly viewMode = signal<MenuViewMode>('grid');
   readonly activeScrollCategory = signal<string | null>(null);
 
   readonly categories = computed(() => {
