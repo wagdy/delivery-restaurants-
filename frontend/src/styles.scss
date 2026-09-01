@@ -3,6 +3,13 @@
 :root {
   --app-primary-color: #3f51b5;
   --app-accent-color: #ff4081;
+
+  // TEMP: app-footer is commented out in app.component.html. Its ResizeObserver
+  // normally sets this at runtime; with the footer gone, it would otherwise fall back
+  // to var(--footer-height, 160px)'s default and leave a 160px blank gap at the bottom
+  // of every page (.page-content's padding-bottom) and strand the category FAB button
+  // floating 180px above the bottom edge. Remove this line when the footer comes back.
+  --footer-height: 0px;
 }
 
 html, body { height: 100%; }
