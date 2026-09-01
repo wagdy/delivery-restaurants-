@@ -19,15 +19,8 @@
 }
 
 .controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
+  display: block;
   margin-bottom: 24px;
-}
-
-.search-field {
-  width: 280px;
 }
 
 .loading-state {

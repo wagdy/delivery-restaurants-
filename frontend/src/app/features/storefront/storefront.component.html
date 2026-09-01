@@ -4,30 +4,12 @@
     <p>Browse the menu below — no account needed to order.</p>
   </div>
 
-  <div class="controls">
-    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
-      <mat-label>Search menu</mat-label>
-      <input matInput [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" placeholder="e.g. Pizza" />
-      <mat-icon matPrefix>search</mat-icon>
-    </mat-form-field>
-
-    <mat-chip-listbox aria-label="Filter by category">
-      <mat-chip-option
-        [selected]="selectedCategory() === null"
-        (click)="selectCategory(null)"
-      >
-        All
-      </mat-chip-option>
-      @for (category of categories(); track category) {
-        <mat-chip-option
-          [selected]="selectedCategory() === category"
-          (click)="selectCategory(category)"
-        >
-          {{ category }}
-        </mat-chip-option>
-      }
-    </mat-chip-listbox>
-  </div>
+  <app-menu-search-filter
+    class="controls"
+    [categories]="categories()"
+    (searchChanged)="searchTerm.set($event)"
+    (categorySelected)="selectedCategory.set($event)"
+  ></app-menu-search-filter>
 
   @if (loading()) {
     <div class="loading-state">

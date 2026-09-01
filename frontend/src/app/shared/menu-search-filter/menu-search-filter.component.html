@@ -1,0 +1,58 @@
+<div class="menu-toolbar">
+  <div class="top-row">
+    <div class="search-bar">
+      <mat-icon class="search-icon">search</mat-icon>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Search menu"
+        [value]="searchTerm()"
+        (input)="onSearchInput($event)"
+      />
+    </div>
+
+    <div class="view-toggles">
+      <button
+        type="button"
+        class="view-toggle-btn"
+        [class.active]="activeView() === 'list'"
+        [attr.aria-pressed]="activeView() === 'list'"
+        aria-label="List view"
+        (click)="setView('list')"
+      >
+        <mat-icon>view_list</mat-icon>
+      </button>
+      <button
+        type="button"
+        class="view-toggle-btn"
+        [class.active]="activeView() === 'grid'"
+        [attr.aria-pressed]="activeView() === 'grid'"
+        aria-label="Grid view"
+        (click)="setView('grid')"
+      >
+        <mat-icon>grid_view</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="category-row">
+    <button
+      type="button"
+      class="category-chip"
+      [class.active]="activeCategory() === null"
+      (click)="selectCategory(null)"
+    >
+      All
+    </button>
+    @for (category of categories(); track category) {
+      <button
+        type="button"
+        class="category-chip"
+        [class.active]="activeCategory() === category"
+        (click)="selectCategory(category)"
+      >
+        {{ category }}
+      </button>
+    }
+  </div>
+</div>
