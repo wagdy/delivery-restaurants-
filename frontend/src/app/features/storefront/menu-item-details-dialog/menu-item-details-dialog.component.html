@@ -1,0 +1,53 @@
+<div class="dialog-content">
+  @if (data.menuItem.imageUrl) {
+    <img class="item-image" [src]="data.menuItem.imageUrl" [alt]="data.menuItem.name" />
+  }
+
+  <div class="body">
+    <div class="header-row">
+      <h2>{{ data.menuItem.name }}</h2>
+      <span class="base-price">${{ data.menuItem.price.toFixed(2) }}</span>
+    </div>
+
+    @if (data.menuItem.description) {
+      <p class="description">{{ data.menuItem.description }}</p>
+    }
+
+    @if (data.menuItem.addOns.length > 0) {
+      <div class="addons-section">
+        <h3>Add-ons</h3>
+        @for (addOn of data.menuItem.addOns; track addOn.id) {
+          <label class="addon-row">
+            <mat-checkbox [checked]="isSelected(addOn)" (change)="toggleAddOn(addOn)">
+              {{ addOn.name }}
+            </mat-checkbox>
+            <span class="addon-price">
+              {{ addOn.price > 0 ? '+$' + addOn.price.toFixed(2) : 'Free' }}
+            </span>
+          </label>
+        }
+      </div>
+    }
+
+    <div class="quantity-row">
+      <span class="quantity-label">Quantity</span>
+      <div class="qty-stepper">
+        <button mat-icon-button (click)="decrementQuantity()" aria-label="Decrease quantity">
+          <mat-icon>remove</mat-icon>
+        </button>
+        <span class="qty-value">{{ quantity() }}</span>
+        <button mat-icon-button (click)="incrementQuantity()" aria-label="Increase quantity">
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="close()">Cancel</button>
+  <button mat-flat-button color="primary" (click)="addToCart()">
+    <mat-icon>add_shopping_cart</mat-icon>
+    Add to cart · ${{ lineTotal().toFixed(2) }}
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,58 @@
+<mat-toolbar class="dashboard-toolbar">
+  <h1>Order Management</h1>
+  <span class="spacer"></span>
+
+  <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+    <mat-label>Search orders</mat-label>
+    <input matInput [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" placeholder="Name, phone, or #" />
+  </mat-form-field>
+
+  <button mat-icon-button (click)="loadOrders()" aria-label="Refresh">
+    <mat-icon>refresh</mat-icon>
+  </button>
+
+  <button mat-flat-button color="primary" (click)="openNewOrder()">
+    <mat-icon>add</mat-icon>
+    New Order
+  </button>
+</mat-toolbar>
+
+@if (loading()) {
+  <div class="loading-state">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+} @else if (errorMessage()) {
+  <p class="error-text">{{ errorMessage() }}</p>
+} @else {
+  <div class="board">
+    @for (status of statuses; track status) {
+      <div class="column">
+        <div class="column-header" [class]="'status-' + status">
+          <span>{{ status }}</span>
+          <span class="count">{{ columnOrders(status).length }}</span>
+        </div>
+
+        <div class="column-body">
+          @for (order of columnOrders(status); track order.id) {
+            <div class="order-card" (click)="openDetails(order)">
+              <div class="card-top">
+                <span class="order-id">#{{ order.id }}</span>
+                <span class="order-total">${{ order.totalAmount.toFixed(2) }}</span>
+              </div>
+              <div class="customer-name">{{ order.customerName }}</div>
+              <div class="card-meta">
+                <span>{{ order.items.length }} item{{ order.items.length === 1 ? '' : 's' }}</span>
+                <span>{{ order.createdAt | date: 'short' }}</span>
+              </div>
+              @if (!order.userId) {
+                <span class="guest-badge">Guest</span>
+              }
+            </div>
+          } @empty {
+            <p class="empty-column">No orders</p>
+          }
+        </div>
+      </div>
+    }
+  </div>
+}

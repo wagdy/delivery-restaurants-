@@ -1,0 +1,76 @@
+.my-orders-page {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 32px 16px 64px;
+
+  h1 {
+    margin-bottom: 16px;
+  }
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.error-text {
+  color: var(--mat-sys-error, #b3261e);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 0;
+
+  p {
+    color: rgba(0, 0, 0, 0.6);
+    margin-bottom: 16px;
+  }
+}
+
+.status-chip {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  color: white;
+  margin-right: 8px;
+}
+.status-Pending { background: #f9a825; }
+.status-Preparing { background: #1e88e5; }
+.status-OutForDelivery { background: #8e24aa; }
+.status-Delivered { background: #43a047; }
+.status-Cancelled { background: #e53935; }
+
+.order-date {
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 0.8rem;
+}
+
+.panel-body {
+  p {
+    color: rgba(0, 0, 0, 0.6);
+    margin: 0 0 8px;
+  }
+}
+
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 0.9rem;
+}
+
+.item-addons {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.item-row.total {
+  font-weight: 600;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  margin-top: 6px;
+  padding-top: 8px;
+}

@@ -1,0 +1,41 @@
+<footer class="app-footer" #footerEl>
+  <div class="footer-content">
+    <div class="footer-brand">
+      @if (settingsService.settings().logoUrl) {
+        <img class="footer-logo" [src]="settingsService.settings().logoUrl" [alt]="settingsService.settings().restaurantName" />
+      } @else {
+        <mat-icon class="footer-logo-icon">restaurant</mat-icon>
+      }
+      <span class="footer-name">{{ settingsService.settings().restaurantName }}</span>
+    </div>
+
+    @if (settingsService.settings().footerAbout) {
+      <p class="footer-about">{{ settingsService.settings().footerAbout }}</p>
+    }
+
+    <div class="footer-contact">
+      @if (settingsService.settings().address) {
+        <span class="contact-item">
+          <mat-icon>place</mat-icon>
+          {{ settingsService.settings().address }}
+        </span>
+      }
+      @if (settingsService.settings().phone) {
+        <a class="contact-item" [href]="'tel:' + settingsService.settings().phone">
+          <mat-icon>call</mat-icon>
+          {{ settingsService.settings().phone }}
+        </a>
+      }
+      @if (settingsService.settings().email) {
+        <a class="contact-item" [href]="'mailto:' + settingsService.settings().email">
+          <mat-icon>mail</mat-icon>
+          {{ settingsService.settings().email }}
+        </a>
+      }
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    &copy; {{ currentYear }} {{ settingsService.settings().restaurantName }}. All rights reserved.
+  </div>
+</footer>

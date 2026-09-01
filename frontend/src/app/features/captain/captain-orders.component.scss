@@ -1,0 +1,138 @@
+.captain-toolbar {
+  background: white;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  gap: 12px;
+
+  h1 {
+    font-size: 1.25rem;
+    margin: 0;
+  }
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.search-field {
+  width: 260px;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.error-text {
+  color: var(--mat-sys-error, #b3261e);
+  padding: 24px;
+}
+
+.empty-state {
+  color: rgba(0, 0, 0, 0.5);
+  padding: 24px;
+  text-align: center;
+}
+
+.order-list {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.order-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  border-left: 4px solid #9e9e9e;
+  transition: box-shadow 0.15s;
+}
+
+.order-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.order-card.status-Pending { border-left-color: #f9a825; }
+.order-card.status-Preparing { border-left-color: #1e88e5; }
+.order-card.status-OutForDelivery { border-left-color: #8e24aa; }
+.order-card.status-Delivered { border-left-color: #43a047; }
+.order-card.status-Cancelled { border-left-color: #e53935; }
+
+.card-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.order-id {
+  font-weight: 600;
+}
+
+.order-total {
+  margin-left: auto;
+  font-weight: 600;
+}
+
+.status-chip {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  color: white;
+}
+.status-chip.status-Pending { background: #f9a825; }
+.status-chip.status-Preparing { background: #1e88e5; }
+.status-chip.status-OutForDelivery { background: #8e24aa; }
+.status-chip.status-Delivered { background: #43a047; }
+.status-chip.status-Cancelled { background: #e53935; }
+
+.customer-name {
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+
+.delivery-address {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.85rem;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.card-meta {
+  display: flex;
+  gap: 12px;
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+
+.card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  flex-shrink: 0;
+}

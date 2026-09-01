@@ -1,0 +1,70 @@
+<h2 mat-dialog-title>Manage Categories</h2>
+
+<mat-dialog-content>
+  <div class="add-row">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="add-field">
+      <mat-label>New category name</mat-label>
+      <input
+        matInput
+        [ngModel]="newCategoryName()"
+        (ngModelChange)="newCategoryName.set($event)"
+        (keydown.enter)="addCategory()"
+        placeholder="e.g. Desserts"
+      />
+    </mat-form-field>
+    <button mat-flat-button color="primary" [disabled]="adding() || !newCategoryName().trim()" (click)="addCategory()">
+      @if (adding()) {
+        <mat-spinner diameter="18"></mat-spinner>
+      } @else {
+        <ng-container>
+          <mat-icon>add</mat-icon>
+          Add
+        </ng-container>
+      }
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else if (categories().length === 0) {
+    <p class="empty-state">No categories yet. Add one above.</p>
+  } @else {
+    <ul class="category-list">
+      @for (category of categories(); track category.id) {
+        <li class="category-row">
+          @if (editingId() === category.id) {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="edit-field">
+              <input
+                matInput
+                [ngModel]="editingName()"
+                (ngModelChange)="editingName.set($event)"
+                (keydown.enter)="saveEdit(category)"
+                (keydown.escape)="cancelEdit()"
+              />
+            </mat-form-field>
+            <button mat-icon-button [disabled]="savingEdit()" (click)="saveEdit(category)" aria-label="Save">
+              <mat-icon>check</mat-icon>
+            </button>
+            <button mat-icon-button [disabled]="savingEdit()" (click)="cancelEdit()" aria-label="Cancel">
+              <mat-icon>close</mat-icon>
+            </button>
+          } @else {
+            <span class="category-name">{{ category.name }}</span>
+            <button mat-icon-button (click)="startEdit(category)" aria-label="Rename">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="delete(category)" aria-label="Delete">
+              <mat-icon>delete</mat-icon>
+            </button>
+          }
+        </li>
+      }
+    </ul>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-flat-button color="primary" (click)="close()">Close</button>
+</mat-dialog-actions>

@@ -1,0 +1,49 @@
+<mat-toolbar color="primary">
+  <a [routerLink]="authService.isCaptain() ? '/captain' : '/'" class="brand">
+    @if (settingsService.settings().logoUrl) {
+      <img class="brand-logo" [src]="settingsService.settings().logoUrl" [alt]="settingsService.settings().restaurantName" />
+    } @else {
+      <mat-icon>restaurant</mat-icon>
+    }
+    <span>{{ settingsService.settings().restaurantName }}</span>
+  </a>
+
+  <span class="spacer"></span>
+
+  @if (authService.isCaptain()) {
+    <!-- Captain Order accounts are restricted to the Orders section only: no cart,
+         no customer "My Orders", no admin console. -->
+    <a mat-button routerLink="/captain">
+      <mat-icon>local_shipping</mat-icon>
+      My Deliveries
+    </a>
+    <span class="avatar-slot" [title]="authService.currentUser()?.fullName ?? ''">
+      <app-user-avatar [fullName]="authService.currentUser()?.fullName ?? ''" [size]="34"></app-user-avatar>
+    </span>
+    <button mat-button (click)="authService.logout()">Logout</button>
+  } @else {
+    <button mat-icon-button (click)="openCart()" aria-label="View cart" [matBadge]="cart.itemCount() || null" matBadgeColor="accent" matBadgeSize="small">
+      <mat-icon>shopping_cart</mat-icon>
+    </button>
+
+    @if (authService.isAuthenticated()) {
+      @if (authService.isAdmin()) {
+        <a mat-button routerLink="/admin">Admin</a>
+      }
+      <a mat-button routerLink="/my-orders">My Orders</a>
+      <span class="avatar-slot" [title]="authService.currentUser()?.fullName ?? ''">
+        <app-user-avatar [fullName]="authService.currentUser()?.fullName ?? ''" [size]="34"></app-user-avatar>
+      </span>
+      <button mat-button (click)="authService.logout()">Logout</button>
+    } @else {
+      <a mat-button routerLink="/login">Login</a>
+      <a mat-button routerLink="/register">Register</a>
+    }
+  }
+</mat-toolbar>
+
+<div class="page-content">
+  <router-outlet></router-outlet>
+</div>
+
+<app-footer></app-footer>

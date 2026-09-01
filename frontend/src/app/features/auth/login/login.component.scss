@@ -1,0 +1,29 @@
+.auth-page {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 48px 16px;
+  min-height: calc(100vh - 64px);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px 16px;
+}
+
+.error-text {
+  color: var(--mat-sys-error, #b3261e);
+  font-size: 0.875rem;
+  margin: 4px 0 0;
+}

@@ -1,0 +1,97 @@
+<h2 mat-dialog-title>Manage Add-ons</h2>
+
+<mat-dialog-content>
+  <div class="add-row">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="name-field">
+      <mat-label>New add-on name</mat-label>
+      <input
+        matInput
+        [ngModel]="newName()"
+        (ngModelChange)="newName.set($event)"
+        (keydown.enter)="addAddOn()"
+        placeholder="e.g. Extra Rice"
+      />
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="price-field">
+      <mat-label>Price</mat-label>
+      <span matPrefix>$&nbsp;</span>
+      <input
+        matInput
+        type="number"
+        step="0.01"
+        min="0"
+        [ngModel]="newPrice()"
+        (ngModelChange)="newPrice.set($event)"
+        (keydown.enter)="addAddOn()"
+      />
+    </mat-form-field>
+    <button mat-flat-button color="primary" [disabled]="adding() || !newName().trim()" (click)="addAddOn()">
+      @if (adding()) {
+        <mat-spinner diameter="18"></mat-spinner>
+      } @else {
+        <ng-container>
+          <mat-icon>add</mat-icon>
+          Add
+        </ng-container>
+      }
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else if (addOns().length === 0) {
+    <p class="empty-state">No add-ons yet. Add one above.</p>
+  } @else {
+    <ul class="addon-list">
+      @for (addOn of addOns(); track addOn.id) {
+        <li class="addon-row">
+          @if (editingId() === addOn.id) {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="edit-name-field">
+              <input
+                matInput
+                [ngModel]="editingName()"
+                (ngModelChange)="editingName.set($event)"
+                (keydown.enter)="saveEdit(addOn)"
+                (keydown.escape)="cancelEdit()"
+              />
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="edit-price-field">
+              <span matPrefix>$&nbsp;</span>
+              <input
+                matInput
+                type="number"
+                step="0.01"
+                min="0"
+                [ngModel]="editingPrice()"
+                (ngModelChange)="editingPrice.set($event)"
+                (keydown.enter)="saveEdit(addOn)"
+                (keydown.escape)="cancelEdit()"
+              />
+            </mat-form-field>
+            <button mat-icon-button [disabled]="savingEdit()" (click)="saveEdit(addOn)" aria-label="Save">
+              <mat-icon>check</mat-icon>
+            </button>
+            <button mat-icon-button [disabled]="savingEdit()" (click)="cancelEdit()" aria-label="Cancel">
+              <mat-icon>close</mat-icon>
+            </button>
+          } @else {
+            <span class="addon-name">{{ addOn.name }}</span>
+            <span class="addon-price">${{ addOn.price.toFixed(2) }}</span>
+            <button mat-icon-button (click)="startEdit(addOn)" aria-label="Edit">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="delete(addOn)" aria-label="Delete">
+              <mat-icon>delete</mat-icon>
+            </button>
+          }
+        </li>
+      }
+    </ul>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-flat-button color="primary" (click)="close()">Close</button>
+</mat-dialog-actions>

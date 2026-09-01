@@ -1,0 +1,43 @@
+.insights-toolbar {
+  background: white;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  gap: 12px;
+
+  h1 {
+    font-size: 1.25rem;
+    margin: 0;
+  }
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.search-field {
+  width: 240px;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.error-text {
+  color: var(--mat-sys-error, #b3261e);
+  padding: 24px;
+}
+
+.empty-state {
+  color: rgba(0, 0, 0, 0.5);
+  padding: 24px;
+}
+
+.table-wrapper {
+  padding: 16px;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+}

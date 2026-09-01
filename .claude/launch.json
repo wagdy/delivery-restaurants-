@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontend", "run", "start"],
+      "port": 4200
+    },
+    {
+      "name": "frontend-pwa",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "http-server", "frontend/dist/frontend/browser", "-p", "4300", "-c-1"],
+      "port": 4300
+    },
+    {
+      "name": "otantik-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "otantik-loyalty/frontend", "run", "start", "--", "--port", "4201"],
+      "port": 4201
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+.ios-prompt {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fff8e1;
+  border: 1px solid #ffca28;
+  border-radius: 8px;
+  padding: 12px 12px 12px 16px;
+  margin: 16px;
+}
+
+.ios-prompt-icon {
+  color: #f9a825;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.ios-prompt-text {
+  flex: 1 1 auto;
+  font-size: 0.875rem;
+
+  strong {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  p {
+    margin: 0;
+    color: rgba(0, 0, 0, 0.75);
+    line-height: 1.5;
+  }
+}
+
+.inline-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  vertical-align: text-bottom;
+  margin: 0 2px;
+}

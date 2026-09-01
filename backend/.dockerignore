@@ -1,0 +1,6 @@
+**/bin/
+**/obj/
+.vs/
+*.user
+src/RestaurantDelivery.Api/wwwroot/uploads/**
+!src/RestaurantDelivery.Api/wwwroot/uploads/**/.gitkeep

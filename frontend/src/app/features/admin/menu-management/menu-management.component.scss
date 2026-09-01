@@ -1,0 +1,83 @@
+.management-toolbar {
+  background: white;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  gap: 12px;
+
+  h1 {
+    font-size: 1.25rem;
+    margin: 0;
+  }
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.search-field {
+  width: 240px;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.error-text {
+  color: var(--mat-sys-error, #b3261e);
+  padding: 24px;
+}
+
+.empty-state {
+  color: rgba(0, 0, 0, 0.5);
+  padding: 24px;
+}
+
+.table-wrapper {
+  padding: 16px;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+}
+
+.thumbnail {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  object-fit: cover;
+  display: block;
+}
+
+.thumbnail-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  background: #f1f1f1;
+  color: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.name-cell {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0;
+}
+
+.item-name {
+  font-weight: 500;
+}
+
+.item-name.unavailable {
+  color: rgba(0, 0, 0, 0.4);
+  text-decoration: line-through;
+}
+
+.item-description {
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.55);
+  max-width: 320px;
+}

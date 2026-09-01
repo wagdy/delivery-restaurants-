@@ -1,0 +1,58 @@
+/* You can add global styles to this file, and also import other style files */
+
+:root {
+  --app-primary-color: #3f51b5;
+  --app-accent-color: #ff4081;
+}
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  background-color: #fafafa;
+  color: rgba(0, 0, 0, 0.87);
+  color-scheme: light;
+}
+
+/*
+ * The app ships with Angular Material's static prebuilt indigo-pink theme
+ * (baked-in hex values, no CSS custom properties). To let the admin recolor
+ * the visible chrome at runtime without rebuilding Sass, the most-visible
+ * Material surfaces are repainted here from --app-primary-color/--app-accent-color.
+ * Deep internals (e.g. the slide-toggle thumb) intentionally keep the
+ * default theme accent — this covers what actually reads as "the layout color".
+ */
+.mat-toolbar.mat-primary {
+  background-color: var(--app-primary-color) !important;
+  color: #fff !important;
+}
+
+.mat-mdc-unelevated-button.mat-primary,
+.mat-mdc-raised-button.mat-primary,
+.mat-mdc-fab.mat-primary,
+.mat-mdc-mini-fab.mat-primary {
+  background-color: var(--app-primary-color) !important;
+  color: #fff !important;
+}
+
+.mat-mdc-unelevated-button.mat-accent,
+.mat-mdc-raised-button.mat-accent,
+.mat-mdc-fab.mat-accent,
+.mat-mdc-mini-fab.mat-accent {
+  background-color: var(--app-accent-color) !important;
+  color: #fff !important;
+}
+
+.mat-mdc-icon-button.mat-primary,
+.mat-mdc-button.mat-primary {
+  color: var(--app-primary-color) !important;
+}
+
+.mat-mdc-chip-option.mdc-evolution-chip--selected {
+  background-color: var(--app-primary-color) !important;
+  --mdc-chip-label-text-color: #fff;
+
+  .mdc-evolution-chip__text-label {
+    color: #fff !important;
+  }
+}

@@ -1,0 +1,9 @@
+bin/
+obj/
+*.user
+.vs/
+appsettings.*.local.json
+
+# Uploaded content shouldn't be committed, but keep the folder structure
+src/RestaurantDelivery.Api/wwwroot/uploads/**
+!src/RestaurantDelivery.Api/wwwroot/uploads/**/.gitkeep

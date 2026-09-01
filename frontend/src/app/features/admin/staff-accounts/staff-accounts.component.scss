@@ -1,0 +1,31 @@
+.staff-page {
+  max-width: 480px;
+  margin: 24px auto 64px;
+  padding: 0 16px;
+
+  h1 {
+    margin: 0 0 4px;
+    font-size: 1.4rem;
+  }
+}
+
+.subtitle {
+  color: rgba(0, 0, 0, 0.6);
+  margin: 0 0 20px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.error-text {
+  color: var(--mat-sys-error, #b3261e);
+  font-size: 0.875rem;
+  margin: 0 0 8px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}

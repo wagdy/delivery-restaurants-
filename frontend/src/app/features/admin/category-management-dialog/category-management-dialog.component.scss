@@ -1,0 +1,46 @@
+.add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  min-width: 380px;
+}
+
+.add-field {
+  flex: 1 1 auto;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+.empty-state {
+  color: rgba(0, 0, 0, 0.5);
+  padding: 8px 0;
+}
+
+.category-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.category-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.category-name {
+  flex: 1 1 auto;
+}
+
+.edit-field {
+  flex: 1 1 auto;
+}

@@ -1,0 +1,56 @@
+<h2 mat-dialog-title>Your cart</h2>
+
+<mat-dialog-content>
+  @if (cart.lines().length === 0) {
+    <p class="empty-cart">Your cart is empty. Add something tasty from the menu!</p>
+  } @else {
+    <div class="cart-lines">
+      @for (line of cart.lines(); track cart.keyFor(line)) {
+        <div class="cart-line">
+          <div class="line-info">
+            <span class="line-name">{{ line.menuItem.name }}</span>
+            @if (line.selectedAddOns.length > 0) {
+              <span class="line-addons">+ {{ line.selectedAddOns | addOnNames }}</span>
+            }
+            <span class="line-price">${{ cart.lineUnitPrice(line).toFixed(2) }} each</span>
+          </div>
+          <div class="line-controls">
+            <button mat-icon-button (click)="cart.decrement(cart.keyFor(line))" aria-label="Decrease quantity">
+              <mat-icon>remove</mat-icon>
+            </button>
+            <span class="qty-value">{{ line.quantity }}</span>
+            <button mat-icon-button (click)="cart.increment(cart.keyFor(line))" aria-label="Increase quantity">
+              <mat-icon>add</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="cart.remove(cart.keyFor(line))" aria-label="Remove item">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+          <span class="line-total">${{ (cart.lineUnitPrice(line) * line.quantity).toFixed(2) }}</span>
+        </div>
+      }
+    </div>
+
+    <div class="totals">
+      <div class="totals-row">
+        <span>Subtotal</span>
+        <span>${{ cart.subtotal().toFixed(2) }}</span>
+      </div>
+      <div class="totals-row">
+        <span>Delivery fee</span>
+        <span>${{ cart.deliveryFee().toFixed(2) }}</span>
+      </div>
+      <div class="totals-row total">
+        <span>Estimated total</span>
+        <span>${{ cart.estimatedTotal().toFixed(2) }}</span>
+      </div>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="close()">Continue shopping</button>
+  <button mat-flat-button color="primary" [disabled]="cart.lines().length === 0" (click)="checkout()">
+    Checkout
+  </button>
+</mat-dialog-actions>

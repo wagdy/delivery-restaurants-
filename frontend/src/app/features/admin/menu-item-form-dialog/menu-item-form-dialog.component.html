@@ -1,0 +1,127 @@
+<h2 mat-dialog-title>{{ data.mode === 'create' ? 'New Menu Item' : 'Edit ' + data.menuItem?.name }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-dialog-content>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name" />
+      @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+        <mat-error>Name is required</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Description</mat-label>
+      <textarea matInput formControlName="description" rows="2"></textarea>
+    </mat-form-field>
+
+    <div class="row">
+      <mat-form-field appearance="outline" class="price-field">
+        <mat-label>Price</mat-label>
+        <span matPrefix>$&nbsp;</span>
+        <input matInput type="number" step="0.01" min="0.01" formControlName="price" />
+        @if (form.controls.price.hasError('required') && form.controls.price.touched) {
+          <mat-error>Price is required</mat-error>
+        }
+        @if (form.controls.price.hasError('min') && form.controls.price.touched) {
+          <mat-error>Price must be greater than $0</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="category-field">
+        <mat-label>Category</mat-label>
+        <mat-select formControlName="category">
+          @for (category of data.categories; track category) {
+            <mat-option [value]="category">{{ category }}</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.category.hasError('required') && form.controls.category.touched) {
+          <mat-error>Category is required</mat-error>
+        }
+        @if (data.categories.length === 0) {
+          <mat-hint>No categories yet — add one from the Categories button first.</mat-hint>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="photo-section">
+      <span class="photo-label">Photo</span>
+
+      <div class="photo-row">
+        @if (form.controls.imageUrl.value) {
+          <img class="photo-preview" [src]="form.controls.imageUrl.value" alt="Menu item photo preview" />
+        } @else {
+          <div class="photo-placeholder">
+            <mat-icon>restaurant</mat-icon>
+          </div>
+        }
+
+        <div class="photo-actions">
+          <input
+            #photoInput
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            hidden
+            (change)="onPhotoSelected($event)"
+          />
+          <button mat-stroked-button type="button" [disabled]="uploading()" (click)="photoInput.click()">
+            @if (uploading()) {
+              <mat-spinner diameter="18"></mat-spinner>
+            } @else {
+              <ng-container>
+                <mat-icon>upload</mat-icon>
+                {{ form.controls.imageUrl.value ? 'Replace photo' : 'Upload photo' }}
+              </ng-container>
+            }
+          </button>
+          @if (form.controls.imageUrl.value) {
+            <button mat-button type="button" color="warn" (click)="removePhoto()">Remove</button>
+          }
+        </div>
+      </div>
+
+      @if (uploadError()) {
+        <p class="error-text">{{ uploadError() }}</p>
+      }
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Image URL (optional)</mat-label>
+        <input matInput formControlName="imageUrl" placeholder="Or paste an external image URL" />
+      </mat-form-field>
+    </div>
+
+    @if (data.availableAddOns.length > 0) {
+      <div class="addons-section">
+        <span class="addons-label">Add-ons available for this item</span>
+        @for (addOn of data.availableAddOns; track addOn.id) {
+          <label class="addon-row">
+            <mat-checkbox
+              [checked]="isAddOnSelected(addOn.id)"
+              (change)="toggleAddOn(addOn.id)"
+            >
+              {{ addOn.name }}
+            </mat-checkbox>
+            <span class="addon-price">+${{ addOn.price.toFixed(2) }}</span>
+          </label>
+        }
+      </div>
+    }
+
+    <mat-slide-toggle formControlName="isAvailable">Available for ordering</mat-slide-toggle>
+
+    @if (errorMessage()) {
+      <p class="error-text">{{ errorMessage() }}</p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="cancel()">Cancel</button>
+    <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+      @if (saving()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        Save
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

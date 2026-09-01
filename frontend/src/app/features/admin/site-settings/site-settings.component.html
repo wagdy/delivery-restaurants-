@@ -1,0 +1,140 @@
+<div class="settings-page">
+  <h1>Site Settings</h1>
+  <p class="subtitle">Branding and contact info shown across the storefront, toolbar, and footer.</p>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="settings-grid">
+        <mat-card class="settings-card">
+          <mat-card-header>
+            <mat-card-title>Branding</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Restaurant name</mat-label>
+              <input matInput formControlName="restaurantName" />
+              @if (form.controls.restaurantName.hasError('required') && form.controls.restaurantName.touched) {
+                <mat-error>Name is required</mat-error>
+              }
+            </mat-form-field>
+
+            <div class="logo-section">
+              <span class="field-label">Logo</span>
+              <div class="logo-row">
+                @if (form.controls.logoUrl.value) {
+                  <img class="logo-preview" [src]="form.controls.logoUrl.value" alt="Restaurant logo preview" />
+                } @else {
+                  <div class="logo-placeholder">
+                    <mat-icon>restaurant</mat-icon>
+                  </div>
+                }
+
+                <div class="logo-actions">
+                  <input
+                    #logoInput
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+                    hidden
+                    (change)="onLogoSelected($event)"
+                  />
+                  <button mat-stroked-button type="button" [disabled]="uploading()" (click)="logoInput.click()">
+                    @if (uploading()) {
+                      <mat-spinner diameter="18"></mat-spinner>
+                    } @else {
+                      <ng-container>
+                        <mat-icon>upload</mat-icon>
+                        {{ form.controls.logoUrl.value ? 'Replace logo' : 'Upload logo' }}
+                      </ng-container>
+                    }
+                  </button>
+                  @if (form.controls.logoUrl.value) {
+                    <button mat-button type="button" color="warn" (click)="removeLogo()">Remove</button>
+                  }
+                </div>
+              </div>
+              @if (uploadError()) {
+                <p class="error-text">{{ uploadError() }}</p>
+              }
+            </div>
+
+            <div class="color-row">
+              <div class="color-field">
+                <span class="field-label">Primary color</span>
+                <div class="color-input-group">
+                  <input
+                    type="color"
+                    class="color-swatch"
+                    [value]="form.controls.primaryColor.value"
+                    (input)="form.controls.primaryColor.setValue($any($event.target).value)"
+                  />
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="color-hex">
+                    <input matInput formControlName="primaryColor" />
+                  </mat-form-field>
+                </div>
+              </div>
+
+              <div class="color-field">
+                <span class="field-label">Accent color</span>
+                <div class="color-input-group">
+                  <input
+                    type="color"
+                    class="color-swatch"
+                    [value]="form.controls.accentColor.value"
+                    (input)="form.controls.accentColor.setValue($any($event.target).value)"
+                  />
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="color-hex">
+                    <input matInput formControlName="accentColor" />
+                  </mat-form-field>
+                </div>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="settings-card">
+          <mat-card-header>
+            <mat-card-title>Contact &amp; Footer</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Address</mat-label>
+              <input matInput formControlName="address" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Phone</mat-label>
+              <input matInput formControlName="phone" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Email</mat-label>
+              <input matInput formControlName="email" />
+              @if (form.controls.email.hasError('email') && form.controls.email.touched) {
+                <mat-error>Enter a valid email</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Footer about text</mat-label>
+              <textarea matInput formControlName="footerAbout" rows="3"></textarea>
+            </mat-form-field>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <div class="actions">
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+          @if (saving()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            Save changes
+          }
+        </button>
+      </div>
+    </form>
+  }
+</div>

@@ -1,0 +1,21 @@
+<nav mat-tab-nav-bar [tabPanel]="tabPanel" class="admin-tabs">
+  <a mat-tab-link routerLink="orders" routerLinkActive #ordersLink="routerLinkActive" [active]="ordersLink.isActive">
+    Orders
+  </a>
+  <a mat-tab-link routerLink="menu" routerLinkActive #menuLink="routerLinkActive" [active]="menuLink.isActive">
+    Menu Items
+  </a>
+  <a mat-tab-link routerLink="settings" routerLinkActive #settingsLink="routerLinkActive" [active]="settingsLink.isActive">
+    Settings
+  </a>
+  <a mat-tab-link routerLink="staff" routerLinkActive #staffLink="routerLinkActive" [active]="staffLink.isActive">
+    Staff
+  </a>
+  <a mat-tab-link routerLink="customers" routerLinkActive #customersLink="routerLinkActive" [active]="customersLink.isActive">
+    Customers
+  </a>
+</nav>
+
+<mat-tab-nav-panel #tabPanel>
+  <router-outlet></router-outlet>
+</mat-tab-nav-panel>

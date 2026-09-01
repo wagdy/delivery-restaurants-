@@ -1,0 +1,85 @@
+<h2 mat-dialog-title>{{ data.mode === 'create' ? 'New Order' : 'Edit Order #' + data.order?.id }}</h2>
+
+@if (loading()) {
+  <mat-dialog-content class="loading-content">
+    <mat-spinner diameter="32"></mat-spinner>
+  </mat-dialog-content>
+} @else {
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <mat-dialog-content>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Customer name</mat-label>
+        <input matInput formControlName="customerName" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Phone</mat-label>
+        <input matInput formControlName="customerPhone" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Delivery address</mat-label>
+        <input matInput formControlName="deliveryAddress" />
+      </mat-form-field>
+
+      <h3>Items</h3>
+      <div formArrayName="items">
+        @for (itemGroup of items.controls; track itemGroup; let i = $index) {
+          <div class="item-row" [formGroupName]="i">
+            <mat-form-field appearance="outline" class="item-select">
+              <mat-label>Menu item</mat-label>
+              <mat-select formControlName="menuItemId">
+                @for (menuItem of menuItems(); track menuItem.id) {
+                  <mat-option [value]="menuItem.id" [disabled]="!menuItem.isAvailable">
+                    {{ menuItem.name }} (${{ menuItem.price.toFixed(2) }})
+                    @if (!menuItem.isAvailable) {
+                      — unavailable
+                    }
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="item-qty">
+              <mat-label>Qty</mat-label>
+              <input matInput type="number" min="1" max="100" formControlName="quantity" />
+            </mat-form-field>
+
+            <button
+              mat-icon-button
+              type="button"
+              color="warn"
+              [disabled]="items.length === 1"
+              (click)="removeItem(i)"
+              aria-label="Remove item"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        }
+      </div>
+
+      <button mat-stroked-button type="button" (click)="addItem()">
+        <mat-icon>add</mat-icon>
+        Add item
+      </button>
+
+      <p class="estimated-total">Estimated total: ${{ estimatedTotal.toFixed(2) }}</p>
+
+      @if (errorMessage()) {
+        <p class="error-text">{{ errorMessage() }}</p>
+      }
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button type="button" (click)="cancel()">Cancel</button>
+      <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+        @if (saving()) {
+          <mat-spinner diameter="20"></mat-spinner>
+        } @else {
+          Save
+        }
+      </button>
+    </mat-dialog-actions>
+  </form>
+}

@@ -1,0 +1,99 @@
+<mat-toolbar class="management-toolbar">
+  <h1>Menu Items</h1>
+  <span class="spacer"></span>
+
+  <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+    <mat-label>Search</mat-label>
+    <input matInput [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" placeholder="Name or category" />
+  </mat-form-field>
+
+  <button mat-icon-button (click)="load()" aria-label="Refresh">
+    <mat-icon>refresh</mat-icon>
+  </button>
+
+  <button mat-stroked-button (click)="openCategoryManagement()">
+    <mat-icon>category</mat-icon>
+    Categories
+  </button>
+
+  <button mat-stroked-button (click)="openAddOnManagement()">
+    <mat-icon>tune</mat-icon>
+    Add-ons
+  </button>
+
+  <button mat-flat-button color="primary" (click)="openCreate()">
+    <mat-icon>add</mat-icon>
+    New Menu Item
+  </button>
+</mat-toolbar>
+
+@if (loading()) {
+  <div class="loading-state">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+} @else if (errorMessage()) {
+  <p class="error-text">{{ errorMessage() }}</p>
+} @else if (filteredItems().length === 0) {
+  <p class="empty-state">No menu items found.</p>
+} @else {
+  <div class="table-wrapper">
+    <table mat-table [dataSource]="filteredItems()">
+      <ng-container matColumnDef="photo">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let item">
+          @if (item.imageUrl) {
+            <img class="thumbnail" [src]="item.imageUrl" [alt]="item.name" />
+          } @else {
+            <div class="thumbnail-placeholder">
+              <mat-icon>restaurant</mat-icon>
+            </div>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Name</th>
+        <td mat-cell *matCellDef="let item">
+          <div class="name-cell">
+            <span class="item-name" [class.unavailable]="!item.isAvailable">{{ item.name }}</span>
+            @if (item.description) {
+              <span class="item-description">{{ item.description }}</span>
+            }
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="category">
+        <th mat-header-cell *matHeaderCellDef>Category</th>
+        <td mat-cell *matCellDef="let item">{{ item.category }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="price">
+        <th mat-header-cell *matHeaderCellDef>Price</th>
+        <td mat-cell *matCellDef="let item">${{ item.price.toFixed(2) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="available">
+        <th mat-header-cell *matHeaderCellDef>Available</th>
+        <td mat-cell *matCellDef="let item">
+          <mat-slide-toggle [checked]="item.isAvailable" (change)="toggleAvailability(item)"></mat-slide-toggle>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Actions</th>
+        <td mat-cell *matCellDef="let item">
+          <button mat-icon-button (click)="openEdit(item)" aria-label="Edit">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="delete(item)" aria-label="Delete">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+  </div>
+}

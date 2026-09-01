@@ -1,0 +1,95 @@
+.full-width {
+  width: 100%;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+}
+
+.price-field {
+  width: 140px;
+}
+
+.category-field {
+  flex: 1 1 auto;
+}
+
+.photo-section {
+  margin: 4px 0 12px;
+}
+
+.photo-label {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.6);
+  margin-bottom: 6px;
+}
+
+.photo-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.photo-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #f1f1f1;
+  flex-shrink: 0;
+}
+
+.photo-placeholder {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  background: #f1f1f1;
+  color: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.photo-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.addons-section {
+  margin: 8px 0 4px;
+}
+
+.addons-label {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.6);
+  margin-bottom: 4px;
+}
+
+.addon-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 0;
+}
+
+.addon-price {
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+mat-slide-toggle {
+  display: block;
+  margin: 8px 0 4px;
+}
+
+.error-text {
+  color: var(--mat-sys-error, #b3261e);
+  font-size: 0.875rem;
+}

@@ -1,0 +1,26 @@
+@if (menuOpen()) {
+  <div class="fab-backdrop" (click)="closeMenu()"></div>
+
+  <div class="fab-menu" role="menu" aria-label="Jump to category">
+    @for (category of filteredCategories(); track category) {
+      <button type="button" class="fab-menu-item" role="menuitem" (click)="selectCategory(category)">
+        {{ category }}
+      </button>
+    } @empty {
+      <p class="fab-menu-empty">No other sections to jump to</p>
+    }
+  </div>
+}
+
+<button
+  type="button"
+  class="fab"
+  [class.fab-visible]="visible()"
+  [class.fab-open]="menuOpen()"
+  (click)="toggleMenu()"
+  aria-haspopup="menu"
+  [attr.aria-expanded]="menuOpen()"
+  aria-label="Jump to menu category"
+>
+  <mat-icon>more_vert</mat-icon>
+</button>

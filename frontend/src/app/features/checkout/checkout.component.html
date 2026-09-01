@@ -1,0 +1,103 @@
+<div class="checkout-page">
+  @if (cart.lines().length === 0) {
+    <div class="empty-cart-notice">
+      <h1>Your cart is empty</h1>
+      <p>Add something from the menu before checking out.</p>
+      <a mat-flat-button color="primary" routerLink="/">Browse the menu</a>
+    </div>
+  } @else {
+    <div class="checkout-layout">
+      <mat-card class="details-card">
+        <mat-card-header>
+          <mat-card-title>Delivery details</mat-card-title>
+          @if (authService.isAuthenticated()) {
+            <mat-card-subtitle>Signed in as {{ authService.currentUser()?.fullName }}</mat-card-subtitle>
+          } @else {
+            <mat-card-subtitle>Checking out as a guest — no account required</mat-card-subtitle>
+          }
+        </mat-card-header>
+
+        <form [formGroup]="form" (ngSubmit)="placeOrder()">
+          <mat-card-content>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Full name</mat-label>
+              <input matInput formControlName="customerName" />
+              @if (form.controls.customerName.hasError('required') && form.controls.customerName.touched) {
+                <mat-error>Name is required</mat-error>
+              }
+              @if (form.controls.customerName.hasError('pattern') && form.controls.customerName.touched) {
+                <mat-error>Name can only contain letters</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Phone</mat-label>
+              <input matInput formControlName="customerPhone" />
+              @if (form.controls.customerPhone.hasError('required') && form.controls.customerPhone.touched) {
+                <mat-error>Phone is required</mat-error>
+              }
+              @if (form.controls.customerPhone.hasError('pattern') && form.controls.customerPhone.touched) {
+                <mat-error>Phone number must contain only numbers</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Delivery address</mat-label>
+              <input matInput formControlName="deliveryAddress" />
+              @if (form.controls.deliveryAddress.hasError('required') && form.controls.deliveryAddress.touched) {
+                <mat-error>Delivery address is required</mat-error>
+              }
+            </mat-form-field>
+
+            @if (errorMessage()) {
+              <p class="error-text">{{ errorMessage() }}</p>
+            }
+          </mat-card-content>
+
+          <mat-card-actions>
+            <button mat-flat-button color="primary" type="submit" [disabled]="submitting() || form.invalid">
+              @if (submitting()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                Place order
+              }
+            </button>
+          </mat-card-actions>
+        </form>
+      </mat-card>
+
+      <mat-card class="summary-card">
+        <mat-card-header>
+          <mat-card-title>Order summary</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @for (line of cart.lines(); track cart.keyFor(line)) {
+            <div class="summary-line">
+              <span>
+                {{ line.quantity }} × {{ line.menuItem.name }}
+                @if (line.selectedAddOns.length > 0) {
+                  <span class="summary-addons">+ {{ line.selectedAddOns | addOnNames }}</span>
+                }
+              </span>
+              <span>${{ (cart.lineUnitPrice(line) * line.quantity).toFixed(2) }}</span>
+            </div>
+          }
+          <div class="totals">
+            <div class="totals-row">
+              <span>Subtotal</span>
+              <span>${{ cart.subtotal().toFixed(2) }}</span>
+            </div>
+            <div class="totals-row">
+              <span>Delivery fee</span>
+              <span>${{ cart.deliveryFee().toFixed(2) }}</span>
+            </div>
+            <div class="totals-row total">
+              <span>Estimated total</span>
+              <span>${{ cart.estimatedTotal().toFixed(2) }}</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+</div>

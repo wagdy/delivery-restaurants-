@@ -1,0 +1,49 @@
+<div class="my-orders-page">
+  <h1>My Orders</h1>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (errorMessage()) {
+    <p class="error-text">{{ errorMessage() }}</p>
+  } @else if (orders().length === 0) {
+    <div class="empty-state">
+      <p>You haven't placed any orders yet.</p>
+      <a mat-flat-button color="primary" routerLink="/">Browse the menu</a>
+    </div>
+  } @else {
+    <mat-accordion>
+      @for (order of orders(); track order.id) {
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title>Order #{{ order.id }}</mat-panel-title>
+            <mat-panel-description>
+              <span class="status-chip" [class]="'status-' + order.status">{{ order.status }}</span>
+              <span class="order-date">{{ order.createdAt | date: 'medium' }}</span>
+            </mat-panel-description>
+          </mat-expansion-panel-header>
+
+          <div class="panel-body">
+            <p>{{ order.deliveryAddress }}</p>
+            @for (item of order.items; track item.id) {
+              <div class="item-row">
+                <span>
+                  {{ item.quantity }} × {{ item.menuItemName }}
+                  @if (item.addOns.length > 0) {
+                    <span class="item-addons">+ {{ item.addOns | addOnNames }}</span>
+                  }
+                </span>
+                <span>${{ item.lineTotal.toFixed(2) }}</span>
+              </div>
+            }
+            <div class="item-row total">
+              <span>Total</span>
+              <span>${{ order.totalAmount.toFixed(2) }}</span>
+            </div>
+          </div>
+        </mat-expansion-panel>
+      }
+    </mat-accordion>
+  }
+</div>

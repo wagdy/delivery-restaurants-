@@ -1,0 +1,40 @@
+.full-width {
+  width: 100%;
+}
+
+.loading-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 120px;
+}
+
+h3 {
+  margin: 8px 0 4px;
+  font-size: 0.95rem;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.item-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.item-select {
+  flex: 1 1 auto;
+}
+
+.item-qty {
+  width: 90px;
+}
+
+.estimated-total {
+  font-weight: 500;
+  margin-top: 8px;
+}
+
+.error-text {
+  color: var(--mat-sys-error, #b3261e);
+  font-size: 0.875rem;
+}

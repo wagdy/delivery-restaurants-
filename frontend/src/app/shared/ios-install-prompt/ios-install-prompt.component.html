@@ -1,0 +1,17 @@
+@if (shouldShow()) {
+  <div class="ios-prompt">
+    <mat-icon class="ios-prompt-icon">add_to_home_screen</mat-icon>
+    <div class="ios-prompt-text">
+      <strong>Install this app to get delivery alerts</strong>
+      <p>
+        iPhone/iPad only sends notifications to apps added to your Home Screen. Tap
+        <mat-icon class="inline-icon">ios_share</mat-icon>
+        <strong>Share</strong> in Safari, then <strong>"Add to Home Screen"</strong> — then open it from
+        there and allow notifications.
+      </p>
+    </div>
+    <button mat-icon-button (click)="dismiss()" aria-label="Dismiss">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+}

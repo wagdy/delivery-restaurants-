@@ -1,0 +1,8 @@
+# OS cruft
+.DS_Store
+
+# Local Claude Code settings (personal permissions/overrides, not shared config)
+.claude/settings.local.json
+
+# Separate project with its own git repository - not part of this repo
+otantik-loyalty/

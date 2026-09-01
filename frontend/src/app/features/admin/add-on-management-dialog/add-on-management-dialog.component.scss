@@ -1,0 +1,57 @@
+.add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  min-width: 460px;
+}
+
+.name-field {
+  flex: 1 1 auto;
+}
+
+.price-field,
+.edit-price-field {
+  width: 110px;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+.empty-state {
+  color: rgba(0, 0, 0, 0.5);
+  padding: 8px 0;
+}
+
+.addon-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.addon-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.addon-name {
+  flex: 1 1 auto;
+}
+
+.addon-price {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.875rem;
+  min-width: 50px;
+}
+
+.edit-name-field {
+  flex: 1 1 auto;
+}

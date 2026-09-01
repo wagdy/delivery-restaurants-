@@ -1,0 +1,89 @@
+.dialog-content {
+  min-width: 360px;
+  max-width: 440px;
+}
+
+.item-image {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+}
+
+.body {
+  padding: 20px 24px 8px;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+
+  h2 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+}
+
+.base-price {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.description {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.9rem;
+  margin: 8px 0 0;
+}
+
+.addons-section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+
+  h3 {
+    margin: 0 0 8px;
+    font-size: 0.85rem;
+    color: rgba(0, 0, 0, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+}
+
+.addon-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.addon-price {
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.quantity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.quantity-label {
+  font-weight: 500;
+}
+
+.qty-stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.qty-value {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 500;
+}

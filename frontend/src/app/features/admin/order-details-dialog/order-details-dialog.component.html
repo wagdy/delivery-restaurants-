@@ -1,0 +1,99 @@
+<h2 mat-dialog-title>
+  Order #{{ order().id }}
+  <span class="status-chip" [class]="'status-' + order().status">{{ order().status }}</span>
+</h2>
+
+<mat-dialog-content>
+  <div class="meta-row">
+    <span>Placed {{ order().createdAt | date: 'medium' }}</span>
+    <span>{{ order().userId ? 'Registered customer' : 'Guest checkout' }}</span>
+  </div>
+
+  <div class="section">
+    <h3>Customer</h3>
+    <p>{{ order().customerName }}</p>
+    <p>{{ order().customerPhone }}</p>
+    <p>{{ order().deliveryAddress }}</p>
+  </div>
+
+  <div class="section">
+    <h3>Items</h3>
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Qty</th>
+          <th>Unit price</th>
+          <th>Line total</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of order().items; track item.id) {
+          <tr>
+            <td>
+              {{ item.menuItemName }}
+              @if (item.addOns.length > 0) {
+                <span class="item-addons">+ {{ item.addOns | addOnNames }}</span>
+              }
+            </td>
+            <td>{{ item.quantity }}</td>
+            <td>${{ item.unitPrice.toFixed(2) }}</td>
+            <td>${{ item.lineTotal.toFixed(2) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <p class="total">Total: ${{ order().totalAmount.toFixed(2) }}</p>
+  </div>
+
+  <div class="section">
+    @if (isAdmin()) {
+      <mat-form-field appearance="outline" class="status-select">
+        <mat-label>Status</mat-label>
+        <mat-select
+          [ngModel]="order().status"
+          (ngModelChange)="onStatusChange($event)"
+          [disabled]="updatingStatus()"
+        >
+          @for (status of statuses; track status) {
+            <mat-option [value]="status">{{ status }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    } @else if (isCaptain()) {
+      <div class="captain-actions">
+        @if (canAccept) {
+          <button mat-flat-button color="primary" [disabled]="updatingStatus()" (click)="acceptOrder()">
+            <mat-icon>local_shipping</mat-icon>
+            Accept &amp; start delivery
+          </button>
+        } @else if (canMarkDelivered) {
+          <button mat-flat-button color="primary" [disabled]="updatingStatus()" (click)="markDelivered()">
+            <mat-icon>check_circle</mat-icon>
+            Mark delivered
+          </button>
+        } @else {
+          <span class="locked-note">No action needed — order is {{ order().status }}</span>
+        }
+      </div>
+    }
+    @if (updatingStatus()) {
+      <mat-spinner diameter="20"></mat-spinner>
+    }
+  </div>
+
+  @if (errorMessage()) {
+    <p class="error-text">{{ errorMessage() }}</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (isAdmin()) {
+    @if (!isEditable) {
+      <span class="locked-note">Locked — order is {{ order().status }}</span>
+    }
+    <button mat-button [disabled]="!isEditable" (click)="edit()">Edit</button>
+    <button mat-button color="warn" [disabled]="deleting()" (click)="delete()">Delete</button>
+  }
+  <button mat-flat-button color="primary" (click)="close()">Close</button>
+</mat-dialog-actions>

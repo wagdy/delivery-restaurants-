@@ -1,0 +1,129 @@
+.dashboard-toolbar {
+  background: white;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  gap: 12px;
+
+  h1 {
+    font-size: 1.25rem;
+    margin: 0;
+  }
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.search-field {
+  width: 260px;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.error-text {
+  color: var(--mat-sys-error, #b3261e);
+  padding: 24px;
+}
+
+.board {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  overflow-x: auto;
+  align-items: flex-start;
+}
+
+.column {
+  flex: 0 0 260px;
+  background: #f1f1f1;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 140px);
+}
+
+.column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-radius: 8px 8px 0 0;
+  color: white;
+}
+.status-Pending { background: #f9a825; }
+.status-Preparing { background: #1e88e5; }
+.status-OutForDelivery { background: #8e24aa; }
+.status-Delivered { background: #43a047; }
+.status-Cancelled { background: #e53935; }
+
+.count {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  padding: 0 8px;
+  font-size: 0.75rem;
+}
+
+.column-body {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.order-card {
+  background: white;
+  border-radius: 6px;
+  padding: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+  position: relative;
+}
+
+.order-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.customer-name {
+  margin-top: 4px;
+  font-size: 0.9rem;
+}
+
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 0.75rem;
+  margin-top: 6px;
+}
+
+.guest-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.65rem;
+  background: #eeeeee;
+  color: rgba(0, 0, 0, 0.6);
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+.empty-column {
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 12px 0;
+}
