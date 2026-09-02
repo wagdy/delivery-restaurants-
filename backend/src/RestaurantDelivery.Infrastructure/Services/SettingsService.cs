@@ -30,6 +30,10 @@ public class SettingsService : ISettingsService
         settings.LogoUrl = request.LogoUrl;
         settings.PrimaryColor = request.PrimaryColor;
         settings.AccentColor = request.AccentColor;
+        settings.HeaderColor = request.HeaderColor;
+        settings.BodyColor = request.BodyColor;
+        settings.BackgroundImageUrl = request.BackgroundImageUrl;
+        settings.CenterLogoUrl = request.CenterLogoUrl;
         settings.Address = request.Address;
         settings.Phone = request.Phone;
         settings.Email = request.Email;
@@ -60,6 +64,10 @@ public class SettingsService : ISettingsService
         LogoUrl = settings.LogoUrl,
         PrimaryColor = settings.PrimaryColor,
         AccentColor = settings.AccentColor,
+        HeaderColor = settings.HeaderColor,
+        BodyColor = settings.BodyColor,
+        BackgroundImageUrl = settings.BackgroundImageUrl,
+        CenterLogoUrl = settings.CenterLogoUrl,
         Address = settings.Address,
         Phone = settings.Phone,
         Email = settings.Email,

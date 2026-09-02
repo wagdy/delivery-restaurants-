@@ -3,6 +3,9 @@
 :root {
   --app-primary-color: #3f51b5;
   --app-accent-color: #ff4081;
+  --app-header-color: #3f51b5;
+  --app-body-color: #fafafa;
+  --app-body-image: none;
 
   // TEMP: app-footer is commented out in app.component.html. Its ResizeObserver
   // normally sets this at runtime; with the footer gone, it would otherwise fall back
@@ -16,7 +19,11 @@ html, body { height: 100%; }
 body {
   margin: 0;
   font-family: Roboto, "Helvetica Neue", sans-serif;
-  background-color: #fafafa;
+  background-color: var(--app-body-color);
+  background-image: var(--app-body-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color: rgba(0, 0, 0, 0.87);
   color-scheme: light;
 }
@@ -26,11 +33,13 @@ body {
  * (baked-in hex values, no CSS custom properties). To let the admin recolor
  * the visible chrome at runtime without rebuilding Sass, the most-visible
  * Material surfaces are repainted here from --app-primary-color/--app-accent-color.
+ * The toolbar specifically uses --app-header-color instead, a separate control from
+ * --app-primary-color (which still drives buttons/chips/FABs below).
  * Deep internals (e.g. the slide-toggle thumb) intentionally keep the
  * default theme accent — this covers what actually reads as "the layout color".
  */
 .mat-toolbar.mat-primary {
-  background-color: var(--app-primary-color) !important;
+  background-color: var(--app-header-color) !important;
   color: #fff !important;
 }
 

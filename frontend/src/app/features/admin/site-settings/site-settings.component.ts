@@ -14,6 +14,8 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 
+type SettingsCategory = 'branding' | 'contact';
+
 @Component({
   selector: 'app-site-settings',
   standalone: true,
@@ -37,7 +39,11 @@ export class SiteSettingsComponent {
 
   readonly loading = signal(true);
   readonly saving = signal(false);
-  readonly uploading = signal(false);
+  readonly activeCategory = signal<SettingsCategory>('branding');
+
+  readonly uploadingLogo = signal(false);
+  readonly uploadingBackgroundImage = signal(false);
+  readonly uploadingCenterLogo = signal(false);
   readonly uploadError = signal<string | null>(null);
 
   readonly form = this.fb.nonNullable.group({
@@ -45,6 +51,10 @@ export class SiteSettingsComponent {
     logoUrl: [''],
     primaryColor: ['#3f51b5', [Validators.required, Validators.pattern(HEX_COLOR_PATTERN)]],
     accentColor: ['#ff4081', [Validators.required, Validators.pattern(HEX_COLOR_PATTERN)]],
+    headerColor: ['#3f51b5', [Validators.required, Validators.pattern(HEX_COLOR_PATTERN)]],
+    bodyColor: ['#fafafa', [Validators.required, Validators.pattern(HEX_COLOR_PATTERN)]],
+    backgroundImageUrl: [''],
+    centerLogoUrl: [''],
     address: [''],
     phone: [''],
     email: ['', [Validators.email]],
@@ -59,6 +69,10 @@ export class SiteSettingsComponent {
           logoUrl: settings.logoUrl ?? '',
           primaryColor: settings.primaryColor,
           accentColor: settings.accentColor,
+          headerColor: settings.headerColor,
+          bodyColor: settings.bodyColor,
+          backgroundImageUrl: settings.backgroundImageUrl ?? '',
+          centerLogoUrl: settings.centerLogoUrl ?? '',
           address: settings.address ?? '',
           phone: settings.phone ?? '',
           email: settings.email ?? '',
@@ -73,6 +87,20 @@ export class SiteSettingsComponent {
     });
   }
 
+  // Shared by every image upload below - returns an error message, or null if the file
+  // is acceptable to send to the server.
+  private validateImageFile(file: File): string | null {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      return 'Only JPG, PNG, WEBP, GIF, and SVG images are allowed.';
+    }
+
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      return 'Image must be 5 MB or smaller.';
+    }
+
+    return null;
+  }
+
   onLogoSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -83,25 +111,20 @@ export class SiteSettingsComponent {
     }
 
     this.uploadError.set(null);
-
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      this.uploadError.set('Only JPG, PNG, WEBP, GIF, and SVG images are allowed.');
+    const validationError = this.validateImageFile(file);
+    if (validationError) {
+      this.uploadError.set(validationError);
       return;
     }
 
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      this.uploadError.set('Image must be 5 MB or smaller.');
-      return;
-    }
-
-    this.uploading.set(true);
+    this.uploadingLogo.set(true);
     this.settingsService.uploadLogo(file).subscribe({
       next: (res) => {
-        this.uploading.set(false);
+        this.uploadingLogo.set(false);
         this.form.controls.logoUrl.setValue(res.url);
       },
       error: (err) => {
-        this.uploading.set(false);
+        this.uploadingLogo.set(false);
         this.uploadError.set(err.error?.errors?.[0] ?? 'Failed to upload logo.');
       }
     });
@@ -109,6 +132,72 @@ export class SiteSettingsComponent {
 
   removeLogo(): void {
     this.form.controls.logoUrl.setValue('');
+  }
+
+  onBackgroundImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    this.uploadError.set(null);
+    const validationError = this.validateImageFile(file);
+    if (validationError) {
+      this.uploadError.set(validationError);
+      return;
+    }
+
+    this.uploadingBackgroundImage.set(true);
+    this.settingsService.uploadBackgroundImage(file).subscribe({
+      next: (res) => {
+        this.uploadingBackgroundImage.set(false);
+        this.form.controls.backgroundImageUrl.setValue(res.url);
+      },
+      error: (err) => {
+        this.uploadingBackgroundImage.set(false);
+        this.uploadError.set(err.error?.errors?.[0] ?? 'Failed to upload background image.');
+      }
+    });
+  }
+
+  removeBackgroundImage(): void {
+    this.form.controls.backgroundImageUrl.setValue('');
+  }
+
+  onCenterLogoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    this.uploadError.set(null);
+    const validationError = this.validateImageFile(file);
+    if (validationError) {
+      this.uploadError.set(validationError);
+      return;
+    }
+
+    this.uploadingCenterLogo.set(true);
+    this.settingsService.uploadCenterLogo(file).subscribe({
+      next: (res) => {
+        this.uploadingCenterLogo.set(false);
+        this.form.controls.centerLogoUrl.setValue(res.url);
+      },
+      error: (err) => {
+        this.uploadingCenterLogo.set(false);
+        this.uploadError.set(err.error?.errors?.[0] ?? 'Failed to upload center logo.');
+      }
+    });
+  }
+
+  removeCenterLogo(): void {
+    this.form.controls.centerLogoUrl.setValue('');
   }
 
   save(): void {
@@ -126,6 +215,10 @@ export class SiteSettingsComponent {
         logoUrl: raw.logoUrl || null,
         primaryColor: raw.primaryColor,
         accentColor: raw.accentColor,
+        headerColor: raw.headerColor,
+        bodyColor: raw.bodyColor,
+        backgroundImageUrl: raw.backgroundImageUrl || null,
+        centerLogoUrl: raw.centerLogoUrl || null,
         address: raw.address || null,
         phone: raw.phone || null,
         email: raw.email || null,

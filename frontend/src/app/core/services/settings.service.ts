@@ -12,6 +12,10 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
   logoUrl: null,
   primaryColor: '#3f51b5',
   accentColor: '#ff4081',
+  headerColor: '#3f51b5',
+  bodyColor: '#fafafa',
+  backgroundImageUrl: null,
+  centerLogoUrl: null,
   address: null,
   phone: null,
   email: null,
@@ -50,10 +54,28 @@ export class SettingsService {
     return this.http.post<{ url: string }>(`${this.baseUrl}/upload-logo`, formData);
   }
 
+  uploadBackgroundImage(file: File): Observable<{ url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<{ url: string }>(`${this.baseUrl}/upload-background-image`, formData);
+  }
+
+  uploadCenterLogo(file: File): Observable<{ url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<{ url: string }>(`${this.baseUrl}/upload-center-logo`, formData);
+  }
+
   private applyTheme(settings: RestaurantSettings): void {
     const root = document.documentElement;
     root.style.setProperty('--app-primary-color', settings.primaryColor);
     root.style.setProperty('--app-accent-color', settings.accentColor);
+    root.style.setProperty('--app-header-color', settings.headerColor);
+    root.style.setProperty('--app-body-color', settings.bodyColor);
+    root.style.setProperty(
+      '--app-body-image',
+      settings.backgroundImageUrl ? `url('${settings.backgroundImageUrl}')` : 'none'
+    );
     document.title = settings.restaurantName;
   }
 }

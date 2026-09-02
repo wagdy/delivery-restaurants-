@@ -16,6 +16,18 @@ public class UpdateRestaurantSettingsRequest
     [Required, RegularExpression("^#[0-9A-Fa-f]{6}$", ErrorMessage = "Must be a hex color like #ff4081.")]
     public string AccentColor { get; set; } = "#ff4081";
 
+    [Required, RegularExpression("^#[0-9A-Fa-f]{6}$", ErrorMessage = "Must be a hex color like #3f51b5.")]
+    public string HeaderColor { get; set; } = "#3f51b5";
+
+    [Required, RegularExpression("^#[0-9A-Fa-f]{6}$", ErrorMessage = "Must be a hex color like #fafafa.")]
+    public string BodyColor { get; set; } = "#fafafa";
+
+    [MaxLength(2048)]
+    public string? BackgroundImageUrl { get; set; }
+
+    [MaxLength(2048)]
+    public string? CenterLogoUrl { get; set; }
+
     [MaxLength(500)]
     public string? Address { get; set; }
 

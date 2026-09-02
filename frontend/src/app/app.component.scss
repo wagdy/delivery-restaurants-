@@ -1,3 +1,8 @@
+mat-toolbar {
+  // Anchors .center-logo's absolute positioning to the toolbar itself, not the page.
+  position: relative;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -12,6 +17,18 @@
   height: 28px;
   border-radius: 6px;
   object-fit: cover;
+}
+
+.center-logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-height: 40px;
+  max-width: 200px;
+  object-fit: contain;
+  // Never intercepts clicks meant for the brand link/nav buttons underneath it.
+  pointer-events: none;
 }
 
 .spacer {

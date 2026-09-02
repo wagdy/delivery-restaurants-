@@ -55,4 +55,34 @@ public class SettingsController : ControllerBase
         var url = $"{Request.Scheme}://{Request.Host}{result.RelativePath}";
         return Ok(new ImageUploadResponse { Url = url });
     }
+
+    [Authorize(Policy = "Module.Settings")]
+    [HttpPost("upload-background-image")]
+    [RequestSizeLimit(MaxImageSizeBytes)]
+    public async Task<ActionResult<ImageUploadResponse>> UploadBackgroundImage(IFormFile file)
+    {
+        var result = await _fileUploadService.SaveImageAsync(file, "branding");
+        if (!result.Succeeded)
+        {
+            return BadRequest(new { errors = new[] { result.Error } });
+        }
+
+        var url = $"{Request.Scheme}://{Request.Host}{result.RelativePath}";
+        return Ok(new ImageUploadResponse { Url = url });
+    }
+
+    [Authorize(Policy = "Module.Settings")]
+    [HttpPost("upload-center-logo")]
+    [RequestSizeLimit(MaxImageSizeBytes)]
+    public async Task<ActionResult<ImageUploadResponse>> UploadCenterLogo(IFormFile file)
+    {
+        var result = await _fileUploadService.SaveImageAsync(file, "branding");
+        if (!result.Succeeded)
+        {
+            return BadRequest(new { errors = new[] { result.Error } });
+        }
+
+        var url = $"{Request.Scheme}://{Request.Host}{result.RelativePath}";
+        return Ok(new ImageUploadResponse { Url = url });
+    }
 }

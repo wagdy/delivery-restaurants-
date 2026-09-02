@@ -1,5 +1,5 @@
 .settings-page {
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 24px 16px 64px;
 
@@ -20,17 +20,70 @@
   padding: 48px;
 }
 
-.settings-grid {
+.settings-layout {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
   align-items: start;
 }
 
 @media (max-width: 720px) {
-  .settings-grid {
+  .settings-layout {
     grid-template-columns: 1fr;
   }
+}
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: sticky;
+  top: 16px;
+}
+
+.nav-group-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(0, 0, 0, 0.5);
+  padding: 4px 12px 8px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-left: 8px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: rgba(0, 0, 0, 0.75);
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  &.active {
+    background: rgba(63, 81, 181, 0.1);
+    color: var(--app-primary-color, #3f51b5);
+    font-weight: 500;
+  }
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.settings-content {
+  min-width: 0;
 }
 
 .full-width {
@@ -41,29 +94,40 @@
   display: block;
   font-size: 0.75rem;
   color: rgba(0, 0, 0, 0.6);
-  margin-bottom: 6px;
+  margin-bottom: 2px;
 }
 
-.logo-section {
-  margin: 4px 0 16px;
+.field-hint {
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.45);
+  margin: 0 0 8px;
 }
 
-.logo-row {
+.upload-section {
+  margin: 4px 0 20px;
+}
+
+.upload-row {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
-.logo-preview {
+.image-preview {
   width: 64px;
   height: 64px;
   border-radius: 8px;
   object-fit: cover;
   background: #f1f1f1;
   flex-shrink: 0;
+
+  &.wide {
+    width: 120px;
+    object-fit: contain;
+  }
 }
 
-.logo-placeholder {
+.image-placeholder {
   width: 64px;
   height: 64px;
   border-radius: 8px;
@@ -75,7 +139,7 @@
   flex-shrink: 0;
 }
 
-.logo-actions {
+.upload-actions {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -86,10 +150,11 @@
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
+  margin-bottom: 8px;
 }
 
 .color-field {
-  flex: 1 1 160px;
+  flex: 1 1 200px;
 }
 
 .color-input-group {

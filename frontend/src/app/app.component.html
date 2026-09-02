@@ -8,6 +8,16 @@
     <span>{{ settingsService.settings().restaurantName }}</span>
   </a>
 
+  <!-- Optional prominent logo centered in the header. Absent, the header is just its
+       plain header-color background (the "solid block" fallback), unchanged otherwise. -->
+  @if (settingsService.settings().centerLogoUrl) {
+    <img
+      class="center-logo"
+      [src]="settingsService.settings().centerLogoUrl"
+      [alt]="settingsService.settings().restaurantName"
+    />
+  }
+
   <span class="spacer"></span>
 
   @if (authService.isCaptain()) {
