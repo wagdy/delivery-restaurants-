@@ -1,14 +1,4 @@
-import {
-  Component,
-  ElementRef,
-  HostListener,
-  QueryList,
-  ViewChildren,
-  computed,
-  effect,
-  inject,
-  signal
-} from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
@@ -24,8 +14,29 @@ import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { MenuItem } from '../../core/models/menu-item.model';
 import { MenuItemDetailsDialogComponent } from './menu-item-details-dialog/menu-item-details-dialog.component';
-import { CategoryFabComponent } from './category-fab/category-fab.component';
-import { MenuSearchFilterComponent, MenuViewMode } from '../../shared/menu-search-filter/menu-search-filter.component';
+
+export type MenuViewMode = 'list' | 'grid';
+
+// Keyword -> icon for a bit of visual personality on the category cards (View 1) since
+// Category has no image field to show instead. Falls back to a generic icon below for
+// any name that doesn't match - this is cosmetic only, never blocks a category from
+// rendering.
+const CATEGORY_ICONS: { keywords: string[]; icon: string }[] = [
+  { keywords: ['drink', 'beverage', 'juice', 'soda'], icon: 'local_bar' },
+  { keywords: ['dessert', 'sweet', 'cake'], icon: 'icecream' },
+  { keywords: ['pizza'], icon: 'local_pizza' },
+  { keywords: ['salad', 'vegetarian', 'vegan'], icon: 'eco' },
+  { keywords: ['breakfast'], icon: 'free_breakfast' },
+  { keywords: ['grill', 'bbq', 'meat', 'chicken'], icon: 'outdoor_grill' },
+  { keywords: ['soup'], icon: 'soup_kitchen' },
+  { keywords: ['pasta'], icon: 'ramen_dining' }
+];
+const DEFAULT_CATEGORY_ICON = 'restaurant_menu';
+
+function iconForCategory(name: string): string {
+  const lower = name.toLowerCase();
+  return CATEGORY_ICONS.find((entry) => entry.keywords.some((k) => lower.includes(k)))?.icon ?? DEFAULT_CATEGORY_ICON;
+}
 
 @Component({
   selector: 'app-storefront',
@@ -36,9 +47,7 @@ import { MenuSearchFilterComponent, MenuViewMode } from '../../shared/menu-searc
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
-    CategoryFabComponent,
-    MenuSearchFilterComponent
+    MatProgressSpinnerModule
   ],
   templateUrl: './storefront.component.html',
   styleUrl: './storefront.component.scss'
@@ -52,18 +61,17 @@ export class StorefrontComponent {
   protected readonly authService = inject(AuthService);
   protected readonly settingsService = inject(SettingsService);
 
-  // One element per rendered category <section> (see #categorySection in the template) —
-  // used both to detect which section is currently in view while scrolling, and as the
-  // scrollIntoView target when a category is picked from the FAB popup.
-  @ViewChildren('categorySection') private categorySectionEls?: QueryList<ElementRef<HTMLElement>>;
-
   readonly loading = signal(true);
   readonly errorMessage = signal<string | null>(null);
   readonly menuItems = signal<MenuItem[]>([]);
   readonly searchTerm = signal('');
-  readonly selectedCategory = signal<string | null>(null);
   readonly viewMode = signal<MenuViewMode>('grid');
-  readonly activeScrollCategory = signal<string | null>(null);
+
+  // Two-step navigation: null shows the top-level categories grid (View 1); a category
+  // name drills into just that category's items (View 2). There is no continuous
+  // multi-category scroll anymore, so unlike before, exactly one of the two views is
+  // ever on screen at a time.
+  readonly selectedCategory = signal<string | null>(null);
 
   // Admin-configured display order (see CategoryManagementDialogComponent's drag-and-drop),
   // fetched separately from the menu items themselves since Category is its own entity.
@@ -75,7 +83,7 @@ export class StorefrontComponent {
     // Only categories that actually have menu items right now, in admin-configured
     // order. Any item category with no matching Category row (a data edge case, since
     // MenuItem.category is a free-text field, not a foreign key) is appended
-    // alphabetically at the end rather than silently dropped from the filter chips.
+    // alphabetically at the end rather than silently dropped from the grid.
     const ordered = order.filter((name) => present.has(name));
     const knownNames = new Set(order);
     const extras = Array.from(present)
@@ -84,6 +92,17 @@ export class StorefrontComponent {
     return [...ordered, ...extras];
   });
 
+  // Item count shown on each category card in View 1.
+  readonly categoryCounts = computed(() => {
+    const counts = new Map<string, number>();
+    for (const item of this.menuItems()) {
+      counts.set(item.category, (counts.get(item.category) ?? 0) + 1);
+    }
+    return counts;
+  });
+
+  // Only meaningful in View 2 (selectedCategory is always set there) - filtered by both
+  // the drilled-into category and, optionally, a search term typed within that view.
   readonly filteredItems = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
     const category = this.selectedCategory();
@@ -93,29 +112,6 @@ export class StorefrontComponent {
       return matchesCategory && matchesSearch;
     });
   });
-
-  readonly itemsByCategory = computed(() => {
-    const groups = new Map<string, MenuItem[]>();
-    for (const item of this.filteredItems()) {
-      const list = groups.get(item.category) ?? [];
-      list.push(item);
-      groups.set(item.category, list);
-    }
-    // Reuse categories() as the single source of ordering, so the section order here
-    // always matches the filter chip order above.
-    return this.categories()
-      .filter((name) => groups.has(name))
-      .map((name): [string, MenuItem[]] => [name, groups.get(name)!]);
-  });
-
-  // When a category chip filter is active, only that one section is rendered, so it's
-  // trivially "the active category" — otherwise fall back to whichever section scrolling
-  // has brought into view.
-  readonly fabActiveCategory = computed(() => this.selectedCategory() ?? this.activeScrollCategory());
-
-  // Set from the ?category=X query param (see below) and consumed once the menu has
-  // finished loading and its sections actually exist in the DOM.
-  private readonly pendingCategoryScroll = signal<string | null>(null);
 
   constructor() {
     this.menuItemService.getAll({ isAvailable: true }).subscribe({
@@ -139,71 +135,20 @@ export class StorefrontComponent {
       }
     });
 
-    // The hamburger drawer (app.component) links here with ?category=X. A plain
-    // route.snapshot read would only fire once, on this component's own construction -
-    // it'd miss a click from the drawer while already sitting on this same route
-    // (Angular reuses the existing instance rather than recreating it), so this
-    // subscribes to the live query param stream instead.
+    // The hamburger drawer (app.component) links here with ?category=X - drill straight
+    // into that category's View 2. A live subscription (not just route.snapshot) is
+    // needed since Angular reuses this component instance rather than recreating it
+    // when only the query param changes while already sitting on this route.
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       const category = params.get('category');
       if (category) {
-        this.pendingCategoryScroll.set(category);
-      }
-    });
-
-    // Fires once both a pending category exists and the menu has actually finished
-    // loading (sections rendered) - whichever of the two becomes true last.
-    effect(() => {
-      const category = this.pendingCategoryScroll();
-      if (category && !this.loading()) {
-        this.pendingCategoryScroll.set(null);
-        setTimeout(() => this.scrollToCategory(category), 0);
+        this.selectedCategory.set(category);
       }
     });
   }
 
-  // A section counts as "active" once its top has scrolled up past this line — comfortably
-  // below the hero/search row so the very first section isn't already "active" at scrollY 0.
-  private static readonly ACTIVE_LINE_PX = 160;
-
-  @HostListener('window:scroll')
-  onWindowScroll(): void {
-    const sections = this.categorySectionEls;
-    if (!sections || sections.length === 0) {
-      return;
-    }
-
-    let current: string | null = null;
-    for (const { nativeElement } of sections) {
-      if (nativeElement.getBoundingClientRect().top <= StorefrontComponent.ACTIVE_LINE_PX) {
-        current = nativeElement.dataset['category'] ?? null;
-      } else {
-        break;
-      }
-    }
-
-    this.activeScrollCategory.set(current ?? this.itemsByCategory()[0]?.[0] ?? null);
-  }
-
-  scrollToCategory(category: string): void {
-    // The target section only exists in the DOM once any active chip filter is cleared —
-    // clearing it first (rather than silently failing to scroll) is what makes the FAB
-    // reliable regardless of what the user was doing when they opened it. A macrotask
-    // (not queueMicrotask) is used deliberately: it's the reliable way to wait for
-    // Angular's zone.js-driven re-render to actually flush to the DOM before querying it.
-    if (this.selectedCategory() !== null) {
-      this.selectedCategory.set(null);
-      setTimeout(() => this.performScrollToCategory(category), 0);
-    } else {
-      this.performScrollToCategory(category);
-    }
-  }
-
-  private performScrollToCategory(category: string): void {
-    const target = this.categorySectionEls?.find(
-      (el) => el.nativeElement.dataset['category'] === category
-    );
-    target?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  iconFor(category: string): string {
+    return iconForCategory(category);
   }
 
   quantityFor(menuItemId: number): number {
@@ -217,7 +162,12 @@ export class StorefrontComponent {
     });
   }
 
-  selectCategory(category: string | null): void {
-    this.selectedCategory.set(this.selectedCategory() === category ? null : category);
+  openCategory(category: string): void {
+    this.selectedCategory.set(category);
+  }
+
+  backToCategories(): void {
+    this.selectedCategory.set(null);
+    this.searchTerm.set('');
   }
 }
