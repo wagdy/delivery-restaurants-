@@ -90,7 +90,6 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
   cursor: pointer;
   transition: box-shadow 0.15s;
-  position: relative;
 }
 
 .order-card:hover {
@@ -100,8 +99,15 @@
 .card-top {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-weight: 600;
   font-size: 0.85rem;
+}
+
+.order-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .customer-name {
@@ -118,10 +124,8 @@
 }
 
 .guest-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
   font-size: 0.65rem;
+  font-weight: 500;
   background: #eeeeee;
   color: rgba(0, 0, 0, 0.6);
   padding: 1px 6px;

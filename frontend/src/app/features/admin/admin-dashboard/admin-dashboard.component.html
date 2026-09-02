@@ -70,7 +70,12 @@
           @for (order of columnOrders(status); track order.id) {
             <div class="order-card" (click)="openDetails(order)">
               <div class="card-top">
-                <span class="order-id">#{{ order.id }}</span>
+                <span class="order-id">
+                  #{{ order.id }}
+                  @if (!order.userId) {
+                    <span class="guest-badge">Guest</span>
+                  }
+                </span>
                 <span class="order-total">${{ order.totalAmount.toFixed(2) }}</span>
               </div>
               <div class="customer-name">{{ order.customerName }}</div>
@@ -78,9 +83,6 @@
                 <span>{{ order.items.length }} item{{ order.items.length === 1 ? '' : 's' }}</span>
                 <span>{{ order.createdAt | date: 'short' }}</span>
               </div>
-              @if (!order.userId) {
-                <span class="guest-badge">Guest</span>
-              }
             </div>
           } @empty {
             <p class="empty-column">No orders</p>
