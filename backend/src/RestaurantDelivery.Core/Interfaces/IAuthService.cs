@@ -13,7 +13,9 @@ public interface IAuthService
     // which always self-registers a Customer — a staff role can never be self-assigned.
     Task<ServiceResult<UserProfileResponse>> CreateStaffUserAsync(CreateStaffUserRequest request);
 
-    // Staff (Admin/CaptainOrder) log in with phone number + password, a separate path
-    // from the email-based LoginAsync used by customers and pre-existing staff accounts.
-    Task<ServiceResult<AuthResponse>> LoginStaffAsync(StaffLoginRequest request);
+    // Log in by phone number + password - used by customers (registered via RegisterAsync)
+    // and staff (provisioned via CreateStaffUserAsync). Matches any role by phone; the
+    // legacy email-based LoginAsync above remains for the two pre-existing seeded staff
+    // accounts (and any legacy email-registered customer) that have no phone number.
+    Task<ServiceResult<AuthResponse>> LoginByPhoneAsync(PhoneLoginRequest request);
 }

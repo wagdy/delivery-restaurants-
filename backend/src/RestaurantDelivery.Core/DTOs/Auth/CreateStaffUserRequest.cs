@@ -9,8 +9,8 @@ public class CreateStaffUserRequest
     [RegularExpression(@"^[A-Za-z ]+$", ErrorMessage = "Name can only contain letters and spaces.")]
     public string FullName { get; set; } = string.Empty;
 
-    // Staff accounts log in with phone number, not email - see AuthService.LoginStaffAsync.
-    // Required and must be unique among staff (checked in AuthService.CreateStaffUserAsync).
+    // Staff accounts log in with phone number, not email - see AuthService.LoginByPhoneAsync.
+    // Required and must be globally unique (checked in AuthService.CreateStaffUserAsync).
     [Required]
     [RegularExpression(@"^[0-9]+$", ErrorMessage = "Phone number must contain only numbers.")]
     public string PhoneNumber { get; set; } = string.Empty;

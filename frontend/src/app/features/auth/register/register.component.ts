@@ -29,7 +29,6 @@ export class RegisterComponent {
   // fast-feedback convenience, the backend re-checks the same rule regardless.
   static readonly NAME_PATTERN = /^[A-Za-z ]+$/;
   static readonly PHONE_PATTERN = /^[0-9]+$/;
-  static readonly EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
@@ -44,11 +43,8 @@ export class RegisterComponent {
       '',
       [Validators.required, Validators.maxLength(200), Validators.pattern(RegisterComponent.NAME_PATTERN)]
     ],
-    email: ['', [Validators.required, Validators.pattern(RegisterComponent.EMAIL_PATTERN)]],
+    phoneNumber: ['', [Validators.required, Validators.pattern(RegisterComponent.PHONE_PATTERN)]],
     password: ['', [Validators.required, Validators.minLength(8)]],
-    // No Validators.required here — phone stays optional; Validators.pattern already
-    // skips empty values on its own, so a blank field passes and a filled-in one must match.
-    phoneNumber: ['', [Validators.pattern(RegisterComponent.PHONE_PATTERN)]],
     address: ['']
   });
 
@@ -65,9 +61,8 @@ export class RegisterComponent {
     this.authService
       .register({
         fullName: raw.fullName,
-        email: raw.email,
+        phoneNumber: raw.phoneNumber,
         password: raw.password,
-        phoneNumber: raw.phoneNumber || undefined,
         address: raw.address || undefined
       })
       .subscribe({

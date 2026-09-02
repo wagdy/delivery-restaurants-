@@ -23,16 +23,22 @@ public class AuthService : IAuthService
 
     public async Task<ServiceResult<AuthResponse>> RegisterAsync(RegisterRequest request)
     {
-        var existing = await _userManager.FindByEmailAsync(request.Email);
-        if (existing is not null)
+        if (await IsPhoneTakenAsync(request.PhoneNumber))
         {
-            return ServiceResult<AuthResponse>.Failure("An account with this email already exists.");
+            return ServiceResult<AuthResponse>.Failure("An account with this phone number already exists.");
         }
+
+        // Identity requires a unique Email/UserName (RequireUniqueEmail=true) even though
+        // customers log in by phone - this placeholder is never shown to or used by the
+        // customer, it only satisfies Identity's internal bookkeeping. Unique because phone
+        // number is enforced-unique above.
+        var syntheticEmail = $"customer+{request.PhoneNumber}@internal.otantik";
 
         var user = new AppUser
         {
-            UserName = request.Email,
-            Email = request.Email,
+            UserName = syntheticEmail,
+            Email = syntheticEmail,
+            EmailConfirmed = true,
             FullName = request.FullName,
             PhoneNumber = request.PhoneNumber,
             Address = request.Address,
@@ -48,6 +54,9 @@ public class AuthService : IAuthService
         return ServiceResult<AuthResponse>.Success(await BuildAuthResponseAsync(user));
     }
 
+    // Email-based login, kept for the two pre-existing seeded staff accounts
+    // (admin@restaurant.com / captain@restaurant.com) and any legacy account that
+    // predates the switch to phone-based login - neither has a PhoneNumber on file.
     public async Task<ServiceResult<AuthResponse>> LoginAsync(LoginRequest request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
@@ -59,10 +68,9 @@ public class AuthService : IAuthService
         return ServiceResult<AuthResponse>.Success(await BuildAuthResponseAsync(user));
     }
 
-    public async Task<ServiceResult<AuthResponse>> LoginStaffAsync(StaffLoginRequest request)
+    public async Task<ServiceResult<AuthResponse>> LoginByPhoneAsync(PhoneLoginRequest request)
     {
-        var user = await _userManager.Users.FirstOrDefaultAsync(u =>
-            u.PhoneNumber == request.PhoneNumber && (u.Role == UserRole.Admin || u.Role == UserRole.CaptainOrder));
+        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == request.PhoneNumber);
 
         if (user is null || !await _userManager.CheckPasswordAsync(user, request.Password))
         {
@@ -71,6 +79,12 @@ public class AuthService : IAuthService
 
         return ServiceResult<AuthResponse>.Success(await BuildAuthResponseAsync(user));
     }
+
+    // Phone number is the universal login identifier now (customers and staff alike), so
+    // uniqueness is enforced globally rather than scoped to a role - two accounts sharing a
+    // phone would otherwise make LoginByPhoneAsync's lookup ambiguous.
+    private Task<bool> IsPhoneTakenAsync(string phoneNumber) =>
+        _userManager.Users.AnyAsync(u => u.PhoneNumber == phoneNumber);
 
     public async Task<ServiceResult<UserProfileResponse>> GetProfileAsync(string userId)
     {
@@ -109,11 +123,9 @@ public class AuthService : IAuthService
             return ServiceResult<UserProfileResponse>.Failure("A role cannot be selected for a Captain Order account.");
         }
 
-        var phoneTaken = await _userManager.Users.AnyAsync(u =>
-            u.PhoneNumber == request.PhoneNumber && (u.Role == UserRole.Admin || u.Role == UserRole.CaptainOrder));
-        if (phoneTaken)
+        if (await IsPhoneTakenAsync(request.PhoneNumber))
         {
-            return ServiceResult<UserProfileResponse>.Failure("A staff account with this phone number already exists.");
+            return ServiceResult<UserProfileResponse>.Failure("An account with this phone number already exists.");
         }
 
         // Identity requires a unique Email/UserName (RequireUniqueEmail=true) even though

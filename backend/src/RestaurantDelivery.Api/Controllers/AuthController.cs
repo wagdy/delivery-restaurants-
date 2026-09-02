@@ -57,12 +57,13 @@ public class AuthController : ControllerBase
         return Ok(result.Data);
     }
 
-    // Staff (Admin/CaptainOrder) login with phone number + password - separate from the
-    // email-based Login above, which customers and pre-existing staff accounts still use.
-    [HttpPost("staff-login")]
-    public async Task<ActionResult<AuthResponse>> StaffLogin(StaffLoginRequest request)
+    // Phone + password login, used by customers and staff alike - separate from the
+    // email-based Login above, which only the two pre-existing legacy staff accounts
+    // (and any legacy email-registered customer) still need.
+    [HttpPost("login-by-phone")]
+    public async Task<ActionResult<AuthResponse>> LoginByPhone(PhoneLoginRequest request)
     {
-        var result = await _authService.LoginStaffAsync(request);
+        var result = await _authService.LoginByPhoneAsync(request);
         if (!result.Succeeded)
         {
             return Unauthorized(new { errors = result.Errors });

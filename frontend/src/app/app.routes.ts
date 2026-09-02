@@ -46,10 +46,10 @@ export const routes: Routes = [
       import('./features/auth/register/register.component').then((m) => m.RegisterComponent)
   },
   {
-    path: 'staff-login',
+    path: 'email-login',
     canActivate: [redirectCaptainGuard],
     loadComponent: () =>
-      import('./features/auth/staff-login/staff-login.component').then((m) => m.StaffLoginComponent)
+      import('./features/auth/email-login/email-login.component').then((m) => m.EmailLoginComponent)
   },
   {
     path: 'admin',
