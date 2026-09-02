@@ -34,12 +34,12 @@
                     <span class="item-addons">+ {{ item.addOns | addOnNames }}</span>
                   }
                 </span>
-                <span>${{ item.lineTotal.toFixed(2) }}</span>
+                <span>L.E {{ item.lineTotal.toFixed(2) }}</span>
               </div>
             }
             <div class="item-row total">
               <span>Total</span>
-              <span>${{ order.totalAmount.toFixed(2) }}</span>
+              <span>L.E {{ order.totalAmount.toFixed(2) }}</span>
             </div>
           </div>
         </mat-expansion-panel>

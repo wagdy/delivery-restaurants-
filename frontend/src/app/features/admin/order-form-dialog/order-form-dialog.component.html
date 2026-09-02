@@ -31,7 +31,7 @@
               <mat-select formControlName="menuItemId">
                 @for (menuItem of menuItems(); track menuItem.id) {
                   <mat-option [value]="menuItem.id" [disabled]="!menuItem.isAvailable">
-                    {{ menuItem.name }} (${{ menuItem.price.toFixed(2) }})
+                    {{ menuItem.name }} (L.E {{ menuItem.price.toFixed(2) }})
                     @if (!menuItem.isAvailable) {
                       — unavailable
                     }
@@ -64,7 +64,7 @@
         Add item
       </button>
 
-      <p class="estimated-total">Estimated total: ${{ estimatedTotal.toFixed(2) }}</p>
+      <p class="estimated-total">Estimated total: L.E {{ estimatedTotal.toFixed(2) }}</p>
 
       @if (errorMessage()) {
         <p class="error-text">{{ errorMessage() }}</p>

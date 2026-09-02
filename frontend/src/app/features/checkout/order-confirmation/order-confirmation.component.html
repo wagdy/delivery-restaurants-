@@ -29,12 +29,12 @@
                   <span class="item-addons">+ {{ item.addOns | addOnNames }}</span>
                 }
               </span>
-              <span>${{ item.lineTotal.toFixed(2) }}</span>
+              <span>L.E {{ item.lineTotal.toFixed(2) }}</span>
             </div>
           }
           <div class="item-row total">
             <span>Total</span>
-            <span>${{ o.totalAmount.toFixed(2) }}</span>
+            <span>L.E {{ o.totalAmount.toFixed(2) }}</span>
           </div>
           <p class="delivery-note">+ delivery fee, collected on delivery</p>
         </div>

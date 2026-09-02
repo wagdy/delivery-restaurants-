@@ -40,13 +40,13 @@
               }
             </td>
             <td>{{ item.quantity }}</td>
-            <td>${{ item.unitPrice.toFixed(2) }}</td>
-            <td>${{ item.lineTotal.toFixed(2) }}</td>
+            <td>L.E {{ item.unitPrice.toFixed(2) }}</td>
+            <td>L.E {{ item.lineTotal.toFixed(2) }}</td>
           </tr>
         }
       </tbody>
     </table>
-    <p class="total">Total: ${{ order().totalAmount.toFixed(2) }}</p>
+    <p class="total">Total: L.E {{ order().totalAmount.toFixed(2) }}</p>
   </div>
 
   <div class="section">

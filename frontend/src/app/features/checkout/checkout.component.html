@@ -79,21 +79,21 @@
                   <span class="summary-addons">+ {{ line.selectedAddOns | addOnNames }}</span>
                 }
               </span>
-              <span>${{ (cart.lineUnitPrice(line) * line.quantity).toFixed(2) }}</span>
+              <span>L.E {{ (cart.lineUnitPrice(line) * line.quantity).toFixed(2) }}</span>
             </div>
           }
           <div class="totals">
             <div class="totals-row">
               <span>Subtotal</span>
-              <span>${{ cart.subtotal().toFixed(2) }}</span>
+              <span>L.E {{ cart.subtotal().toFixed(2) }}</span>
             </div>
             <div class="totals-row">
               <span>Delivery fee</span>
-              <span>${{ cart.deliveryFee().toFixed(2) }}</span>
+              <span>L.E {{ cart.deliveryFee().toFixed(2) }}</span>
             </div>
             <div class="totals-row total">
               <span>Estimated total</span>
-              <span>${{ cart.estimatedTotal().toFixed(2) }}</span>
+              <span>L.E {{ cart.estimatedTotal().toFixed(2) }}</span>
             </div>
           </div>
         </mat-card-content>

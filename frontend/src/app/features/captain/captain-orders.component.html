@@ -30,7 +30,7 @@
           <div class="card-top">
             <span class="order-id">#{{ order.id }}</span>
             <span class="status-chip" [class]="'status-' + order.status">{{ order.status }}</span>
-            <span class="order-total">${{ order.totalAmount.toFixed(2) }}</span>
+            <span class="order-total">L.E {{ order.totalAmount.toFixed(2) }}</span>
           </div>
           <div class="customer-name">{{ order.customerName }} &middot; {{ order.customerPhone }}</div>
           <div class="delivery-address">

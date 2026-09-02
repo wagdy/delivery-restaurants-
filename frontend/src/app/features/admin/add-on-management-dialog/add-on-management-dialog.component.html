@@ -14,7 +14,7 @@
     </mat-form-field>
     <mat-form-field appearance="outline" subscriptSizing="dynamic" class="price-field">
       <mat-label>Price</mat-label>
-      <span matPrefix>$&nbsp;</span>
+      <span matPrefix>L.E&nbsp;</span>
       <input
         matInput
         type="number"
@@ -58,7 +58,7 @@
               />
             </mat-form-field>
             <mat-form-field appearance="outline" subscriptSizing="dynamic" class="edit-price-field">
-              <span matPrefix>$&nbsp;</span>
+              <span matPrefix>L.E&nbsp;</span>
               <input
                 matInput
                 type="number"
@@ -78,7 +78,7 @@
             </button>
           } @else {
             <span class="addon-name">{{ addOn.name }}</span>
-            <span class="addon-price">${{ addOn.price.toFixed(2) }}</span>
+            <span class="addon-price">L.E {{ addOn.price.toFixed(2) }}</span>
             <button mat-icon-button (click)="startEdit(addOn)" aria-label="Edit">
               <mat-icon>edit</mat-icon>
             </button>

@@ -6,7 +6,7 @@
   <div class="body">
     <div class="header-row">
       <h2>{{ data.menuItem.name }}</h2>
-      <span class="base-price">${{ data.menuItem.price.toFixed(2) }}</span>
+      <span class="base-price">L.E {{ data.menuItem.price.toFixed(2) }}</span>
     </div>
 
     @if (data.menuItem.description) {
@@ -22,7 +22,7 @@
               {{ addOn.name }}
             </mat-checkbox>
             <span class="addon-price">
-              {{ addOn.price > 0 ? '+$' + addOn.price.toFixed(2) : 'Free' }}
+              {{ addOn.price > 0 ? '+L.E ' + addOn.price.toFixed(2) : 'Free' }}
             </span>
           </label>
         }
@@ -48,6 +48,6 @@
   <button mat-button type="button" (click)="close()">Cancel</button>
   <button mat-flat-button color="primary" (click)="addToCart()">
     <mat-icon>add_shopping_cart</mat-icon>
-    Add to cart · ${{ lineTotal().toFixed(2) }}
+    Add to cart · L.E {{ lineTotal().toFixed(2) }}
   </button>
 </mat-dialog-actions>
