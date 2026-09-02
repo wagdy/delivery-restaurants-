@@ -1,23 +1,36 @@
-.management-toolbar {
+.menu-management-header {
   background: white;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  gap: 12px;
-  // Material's default toolbar is a fixed-height single row - with a search field, three
-  // filter dropdowns, and four action buttons all sharing it, it needs to wrap onto a
-  // second line on narrower screens instead of clipping or forcing horizontal scroll.
-  height: auto;
-  min-height: 64px;
-  flex-wrap: wrap;
-  padding: 10px 16px;
+  padding: 16px;
+}
 
-  h1 {
+.header-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  h2 {
     font-size: 1.25rem;
+    font-weight: 500;
     margin: 0;
   }
 }
 
-.spacer {
-  flex: 1 1 auto;
+.header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.header-filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .search-field {

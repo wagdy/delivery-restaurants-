@@ -12,7 +12,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MenuItemService } from '../../../core/services/menu-item.service';
 import { CategoryService } from '../../../core/services/category.service';
@@ -42,8 +41,7 @@ type AddOnsFilter = 'all' | 'has' | 'none';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatProgressSpinnerModule,
-    MatToolbarModule
+    MatProgressSpinnerModule
   ],
   templateUrl: './menu-management.component.html',
   styleUrl: './menu-management.component.scss'

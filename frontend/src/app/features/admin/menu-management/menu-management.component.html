@@ -1,85 +1,90 @@
-<mat-toolbar class="management-toolbar">
-  <h1>Menu Items</h1>
-  <span class="spacer"></span>
+<div class="menu-management-header">
+  <div class="header-top-row">
+    <h2>Menu Items</h2>
 
-  <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
-    <mat-label>Search</mat-label>
-    <input matInput [ngModel]="searchTerm()" (ngModelChange)="onSearchInput($event)" placeholder="Item name" />
-    <mat-icon matPrefix>search</mat-icon>
-  </mat-form-field>
+    <div class="header-actions">
+      <button mat-stroked-button [disabled]="downloadingTemplate()" (click)="downloadTemplate()">
+        @if (downloadingTemplate()) {
+          <mat-spinner diameter="18"></mat-spinner>
+        } @else {
+          <mat-icon>download</mat-icon>
+        }
+        Download Template
+      </button>
 
-  <mat-form-field appearance="outline" class="filter-field" subscriptSizing="dynamic">
-    <mat-label>Category</mat-label>
-    <mat-select [ngModel]="categoryFilter()" (ngModelChange)="onCategoryFilterChange($event)">
-      <mat-option [value]="null">All</mat-option>
-      @for (category of categories(); track category.id) {
-        <mat-option [value]="category.id">{{ category.name }}</mat-option>
-      }
-    </mat-select>
-  </mat-form-field>
+      <button mat-stroked-button [disabled]="uploading()" (click)="triggerFileInput()">
+        @if (uploading()) {
+          <mat-spinner diameter="18"></mat-spinner>
+        } @else {
+          <mat-icon>upload</mat-icon>
+        }
+        Upload Excel
+      </button>
+      <input
+        #fileInput
+        type="file"
+        accept=".xlsx, .xls"
+        hidden
+        (change)="onFileSelected($event)"
+      />
 
-  <mat-form-field appearance="outline" class="filter-field" subscriptSizing="dynamic">
-    <mat-label>Availability</mat-label>
-    <mat-select [ngModel]="availabilityFilter()" (ngModelChange)="onAvailabilityFilterChange($event)">
-      <mat-option value="all">All</mat-option>
-      <mat-option value="available">Available Only</mat-option>
-      <mat-option value="unavailable">Unavailable Only</mat-option>
-    </mat-select>
-  </mat-form-field>
+      <button mat-stroked-button (click)="openCategoryManagement()">
+        <mat-icon>category</mat-icon>
+        Categories
+      </button>
 
-  <mat-form-field appearance="outline" class="filter-field" subscriptSizing="dynamic">
-    <mat-label>Add-ons</mat-label>
-    <mat-select [ngModel]="addOnsFilter()" (ngModelChange)="onAddOnsFilterChange($event)">
-      <mat-option value="all">All</mat-option>
-      <mat-option value="has">Has Add-ons</mat-option>
-      <mat-option value="none">No Add-ons</mat-option>
-    </mat-select>
-  </mat-form-field>
+      <button mat-stroked-button (click)="openAddOnManagement()">
+        <mat-icon>tune</mat-icon>
+        Add-ons
+      </button>
 
-  <button mat-icon-button (click)="applyFilters()" aria-label="Refresh">
-    <mat-icon>refresh</mat-icon>
-  </button>
+      <button mat-flat-button color="primary" (click)="openCreate()">
+        <mat-icon>add</mat-icon>
+        New Menu Item
+      </button>
+    </div>
+  </div>
 
-  <button mat-stroked-button (click)="openCategoryManagement()">
-    <mat-icon>category</mat-icon>
-    Categories
-  </button>
+  <div class="header-filter-row">
+    <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+      <mat-label>Search</mat-label>
+      <input matInput [ngModel]="searchTerm()" (ngModelChange)="onSearchInput($event)" placeholder="Item name" />
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
 
-  <button mat-stroked-button (click)="openAddOnManagement()">
-    <mat-icon>tune</mat-icon>
-    Add-ons
-  </button>
+    <mat-form-field appearance="outline" class="filter-field" subscriptSizing="dynamic">
+      <mat-label>Category</mat-label>
+      <mat-select [ngModel]="categoryFilter()" (ngModelChange)="onCategoryFilterChange($event)">
+        <mat-option [value]="null">All</mat-option>
+        @for (category of categories(); track category.id) {
+          <mat-option [value]="category.id">{{ category.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
 
-  <button mat-stroked-button [disabled]="downloadingTemplate()" (click)="downloadTemplate()">
-    @if (downloadingTemplate()) {
-      <mat-spinner diameter="18"></mat-spinner>
-    } @else {
-      <mat-icon>download</mat-icon>
-    }
-    Download Template
-  </button>
+    <mat-form-field appearance="outline" class="filter-field" subscriptSizing="dynamic">
+      <mat-label>Availability</mat-label>
+      <mat-select [ngModel]="availabilityFilter()" (ngModelChange)="onAvailabilityFilterChange($event)">
+        <mat-option value="all">All</mat-option>
+        <mat-option value="available">Available Only</mat-option>
+        <mat-option value="unavailable">Unavailable Only</mat-option>
+      </mat-select>
+    </mat-form-field>
 
-  <button mat-stroked-button [disabled]="uploading()" (click)="triggerFileInput()">
-    @if (uploading()) {
-      <mat-spinner diameter="18"></mat-spinner>
-    } @else {
-      <mat-icon>upload</mat-icon>
-    }
-    Upload Excel
-  </button>
-  <input
-    #fileInput
-    type="file"
-    accept=".xlsx, .xls"
-    hidden
-    (change)="onFileSelected($event)"
-  />
+    <mat-form-field appearance="outline" class="filter-field" subscriptSizing="dynamic">
+      <mat-label>Add-ons</mat-label>
+      <mat-select [ngModel]="addOnsFilter()" (ngModelChange)="onAddOnsFilterChange($event)">
+        <mat-option value="all">All</mat-option>
+        <mat-option value="has">Has Add-ons</mat-option>
+        <mat-option value="none">No Add-ons</mat-option>
+      </mat-select>
+    </mat-form-field>
 
-  <button mat-flat-button color="primary" (click)="openCreate()">
-    <mat-icon>add</mat-icon>
-    New Menu Item
-  </button>
-</mat-toolbar>
+    <button mat-icon-button (click)="applyFilters()" aria-label="Refresh">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+</div>
 
 @if (loading()) {
   <div class="loading-state">
