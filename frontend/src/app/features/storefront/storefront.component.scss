@@ -98,17 +98,17 @@
   flex-shrink: 0;
 }
 
+// Sits in normal document flow next to the price (see .price-col) rather than
+// position: absolute over the card - that used to overlap and fully hide the price
+// whenever an item was already in the cart.
 .in-cart-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
   background: var(--app-accent-color, #ff4081);
   color: #fff;
   font-size: 0.7rem;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 10px;
-  z-index: 1;
+  white-space: nowrap;
 }
 
 .addons-hint {
@@ -121,13 +121,21 @@
 .card-header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: flex-start;
   gap: 8px;
 
   h3 {
     margin: 0;
     font-size: 1.05rem;
   }
+}
+
+.price-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .price {

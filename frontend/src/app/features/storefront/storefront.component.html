@@ -34,13 +34,15 @@
               @if (item.imageUrl) {
                 <img class="menu-card-image" [src]="item.imageUrl" [alt]="item.name" />
               }
-              @if (quantityFor(item.id) > 0) {
-                <span class="in-cart-badge">In cart: {{ quantityFor(item.id) }}</span>
-              }
               <mat-card-content>
                 <div class="card-header">
                   <h3>{{ item.name }}</h3>
-                  <span class="price">L.E {{ item.price.toFixed(2) }}</span>
+                  <div class="price-col">
+                    <span class="price">L.E {{ item.price.toFixed(2) }}</span>
+                    @if (quantityFor(item.id) > 0) {
+                      <span class="in-cart-badge">In cart: {{ quantityFor(item.id) }}</span>
+                    }
+                  </div>
                 </div>
                 @if (item.description) {
                   <p class="description">{{ item.description }}</p>
