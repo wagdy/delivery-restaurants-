@@ -43,6 +43,17 @@ body {
   color: #fff !important;
 }
 
+// Material gives mat-sidenav-content `overflow: auto` unconditionally, even though
+// nothing in this app needs it to scroll internally - the window/document should stay
+// the one scroll context, exactly as before the header's category drawer was
+// introduced. Left as `overflow: auto`, a nested-scroll-container quirk silently no-ops
+// any `scrollIntoView({behavior:'smooth'})` call inside it (confirmed: 'instant' scrolls
+// the window fine, 'smooth' doesn't move anything) - this is what broke the storefront's
+// category-jump feature (FAB and drawer alike).
+.mat-sidenav-content {
+  overflow: visible !important;
+}
+
 .mat-mdc-unelevated-button.mat-primary,
 .mat-mdc-raised-button.mat-primary,
 .mat-mdc-fab.mat-primary,

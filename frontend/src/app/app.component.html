@@ -1,61 +1,85 @@
-<mat-toolbar color="primary">
-  <a [routerLink]="authService.isCaptain() ? '/captain' : '/'" class="brand">
-    @if (settingsService.settings().logoUrl) {
-      <img class="brand-logo" [src]="settingsService.settings().logoUrl" [alt]="settingsService.settings().restaurantName" />
-    } @else {
-      <mat-icon>restaurant</mat-icon>
-    }
-    <span>{{ settingsService.settings().restaurantName }}</span>
-  </a>
-
-  <!-- Optional prominent logo centered in the header. Absent, the header is just its
-       plain header-color background (the "solid block" fallback), unchanged otherwise. -->
-  @if (settingsService.settings().centerLogoUrl) {
-    <img
-      class="center-logo"
-      [src]="settingsService.settings().centerLogoUrl"
-      [alt]="settingsService.settings().restaurantName"
-    />
-  }
-
-  <span class="spacer"></span>
-
-  @if (authService.isCaptain()) {
-    <!-- Captain Order accounts are restricted to the Orders section only: no cart,
-         no customer "My Orders", no admin console. -->
-    <a mat-button routerLink="/captain">
-      <mat-icon>local_shipping</mat-icon>
-      My Deliveries
-    </a>
-    <span class="avatar-slot" [title]="authService.currentUser()?.fullName ?? ''">
-      <app-user-avatar [fullName]="authService.currentUser()?.fullName ?? ''" [size]="34"></app-user-avatar>
-    </span>
-    <button mat-button (click)="authService.logout()">Logout</button>
-  } @else {
-    <button mat-icon-button (click)="openCart()" aria-label="View cart" [matBadge]="cart.itemCount() || null" matBadgeColor="accent" matBadgeSize="small">
-      <mat-icon>shopping_cart</mat-icon>
-    </button>
-
-    @if (authService.isAuthenticated()) {
-      @if (authService.isAdmin()) {
-        <a mat-button routerLink="/admin">Admin</a>
+<mat-sidenav-container class="app-shell">
+  <mat-sidenav #drawer mode="over" class="category-drawer">
+    <div class="drawer-header">
+      <span>Categories</span>
+      <button mat-icon-button (click)="drawer.close()" aria-label="Close menu">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    <mat-nav-list>
+      @for (category of categories(); track category.id) {
+        <a mat-list-item (click)="selectCategory(category.name, drawer)">{{ category.name }}</a>
+      } @empty {
+        <p class="drawer-empty">No categories yet.</p>
       }
-      <a mat-button routerLink="/my-orders">My Orders</a>
-      <span class="avatar-slot" [title]="authService.currentUser()?.fullName ?? ''">
-        <app-user-avatar [fullName]="authService.currentUser()?.fullName ?? ''" [size]="34"></app-user-avatar>
-      </span>
-      <button mat-button (click)="authService.logout()">Logout</button>
-    } @else {
-      <a mat-button routerLink="/login">Login</a>
-      <a mat-button routerLink="/register">Register</a>
-    }
-  }
-</mat-toolbar>
+    </mat-nav-list>
+  </mat-sidenav>
 
-<div class="page-content">
-  <router-outlet></router-outlet>
-</div>
+  <mat-sidenav-content>
+    <mat-toolbar color="primary">
+      <!-- Left -->
+      <button mat-icon-button (click)="drawer.toggle()" aria-label="Open menu">
+        <mat-icon>menu</mat-icon>
+      </button>
 
-<!-- TEMP: footer hidden - see :root --footer-height override in styles.scss too.
-     Re-enable by uncommenting this and removing that override. -->
-<!-- <app-footer></app-footer> -->
+      <!-- Center - absolutely centered regardless of how wide the left/right groups are -->
+      <a [routerLink]="authService.isCaptain() ? '/captain' : '/'" class="brand">
+        @if (settingsService.settings().centerLogoUrl) {
+          <img
+            class="brand-logo prominent"
+            [src]="settingsService.settings().centerLogoUrl"
+            [alt]="settingsService.settings().restaurantName"
+          />
+        } @else if (settingsService.settings().logoUrl) {
+          <img class="brand-logo" [src]="settingsService.settings().logoUrl" [alt]="settingsService.settings().restaurantName" />
+          <span>{{ settingsService.settings().restaurantName }}</span>
+        } @else {
+          <mat-icon>restaurant</mat-icon>
+          <span>{{ settingsService.settings().restaurantName }}</span>
+        }
+      </a>
+
+      <span class="spacer"></span>
+
+      <!-- Right -->
+      @if (authService.isCaptain()) {
+        <!-- Captain Order accounts are restricted to the Orders section only: no cart,
+             no customer "My Orders", no admin console. -->
+        <a mat-button routerLink="/captain">
+          <mat-icon>local_shipping</mat-icon>
+          My Deliveries
+        </a>
+        <span class="avatar-slot" [title]="authService.currentUser()?.fullName ?? ''">
+          <app-user-avatar [fullName]="authService.currentUser()?.fullName ?? ''" [size]="34"></app-user-avatar>
+        </span>
+        <button mat-button (click)="authService.logout()">Logout</button>
+      } @else {
+        <button mat-icon-button (click)="openCart()" aria-label="View cart" [matBadge]="cart.itemCount() || null" matBadgeColor="accent" matBadgeSize="small">
+          <mat-icon>shopping_cart</mat-icon>
+        </button>
+
+        @if (authService.isAuthenticated()) {
+          @if (authService.isAdmin()) {
+            <a mat-button routerLink="/admin">Admin</a>
+          }
+          <a mat-button routerLink="/my-orders">My Orders</a>
+          <span class="avatar-slot" [title]="authService.currentUser()?.fullName ?? ''">
+            <app-user-avatar [fullName]="authService.currentUser()?.fullName ?? ''" [size]="34"></app-user-avatar>
+          </span>
+          <button mat-button (click)="authService.logout()">Logout</button>
+        } @else {
+          <a mat-button routerLink="/login">Login</a>
+          <a mat-button routerLink="/register">Register</a>
+        }
+      }
+    </mat-toolbar>
+
+    <div class="page-content">
+      <router-outlet></router-outlet>
+    </div>
+
+    <!-- TEMP: footer hidden - see :root --footer-height override in styles.scss too.
+         Re-enable by uncommenting this and removing that override. -->
+    <!-- <app-footer></app-footer> -->
+  </mat-sidenav-content>
+</mat-sidenav-container>

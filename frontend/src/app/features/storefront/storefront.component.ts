@@ -5,10 +5,13 @@ import {
   QueryList,
   ViewChildren,
   computed,
+  effect,
   inject,
   signal
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,6 +20,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MenuItemService } from '../../core/services/menu-item.service';
 import { CategoryService } from '../../core/services/category.service';
 import { CartService } from '../../core/services/cart.service';
+import { AuthService } from '../../core/services/auth.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { MenuItem } from '../../core/models/menu-item.model';
 import { MenuItemDetailsDialogComponent } from './menu-item-details-dialog/menu-item-details-dialog.component';
 import { CategoryFabComponent } from './category-fab/category-fab.component';
@@ -42,7 +47,10 @@ export class StorefrontComponent {
   private readonly menuItemService = inject(MenuItemService);
   private readonly categoryService = inject(CategoryService);
   private readonly dialog = inject(MatDialog);
+  private readonly route = inject(ActivatedRoute);
   protected readonly cart = inject(CartService);
+  protected readonly authService = inject(AuthService);
+  protected readonly settingsService = inject(SettingsService);
 
   // One element per rendered category <section> (see #categorySection in the template) —
   // used both to detect which section is currently in view while scrolling, and as the
@@ -105,6 +113,10 @@ export class StorefrontComponent {
   // has brought into view.
   readonly fabActiveCategory = computed(() => this.selectedCategory() ?? this.activeScrollCategory());
 
+  // Set from the ?category=X query param (see below) and consumed once the menu has
+  // finished loading and its sections actually exist in the DOM.
+  private readonly pendingCategoryScroll = signal<string | null>(null);
+
   constructor() {
     this.menuItemService.getAll({ isAvailable: true }).subscribe({
       next: (items) => {
@@ -124,6 +136,28 @@ export class StorefrontComponent {
         this.categoryDisplayOrder.set(
           [...categories].sort((a, b) => a.displayOrder - b.displayOrder).map((c) => c.name)
         );
+      }
+    });
+
+    // The hamburger drawer (app.component) links here with ?category=X. A plain
+    // route.snapshot read would only fire once, on this component's own construction -
+    // it'd miss a click from the drawer while already sitting on this same route
+    // (Angular reuses the existing instance rather than recreating it), so this
+    // subscribes to the live query param stream instead.
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+      const category = params.get('category');
+      if (category) {
+        this.pendingCategoryScroll.set(category);
+      }
+    });
+
+    // Fires once both a pending category exists and the menu has actually finished
+    // loading (sections rendered) - whichever of the two becomes true last.
+    effect(() => {
+      const category = this.pendingCategoryScroll();
+      if (category && !this.loading()) {
+        this.pendingCategoryScroll.set(null);
+        setTimeout(() => this.scrollToCategory(category), 0);
       }
     });
   }

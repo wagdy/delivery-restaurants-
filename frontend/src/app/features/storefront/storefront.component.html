@@ -1,6 +1,10 @@
 <div class="storefront">
   <div class="hero">
-    <h1>Order delicious food, delivered.</h1>
+    @if (authService.isAuthenticated()) {
+      <h1>Hello, {{ authService.currentUser()?.fullName }}!</h1>
+    } @else {
+      <h1>Welcome to {{ settingsService.settings().restaurantName }}!</h1>
+    }
     <p>Browse the menu below — no account needed to order.</p>
   </div>
 
