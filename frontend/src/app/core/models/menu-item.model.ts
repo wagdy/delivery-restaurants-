@@ -18,6 +18,14 @@ export interface MenuItemFilter {
   hasAddons?: boolean;
 }
 
+export interface BulkMenuItemImportResult {
+  rowsProcessed: number;
+  itemsCreated: number;
+  itemsUpdated: number;
+  rowsSkipped: number;
+  errors: string[];
+}
+
 export interface MenuItemRequest {
   name: string;
   description?: string | null;

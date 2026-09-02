@@ -12,14 +12,20 @@ namespace RestaurantDelivery.Api.Controllers;
 public class MenuItemsController : ControllerBase
 {
     private const long MaxImageSizeBytes = 5 * 1024 * 1024; // 5 MB
+    private const long MaxBulkUploadSizeBytes = 5 * 1024 * 1024; // 5 MB
 
     private readonly IMenuItemService _service;
     private readonly IFileUploadService _fileUploadService;
+    private readonly IBulkMenuItemImportService _bulkImportService;
 
-    public MenuItemsController(IMenuItemService service, IFileUploadService fileUploadService)
+    public MenuItemsController(
+        IMenuItemService service,
+        IFileUploadService fileUploadService,
+        IBulkMenuItemImportService bulkImportService)
     {
         _service = service;
         _fileUploadService = fileUploadService;
+        _bulkImportService = bulkImportService;
     }
 
     [HttpGet]
@@ -95,5 +101,51 @@ public class MenuItemsController : ControllerBase
 
         var url = $"{Request.Scheme}://{Request.Host}{result.RelativePath}";
         return Ok(new ImageUploadResponse { Url = url });
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("excel-template")]
+    public IActionResult GetExcelTemplate()
+    {
+        var stream = _bulkImportService.GenerateTemplate();
+        return File(
+            stream,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "menu-items-template.xlsx");
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost("bulk-upload")]
+    [RequestSizeLimit(MaxBulkUploadSizeBytes)]
+    public async Task<ActionResult<BulkMenuItemImportResult>> BulkUpload(IFormFile file)
+    {
+        if (file.Length == 0)
+        {
+            return BadRequest(new { errors = new[] { "No file was uploaded." } });
+        }
+
+        var extension = Path.GetExtension(file.FileName);
+        if (!string.Equals(extension, ".xlsx", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(extension, ".xls", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { errors = new[] { "Only .xlsx or .xls files are accepted." } });
+        }
+
+        await using var stream = file.OpenReadStream();
+
+        BulkMenuItemImportResult result;
+        try
+        {
+            result = await _bulkImportService.ImportMenuItemsAsync(stream);
+        }
+        catch (Exception ex)
+        {
+            // A workbook ClosedXML can't even open (corrupt file, not really an Excel
+            // file despite the extension) fails here, before any per-row handling -
+            // everything else is caught inside ImportMenuItemsAsync per-row instead.
+            return BadRequest(new { errors = new[] { $"Could not read the uploaded file: {ex.Message}" } });
+        }
+
+        return Ok(result);
     }
 }

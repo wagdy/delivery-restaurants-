@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { MenuItem, MenuItemFilter, MenuItemRequest } from '../models/menu-item.model';
+import { BulkMenuItemImportResult, MenuItem, MenuItemFilter, MenuItemRequest } from '../models/menu-item.model';
 
 @Injectable({ providedIn: 'root' })
 export class MenuItemService {
@@ -38,5 +38,15 @@ export class MenuItemService {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post<{ url: string }>(`${this.baseUrl}/upload-image`, formData);
+  }
+
+  downloadExcelTemplate(): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/excel-template`, { responseType: 'blob' });
+  }
+
+  bulkUpload(file: File): Observable<BulkMenuItemImportResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<BulkMenuItemImportResult>(`${this.baseUrl}/bulk-upload`, formData);
   }
 }

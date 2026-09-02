@@ -92,6 +92,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddScoped<IMenuItemRepository, MenuItemRepository>();
 builder.Services.AddScoped<IMenuItemService, MenuItemService>();
+builder.Services.AddScoped<IBulkMenuItemImportService, BulkMenuItemImportService>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IBulkOrderImportService, BulkOrderImportService>();

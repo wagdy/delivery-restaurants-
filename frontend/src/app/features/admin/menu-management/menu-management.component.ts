@@ -1,7 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { saveAs } from 'file-saver';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -54,11 +55,15 @@ export class MenuManagementComponent {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
+  @ViewChild('fileInput') private readonly fileInput?: ElementRef<HTMLInputElement>;
+
   readonly loading = signal(true);
   readonly errorMessage = signal<string | null>(null);
   readonly menuItems = signal<MenuItem[]>([]);
   readonly categories = signal<Category[]>([]);
   readonly addOns = signal<AddOn[]>([]);
+  readonly downloadingTemplate = signal(false);
+  readonly uploading = signal(false);
 
   // The four active filter criteria - applyFilters() reads all of them together on
   // every call, so "search X AND category Y AND available Z" is always one combined
@@ -145,6 +150,73 @@ export class MenuManagementComponent {
     this.addOnService.getAll().subscribe({
       next: (addOns) => this.addOns.set(addOns),
       error: () => this.snackBar.open('Failed to load add-ons.', 'Dismiss', { duration: 4000 })
+    });
+  }
+
+  downloadTemplate(): void {
+    if (this.downloadingTemplate()) {
+      return;
+    }
+
+    this.downloadingTemplate.set(true);
+    this.menuItemService.downloadExcelTemplate().subscribe({
+      next: (blob) => {
+        this.downloadingTemplate.set(false);
+        saveAs(blob, 'menu-items-template.xlsx');
+      },
+      error: () => {
+        this.downloadingTemplate.set(false);
+        this.snackBar.open('Failed to download the template.', 'Dismiss', { duration: 4000 });
+      }
+    });
+  }
+
+  triggerFileInput(): void {
+    this.fileInput?.nativeElement.click();
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    // Reset immediately so re-selecting the same file (e.g. after fixing it and
+    // re-uploading) still fires this handler - the native input only emits "change"
+    // when its value actually differs from before.
+    input.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    this.uploading.set(true);
+    this.menuItemService.bulkUpload(file).subscribe({
+      next: (result) => {
+        this.uploading.set(false);
+
+        const summary =
+          `Imported ${result.itemsCreated} new item${result.itemsCreated === 1 ? '' : 's'}, ` +
+          `updated ${result.itemsUpdated}`;
+
+        if (result.errors.length > 0) {
+          this.snackBar.open(
+            `${summary}, ${result.rowsSkipped} row${result.rowsSkipped === 1 ? '' : 's'} skipped: ${result.errors[0]}`,
+            'Dismiss',
+            { duration: 8000 }
+          );
+        } else {
+          this.snackBar.open(`${summary}.`, 'Dismiss', { duration: 5000 });
+        }
+
+        // A new item can bring a brand-new category with it, so the category filter
+        // dropdown needs refreshing too, not just the table.
+        this.loadCategories();
+        this.applyFilters();
+      },
+      error: (err) => {
+        this.uploading.set(false);
+        const message = err.error?.errors?.[0] ?? 'Failed to import the Excel file.';
+        this.snackBar.open(message, 'Dismiss', { duration: 6000 });
+      }
     });
   }
 

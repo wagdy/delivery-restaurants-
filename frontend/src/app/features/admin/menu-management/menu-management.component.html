@@ -50,6 +50,31 @@
     Add-ons
   </button>
 
+  <button mat-stroked-button [disabled]="downloadingTemplate()" (click)="downloadTemplate()">
+    @if (downloadingTemplate()) {
+      <mat-spinner diameter="18"></mat-spinner>
+    } @else {
+      <mat-icon>download</mat-icon>
+    }
+    Download Template
+  </button>
+
+  <button mat-stroked-button [disabled]="uploading()" (click)="triggerFileInput()">
+    @if (uploading()) {
+      <mat-spinner diameter="18"></mat-spinner>
+    } @else {
+      <mat-icon>upload</mat-icon>
+    }
+    Upload Excel
+  </button>
+  <input
+    #fileInput
+    type="file"
+    accept=".xlsx, .xls"
+    hidden
+    (change)="onFileSelected($event)"
+  />
+
   <button mat-flat-button color="primary" (click)="openCreate()">
     <mat-icon>add</mat-icon>
     New Menu Item
