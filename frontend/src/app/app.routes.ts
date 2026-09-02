@@ -1,8 +1,11 @@
+import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 import { adminGuard } from './core/guards/admin.guard';
 import { authGuard } from './core/guards/auth.guard';
 import { captainGuard } from './core/guards/captain.guard';
 import { redirectCaptainGuard } from './core/guards/redirect-captain.guard';
+import { moduleGuard, resolveFirstAccessibleAdminPath } from './core/guards/module.guard';
+import { AuthService } from './core/services/auth.service';
 
 export const routes: Routes = [
   {
@@ -43,6 +46,12 @@ export const routes: Routes = [
       import('./features/auth/register/register.component').then((m) => m.RegisterComponent)
   },
   {
+    path: 'staff-login',
+    canActivate: [redirectCaptainGuard],
+    loadComponent: () =>
+      import('./features/auth/staff-login/staff-login.component').then((m) => m.StaffLoginComponent)
+  },
+  {
     path: 'admin',
     canActivate: [adminGuard],
     loadComponent: () =>
@@ -50,9 +59,14 @@ export const routes: Routes = [
         (m) => m.AdminLayoutComponent
       ),
     children: [
-      { path: '', redirectTo: 'orders', pathMatch: 'full' },
+      {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: () => resolveFirstAccessibleAdminPath(inject(AuthService))
+      },
       {
         path: 'orders',
+        canActivate: [moduleGuard('Orders')],
         loadComponent: () =>
           import('./features/admin/admin-dashboard/admin-dashboard.component').then(
             (m) => m.AdminDashboardComponent
@@ -60,6 +74,7 @@ export const routes: Routes = [
       },
       {
         path: 'menu',
+        canActivate: [moduleGuard('MenuItems')],
         loadComponent: () =>
           import('./features/admin/menu-management/menu-management.component').then(
             (m) => m.MenuManagementComponent
@@ -67,6 +82,7 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
+        canActivate: [moduleGuard('Settings')],
         loadComponent: () =>
           import('./features/admin/site-settings/site-settings.component').then(
             (m) => m.SiteSettingsComponent
@@ -74,6 +90,7 @@ export const routes: Routes = [
       },
       {
         path: 'staff',
+        canActivate: [moduleGuard('Staff')],
         loadComponent: () =>
           import('./features/admin/staff-accounts/staff-accounts.component').then(
             (m) => m.StaffAccountsComponent
@@ -81,6 +98,7 @@ export const routes: Routes = [
       },
       {
         path: 'customers',
+        canActivate: [moduleGuard('Customers')],
         loadComponent: () =>
           import('./features/admin/customer-insights/customer-insights.component').then(
             (m) => m.CustomerInsightsComponent

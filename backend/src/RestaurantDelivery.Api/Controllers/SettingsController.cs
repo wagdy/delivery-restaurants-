@@ -28,7 +28,7 @@ public class SettingsController : ControllerBase
         return Ok(await _service.GetAsync());
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Module.Settings")]
     [HttpPut]
     public async Task<ActionResult<RestaurantSettingsResponse>> Update(UpdateRestaurantSettingsRequest request)
     {
@@ -41,7 +41,7 @@ public class SettingsController : ControllerBase
         return Ok(result.Data);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Module.Settings")]
     [HttpPost("upload-logo")]
     [RequestSizeLimit(MaxImageSizeBytes)]
     public async Task<ActionResult<ImageUploadResponse>> UploadLogo(IFormFile file)

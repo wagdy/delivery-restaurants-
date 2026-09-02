@@ -4,11 +4,14 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Lib.Net.Http.WebPush;
 using Lib.Net.Http.WebPush.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using RestaurantDelivery.Api.Authorization;
 using RestaurantDelivery.Api.Services;
 using RestaurantDelivery.Core.Entities;
+using RestaurantDelivery.Core.Enums;
 using RestaurantDelivery.Core.Interfaces;
 using RestaurantDelivery.Infrastructure.Data;
 using RestaurantDelivery.Infrastructure.Data.Seed;
@@ -84,8 +87,20 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("CaptainOnly", policy => policy.RequireRole("CaptainOrder"));
     // Order visibility/status-update is shared: admins manage the full order lifecycle,
     // captains (delivery drivers) only need to see orders and accept/complete deliveries.
-    options.AddPolicy("OrdersAccess", policy => policy.RequireRole("Admin", "CaptainOrder"));
+    // Backed by a custom requirement (not RequireRole) so a restricted Admin custom Role
+    // without the Orders module can be denied here too, while CaptainOrder always passes
+    // regardless - see OrdersAccessAuthorizationHandler.
+    options.AddPolicy("OrdersAccess", policy => policy.Requirements.Add(new OrdersAccessRequirement()));
+
+    options.AddPolicy("Module.Orders", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.Orders)));
+    options.AddPolicy("Module.MenuItems", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.MenuItems)));
+    options.AddPolicy("Module.Settings", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.Settings)));
+    options.AddPolicy("Module.Staff", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.Staff)));
+    options.AddPolicy("Module.Customers", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.Customers)));
 });
+
+builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, OrdersAccessAuthorizationHandler>();
 
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -107,6 +122,9 @@ builder.Services.AddScoped<IAddOnRepository, AddOnRepository>();
 builder.Services.AddScoped<IAddOnService, AddOnService>();
 
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IRoleService, RoleService>();
 
 builder.Services.Configure<DgteraOptions>(builder.Configuration.GetSection("Dgtera"));
 builder.Services.AddHttpClient<IDgteraClient, DgteraClient>();

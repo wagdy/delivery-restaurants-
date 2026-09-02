@@ -20,11 +20,19 @@ export interface RegisterRequest {
 }
 
 // Admin-only — creates an Admin or CaptainOrder account. Customer role is intentionally
-// not selectable here: customers always self-register via RegisterRequest.
+// not selectable here: customers always self-register via RegisterRequest. Staff log in
+// by phone number, not email — see StaffLoginRequest.
 export interface CreateStaffUserRequest {
   fullName: string;
-  email: string;
-  phoneNumber?: string;
+  phoneNumber: string;
   password: string;
   role: UserRole;
+  // Required when role is 'Admin' (must reference an existing Role); omitted/null when
+  // role is 'CaptainOrder'.
+  roleId?: number | null;
+}
+
+export interface StaffLoginRequest {
+  phoneNumber: string;
+  password: string;
 }

@@ -7,7 +7,7 @@ namespace RestaurantDelivery.Api.Controllers;
 
 [ApiController]
 [Route("api/customers")]
-[Authorize(Policy = "AdminOnly")]
+[Authorize(Policy = "Module.Customers")]
 public class CustomersController : ControllerBase
 {
     private readonly ICustomerService _service;

@@ -3,7 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AuthResponse, CreateStaffUserRequest, LoginRequest, RegisterRequest } from '../models/auth.model';
+import { AuthResponse, CreateStaffUserRequest, LoginRequest, RegisterRequest, StaffLoginRequest } from '../models/auth.model';
+import { AdminModuleName } from '../models/role.model';
 import { UserProfile } from '../models/user.model';
 
 const STORAGE_KEY = 'rd_auth_session';
@@ -22,6 +23,10 @@ export class AuthService {
   readonly isAdmin = computed(() => this._user()?.role === 'Admin');
   readonly isCaptain = computed(() => this._user()?.role === 'CaptainOrder');
 
+  hasModule(name: AdminModuleName): boolean {
+    return this._user()?.modules?.includes(name) ?? false;
+  }
+
   constructor() {
     this.restoreSession();
   }
@@ -35,6 +40,14 @@ export class AuthService {
   register(request: RegisterRequest): Observable<AuthResponse> {
     return this.http
       .post<AuthResponse>(`${environment.apiUrl}/auth/register`, request)
+      .pipe(tap((res) => this.setSession(res)));
+  }
+
+  // Staff (Admin/CaptainOrder) login with phone number + password — a separate path from
+  // login(), which stays email-based for customers and pre-existing staff accounts.
+  loginStaff(request: StaffLoginRequest): Observable<AuthResponse> {
+    return this.http
+      .post<AuthResponse>(`${environment.apiUrl}/auth/staff-login`, request)
       .pipe(tap((res) => this.setSession(res)));
   }
 

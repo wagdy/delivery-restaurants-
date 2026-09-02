@@ -1,0 +1,69 @@
+.add-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  min-width: 480px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.add-field {
+  flex: 1 1 220px;
+}
+
+.module-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+.empty-state {
+  color: rgba(0, 0, 0, 0.5);
+  padding: 8px 0;
+}
+
+.role-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.role-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 4px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.role-name {
+  font-weight: 500;
+  min-width: 100px;
+}
+
+.role-modules {
+  flex: 1 1 auto;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.875rem;
+}
+
+.edit-field {
+  flex: 1 1 160px;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}

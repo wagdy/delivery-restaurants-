@@ -83,7 +83,7 @@ public class OrdersController : ControllerBase
     }
 
     // Editing line items/customer info stays an admin-only capability.
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Module.Orders")]
     [HttpPut("{id:int}")]
     public async Task<ActionResult<OrderResponse>> Update(int id, UpdateOrderRequest request)
     {
@@ -113,7 +113,7 @@ public class OrdersController : ControllerBase
         return Ok(result.Data);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Module.Orders")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
@@ -126,7 +126,7 @@ public class OrdersController : ControllerBase
         return NoContent();
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Module.Orders")]
     [HttpGet("excel-template")]
     public IActionResult GetExcelTemplate()
     {
@@ -137,7 +137,7 @@ public class OrdersController : ControllerBase
             "bulk-order-template.xlsx");
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Module.Orders")]
     [HttpPost("bulk-upload")]
     [RequestSizeLimit(MaxBulkUploadSizeBytes)]
     public async Task<ActionResult<BulkOrderImportResult>> BulkUpload(IFormFile file)

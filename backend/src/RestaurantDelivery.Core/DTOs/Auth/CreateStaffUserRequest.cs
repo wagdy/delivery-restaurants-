@@ -9,18 +9,19 @@ public class CreateStaffUserRequest
     [RegularExpression(@"^[A-Za-z ]+$", ErrorMessage = "Name can only contain letters and spaces.")]
     public string FullName { get; set; } = string.Empty;
 
+    // Staff accounts log in with phone number, not email - see AuthService.LoginStaffAsync.
+    // Required and must be unique among staff (checked in AuthService.CreateStaffUserAsync).
     [Required]
-    [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", ErrorMessage = "A valid email address is required.")]
-    public string Email { get; set; } = string.Empty;
-
-    // Optional, but [RegularExpression] only runs against a non-null value — RegularExpressionAttribute.IsValid
-    // returns true for null, so a blank phone number still passes while a provided one must be digits-only.
     [RegularExpression(@"^[0-9]+$", ErrorMessage = "Phone number must contain only numbers.")]
-    public string? PhoneNumber { get; set; }
+    public string PhoneNumber { get; set; } = string.Empty;
 
     [Required, MinLength(8)]
     public string Password { get; set; } = string.Empty;
 
     [Required]
     public UserRole Role { get; set; }
+
+    // Required when Role is Admin (must reference an existing Role); must be null when
+    // Role is CaptainOrder. Validated in AuthService.CreateStaffUserAsync.
+    public int? RoleId { get; set; }
 }

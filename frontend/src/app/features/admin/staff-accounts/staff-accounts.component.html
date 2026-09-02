@@ -1,6 +1,14 @@
 <div class="staff-page">
-  <h1>Staff Accounts</h1>
-  <p class="subtitle">Create internal accounts for admins and delivery captains.</p>
+  <div class="page-header">
+    <div>
+      <h1>Staff Accounts</h1>
+      <p class="subtitle">Create internal accounts for admins and delivery captains.</p>
+    </div>
+    <button mat-stroked-button (click)="openRoleManagement()">
+      <mat-icon>admin_panel_settings</mat-icon>
+      Manage Roles
+    </button>
+  </div>
 
   <mat-card class="staff-card">
     <mat-card-content>
@@ -17,19 +25,11 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Email</mat-label>
-          <input matInput type="email" formControlName="email" autocomplete="off" />
-          @if (form.controls.email.hasError('required') && form.controls.email.touched) {
-            <mat-error>Email is required</mat-error>
+          <mat-label>Phone number</mat-label>
+          <input matInput formControlName="phoneNumber" autocomplete="off" />
+          @if (form.controls.phoneNumber.hasError('required') && form.controls.phoneNumber.touched) {
+            <mat-error>Phone number is required</mat-error>
           }
-          @if (form.controls.email.hasError('pattern') && form.controls.email.touched) {
-            <mat-error>Please enter a valid email address, such as name&#64;example.com</mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Phone number (optional)</mat-label>
-          <input matInput formControlName="phoneNumber" />
           @if (form.controls.phoneNumber.hasError('pattern') && form.controls.phoneNumber.touched) {
             <mat-error>Phone number must contain only numbers</mat-error>
           }
@@ -48,11 +48,15 @@
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Role</mat-label>
-          <mat-select formControlName="role">
-            @for (option of roleOptions; track option.value) {
-              <mat-option [value]="option.value">{{ option.label }}</mat-option>
+          <mat-select formControlName="staffRole">
+            <mat-option [value]="captainOptionValue">Captain Order (Delivery Driver)</mat-option>
+            @for (role of roles(); track role.id) {
+              <mat-option [value]="role.id.toString()">{{ role.name }}</mat-option>
             }
           </mat-select>
+          @if (roles().length === 0) {
+            <mat-hint>No roles yet — use "Manage Roles" to create one for Admin-side staff.</mat-hint>
+          }
         </mat-form-field>
 
         @if (errorMessage()) {

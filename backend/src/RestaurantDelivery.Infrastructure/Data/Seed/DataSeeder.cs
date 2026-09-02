@@ -29,6 +29,7 @@ public static class DataSeeder
         await SeedCategoriesAsync(context);
         await SeedAddOnsAsync(context);
         await SeedRestaurantSettingsAsync(context);
+        await SeedRolesAsync(context);
     }
 
     private static async Task SeedStaffUserAsync(
@@ -178,6 +179,25 @@ public static class DataSeeder
             Address = "123 Main Street, Your City",
             Phone = "555-0100",
             Email = "hello@restaurantdelivery.com"
+        });
+
+        await context.SaveChangesAsync();
+    }
+
+    // Gives the staff-creation Role picker at least one usable option on a fresh DB.
+    // Existing seeded admin/captain accounts are untouched - they keep full access via
+    // the CustomRoleId == null default (see AuthService.ResolveAdminModuleNamesAsync).
+    private static async Task SeedRolesAsync(ApplicationDbContext context)
+    {
+        if (await context.CustomRoles.AnyAsync())
+        {
+            return;
+        }
+
+        context.CustomRoles.Add(new Role
+        {
+            Name = "Full Access",
+            Modules = AdminModules.Orders | AdminModules.MenuItems | AdminModules.Settings | AdminModules.Staff | AdminModules.Customers
         });
 
         await context.SaveChangesAsync();

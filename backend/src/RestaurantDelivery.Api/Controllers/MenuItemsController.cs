@@ -46,7 +46,7 @@ public class MenuItemsController : ControllerBase
         return Ok(result.Data);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Module.MenuItems")]
     [HttpPost]
     public async Task<ActionResult<MenuItemResponse>> Create(MenuItemRequest request)
     {
@@ -59,7 +59,7 @@ public class MenuItemsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result.Data);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Module.MenuItems")]
     [HttpPut("{id:int}")]
     public async Task<ActionResult<MenuItemResponse>> Update(int id, MenuItemRequest request)
     {
@@ -72,7 +72,7 @@ public class MenuItemsController : ControllerBase
         return Ok(result.Data);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Module.MenuItems")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
@@ -88,7 +88,7 @@ public class MenuItemsController : ControllerBase
         return NoContent();
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Module.MenuItems")]
     [HttpPost("upload-image")]
     [RequestSizeLimit(MaxImageSizeBytes)]
     public async Task<ActionResult<ImageUploadResponse>> UploadImage(IFormFile file)
@@ -103,7 +103,7 @@ public class MenuItemsController : ControllerBase
         return Ok(new ImageUploadResponse { Url = url });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Module.MenuItems")]
     [HttpGet("excel-template")]
     public async Task<IActionResult> GetExcelTemplate()
     {
@@ -114,7 +114,7 @@ public class MenuItemsController : ControllerBase
             "menu-items-template.xlsx");
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Module.MenuItems")]
     [HttpPost("bulk-upload")]
     [RequestSizeLimit(MaxBulkUploadSizeBytes)]
     public async Task<ActionResult<BulkMenuItemImportResult>> BulkUpload(IFormFile file)

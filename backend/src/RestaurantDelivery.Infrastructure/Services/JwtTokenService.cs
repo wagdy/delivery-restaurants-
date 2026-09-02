@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using RestaurantDelivery.Core.Entities;
+using RestaurantDelivery.Core.Enums;
 using RestaurantDelivery.Core.Interfaces;
 
 namespace RestaurantDelivery.Infrastructure.Services;
@@ -17,7 +18,7 @@ public class JwtTokenService : ITokenService
         _configuration = configuration;
     }
 
-    public (string Token, DateTime ExpiresAtUtc) CreateToken(AppUser user)
+    public (string Token, DateTime ExpiresAtUtc) CreateToken(AppUser user, IReadOnlyList<string> adminModules)
     {
         var jwtSection = _configuration.GetSection("Jwt");
         var key = jwtSection["Key"]
@@ -35,6 +36,8 @@ public class JwtTokenService : ITokenService
             new(ClaimTypes.Name, user.FullName),
             new(ClaimTypes.Role, user.Role.ToString())
         };
+
+        claims.AddRange(adminModules.Select(m => new Claim(AdminModuleClaims.ClaimType, m)));
 
         var expiresAtUtc = DateTime.UtcNow.AddMinutes(expiryMinutes);
 

@@ -19,6 +19,11 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<AddOn> AddOns => Set<AddOn>();
     public DbSet<WebPushSubscription> WebPushSubscriptions => Set<WebPushSubscription>();
 
+    // Named CustomRoles, not Roles - IdentityDbContext<AppUser> already inherits
+    // DbSet<IdentityRole> Roles (mapped to the unused AspNetRoles table); reusing that
+    // name here would silently hide the inherited member.
+    public DbSet<Role> CustomRoles => Set<Role>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

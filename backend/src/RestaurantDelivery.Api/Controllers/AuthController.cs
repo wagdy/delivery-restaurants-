@@ -41,10 +41,10 @@ public class AuthController : ControllerBase
         return Ok(result.Data);
     }
 
-    // Admin-only: provisions internal staff accounts (Admin or CaptainOrder). Uses the
-    // named "AdminOnly" policy explicitly, rather than [Authorize(Roles = "Admin")], since
-    // creating privileged accounts is exactly the kind of action a policy exists to gate.
-    [Authorize(Policy = "AdminOnly")]
+    // Requires the Staff module specifically (not just any Admin) - provisioning staff
+    // accounts and roles is a Staff-tab action, so a restricted admin without that module
+    // can't grant themselves or anyone else more access.
+    [Authorize(Policy = "Module.Staff")]
     [HttpPost("staff")]
     public async Task<ActionResult<UserProfileResponse>> CreateStaff(CreateStaffUserRequest request)
     {
@@ -52,6 +52,20 @@ public class AuthController : ControllerBase
         if (!result.Succeeded)
         {
             return BadRequest(new { errors = result.Errors });
+        }
+
+        return Ok(result.Data);
+    }
+
+    // Staff (Admin/CaptainOrder) login with phone number + password - separate from the
+    // email-based Login above, which customers and pre-existing staff accounts still use.
+    [HttpPost("staff-login")]
+    public async Task<ActionResult<AuthResponse>> StaffLogin(StaffLoginRequest request)
+    {
+        var result = await _authService.LoginStaffAsync(request);
+        if (!result.Succeeded)
+        {
+            return Unauthorized(new { errors = result.Errors });
         }
 
         return Ok(result.Data);

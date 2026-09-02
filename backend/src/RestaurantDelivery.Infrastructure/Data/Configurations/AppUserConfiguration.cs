@@ -20,5 +20,13 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
             .HasConversion<string>()
             .HasMaxLength(20)
             .HasDefaultValue(UserRole.Customer);
+
+        // SetNull rather than a delete restriction: RoleService.DeleteAsync already blocks
+        // deleting a Role that's still assigned to staff, so this FK behavior is a defensive
+        // fallback, not the primary safeguard.
+        builder.HasOne(u => u.CustomRole)
+            .WithMany()
+            .HasForeignKey(u => u.CustomRoleId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

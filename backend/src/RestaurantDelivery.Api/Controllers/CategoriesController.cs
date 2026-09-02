@@ -22,7 +22,7 @@ public class CategoriesController : ControllerBase
         return Ok(await _service.GetAllAsync());
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Module.MenuItems")]
     [HttpPost]
     public async Task<ActionResult<CategoryResponse>> Create(CategoryRequest request)
     {
@@ -35,7 +35,7 @@ public class CategoriesController : ControllerBase
         return Ok(result.Data);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Module.MenuItems")]
     [HttpPut("reorder")]
     public async Task<IActionResult> Reorder(ReorderCategoriesRequest request)
     {
@@ -48,7 +48,7 @@ public class CategoriesController : ControllerBase
         return NoContent();
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Module.MenuItems")]
     [HttpPut("{id:int}")]
     public async Task<ActionResult<CategoryResponse>> Update(int id, CategoryRequest request)
     {
@@ -64,7 +64,7 @@ public class CategoriesController : ControllerBase
         return Ok(result.Data);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "Module.MenuItems")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {

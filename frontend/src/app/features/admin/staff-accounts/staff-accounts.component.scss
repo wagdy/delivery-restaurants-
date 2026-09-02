@@ -1,5 +1,5 @@
 .staff-page {
-  max-width: 480px;
+  max-width: 560px;
   margin: 24px auto 64px;
   padding: 0 16px;
 
@@ -9,9 +9,18 @@
   }
 }
 
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
 .subtitle {
   color: rgba(0, 0, 0, 0.6);
-  margin: 0 0 20px;
+  margin: 0;
 }
 
 .full-width {

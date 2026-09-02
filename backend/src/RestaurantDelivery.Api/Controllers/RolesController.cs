@@ -1,30 +1,33 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RestaurantDelivery.Core.DTOs.AddOns;
+using RestaurantDelivery.Core.DTOs.Roles;
 using RestaurantDelivery.Core.Interfaces;
 
 namespace RestaurantDelivery.Api.Controllers;
 
+// Role management is an internal-only concept (no public storefront consumer), so
+// every action here - including GetAll - requires the Staff module, unlike
+// Categories/AddOns/MenuItems whose GetAll is deliberately public.
+[Authorize(Policy = "Module.Staff")]
 [ApiController]
-[Route("api/addons")]
-public class AddOnsController : ControllerBase
+[Route("api/roles")]
+public class RolesController : ControllerBase
 {
-    private readonly IAddOnService _service;
+    private readonly IRoleService _service;
 
-    public AddOnsController(IAddOnService service)
+    public RolesController(IRoleService service)
     {
         _service = service;
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<AddOnResponse>>> GetAll()
+    public async Task<ActionResult<List<RoleResponse>>> GetAll()
     {
         return Ok(await _service.GetAllAsync());
     }
 
-    [Authorize(Policy = "Module.MenuItems")]
     [HttpPost]
-    public async Task<ActionResult<AddOnResponse>> Create(AddOnRequest request)
+    public async Task<ActionResult<RoleResponse>> Create(RoleRequest request)
     {
         var result = await _service.CreateAsync(request);
         if (!result.Succeeded)
@@ -35,9 +38,8 @@ public class AddOnsController : ControllerBase
         return Ok(result.Data);
     }
 
-    [Authorize(Policy = "Module.MenuItems")]
     [HttpPut("{id:int}")]
-    public async Task<ActionResult<AddOnResponse>> Update(int id, AddOnRequest request)
+    public async Task<ActionResult<RoleResponse>> Update(int id, RoleRequest request)
     {
         var result = await _service.UpdateAsync(id, request);
         if (!result.Succeeded)
@@ -51,7 +53,6 @@ public class AddOnsController : ControllerBase
         return Ok(result.Data);
     }
 
-    [Authorize(Policy = "Module.MenuItems")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {

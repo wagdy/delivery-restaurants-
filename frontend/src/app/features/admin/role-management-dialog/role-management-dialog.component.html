@@ -1,0 +1,99 @@
+<h2 mat-dialog-title>Manage Roles</h2>
+
+<mat-dialog-content>
+  <div class="add-row">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="add-field">
+      <mat-label>New role name</mat-label>
+      <input
+        matInput
+        [ngModel]="newRoleName()"
+        (ngModelChange)="newRoleName.set($event)"
+        placeholder="e.g. Support"
+      />
+    </mat-form-field>
+
+    <div class="module-checkboxes">
+      @for (module of moduleOptions; track module.value) {
+        <mat-checkbox
+          [checked]="isModuleChecked(newRoleModules, module.value)"
+          (change)="toggleModule(newRoleModules, module.value)"
+        >
+          {{ module.label }}
+        </mat-checkbox>
+      }
+    </div>
+
+    <button mat-flat-button color="primary" [disabled]="adding() || !newRoleName().trim()" (click)="addRole()">
+      @if (adding()) {
+        <mat-spinner diameter="18"></mat-spinner>
+      } @else {
+        <ng-container>
+          <mat-icon>add</mat-icon>
+          Add
+        </ng-container>
+      }
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else if (roles().length === 0) {
+    <p class="empty-state">No roles yet. Add one above.</p>
+  } @else {
+    <ul class="role-list">
+      @for (role of roles(); track role.id) {
+        <li class="role-row">
+          @if (editingId() === role.id) {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="edit-field">
+              <input
+                matInput
+                [ngModel]="editingName()"
+                (ngModelChange)="editingName.set($event)"
+                (keydown.escape)="cancelEdit()"
+              />
+            </mat-form-field>
+
+            <div class="module-checkboxes">
+              @for (module of moduleOptions; track module.value) {
+                <mat-checkbox
+                  [checked]="isModuleChecked(editingModules, module.value)"
+                  (change)="toggleModule(editingModules, module.value)"
+                >
+                  {{ module.label }}
+                </mat-checkbox>
+              }
+            </div>
+
+            <div class="row-actions">
+              <button mat-icon-button [disabled]="savingEdit()" (click)="saveEdit(role)" aria-label="Save">
+                <mat-icon>check</mat-icon>
+              </button>
+              <button mat-icon-button [disabled]="savingEdit()" (click)="cancelEdit()" aria-label="Cancel">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          } @else {
+            <span class="role-name">{{ role.name }}</span>
+            <span class="role-modules">
+              {{ role.modules.length > 0 ? role.modules.join(', ') : 'No access' }}
+            </span>
+            <div class="row-actions">
+              <button mat-icon-button (click)="startEdit(role)" aria-label="Edit">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="delete(role)" aria-label="Delete">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-flat-button color="primary" (click)="close()">Close</button>
+</mat-dialog-actions>
