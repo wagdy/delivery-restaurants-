@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Lib.Net.Http.WebPush;
 using Lib.Net.Http.WebPush.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -126,6 +127,23 @@ builder.Services.AddScoped<IWebPushSubscriptionRepository, WebPushSubscriptionRe
 builder.Services.AddScoped<IPushNotificationService, PushNotificationService>();
 
 var app = builder.Build();
+
+// Must run before anything that reads Request.Scheme (UploadImage's absolute-URL
+// building, UseHttpsRedirection, etc.) - Railway terminates TLS at its edge and
+// forwards plain HTTP to the container, so without this, Request.Scheme always reports
+// "http" even for a client that connected over https, which is exactly why the
+// branding logo and menu-item photo URLs got stored as http:// (triggering mixed
+// content warnings) despite being served over a real https connection. KnownProxies/
+// KnownNetworks are cleared because Railway's edge IP isn't a fixed, predictable
+// address to allowlist - safe here because the container has no other inbound path
+// except through that edge, so nothing else could spoof this header directly to Kestrel.
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+forwardedHeadersOptions.KnownIPNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
