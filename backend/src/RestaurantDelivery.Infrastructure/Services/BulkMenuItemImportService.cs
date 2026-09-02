@@ -33,7 +33,11 @@ public class BulkMenuItemImportService : IBulkMenuItemImportService
         _logger = logger;
     }
 
-    public Stream GenerateTemplate()
+    // Generous headroom past the two example rows so the dropdown still works for
+    // however many items the admin pastes/types in beyond them.
+    private const int TemplateDataRowCount = 500;
+
+    public async Task<Stream> GenerateTemplate()
     {
         using var workbook = new XLWorkbook();
         var sheet = workbook.Worksheets.Add("Menu Items");
@@ -47,13 +51,14 @@ public class BulkMenuItemImportService : IBulkMenuItemImportService
             cell.Style.Font.FontColor = XLColor.White;
         }
 
-        // Two example rows: one for a category that (probably) already exists, one for
-        // a brand-new category, to show that Category doesn't need to be created ahead
-        // of time - a name that doesn't match anything yet is created automatically.
+        // Two example rows: one for a category that (probably) already exists, one left
+        // blank to show that Category can be skipped and filled in later - both are
+        // still valid because the Category dropdown below allows blanks, and the import
+        // itself falls back an empty cell to "Uncategorized" rather than rejecting it.
         var sampleRows = new object[,]
         {
             { "Chicken Shawarma Wrap", "Grilled chicken, garlic sauce, pickles, flatbread.", 9.99, "Mains", "Yes" },
-            { "Baklava", "Layered filo pastry with nuts and honey syrup.", 4.5, "Desserts", "Yes" }
+            { "Baklava", "Layered filo pastry with nuts and honey syrup.", 4.5, "", "Yes" }
         };
 
         for (var row = 0; row < sampleRows.GetLength(0); row++)
@@ -66,10 +71,57 @@ public class BulkMenuItemImportService : IBulkMenuItemImportService
 
         sheet.Columns().AdjustToContents();
 
+        await AddCategoryDropdownAsync(workbook, sheet, sampleRows.GetLength(0));
+
         var stream = new MemoryStream();
         workbook.SaveAs(stream);
         stream.Position = 0;
         return stream;
+    }
+
+    // Adds a hidden "Categories" sheet listing every category currently in the
+    // database, then points the Menu Items sheet's Category column (D) at it as a
+    // dropdown - existing names are one click away instead of retyped (and
+    // typo-prone), while a name that isn't in the list yet (a genuinely new category)
+    // or a blank cell are both still accepted, matching what ImportMenuItemsAsync
+    // actually allows.
+    private async Task<IXLWorksheet> AddCategoryDropdownAsync(XLWorkbook workbook, IXLWorksheet menuItemsSheet, int sampleRowCount)
+    {
+        var categories = await _categoryRepository.GetAllOrderedAsync();
+
+        var categoriesSheet = workbook.Worksheets.Add("Categories");
+        categoriesSheet.Cell(1, 1).Value = "Category Name";
+        categoriesSheet.Cell(1, 1).Style.Font.Bold = true;
+
+        for (var i = 0; i < categories.Count; i++)
+        {
+            categoriesSheet.Cell(i + 2, 1).Value = categories[i].Name;
+        }
+
+        categoriesSheet.Columns().AdjustToContents();
+        // Keeps the picklist out of the way without deleting it - still fully visible
+        // via Excel's own Sheet > Unhide if someone wants to check or edit the list.
+        categoriesSheet.Visibility = XLWorksheetVisibility.Hidden;
+
+        // Referencing at least one real row keeps the formula valid (and the dropdown
+        // functional) even on a brand-new restaurant with zero categories yet.
+        var lastCategoryRow = Math.Max(categories.Count, 1) + 1;
+        var sourceRange = $"'{categoriesSheet.Name}'!$A$2:$A${lastCategoryRow}";
+
+        var lastDataRow = Math.Max(sampleRowCount, 0) + 1 + TemplateDataRowCount;
+        var categoryColumn = menuItemsSheet.Range($"D2:D{lastDataRow}");
+
+        var validation = categoryColumn.CreateDataValidation();
+        validation.List(sourceRange, inCellDropdown: true);
+        validation.IgnoreBlanks = true;
+        // Warns instead of blocking: a name that doesn't match anything in the list
+        // yet is a legitimate new category (auto-created on import), not a mistake -
+        // Stop would make that impossible to type directly into Excel.
+        validation.ErrorStyle = XLErrorStyle.Information;
+        validation.ErrorTitle = "Not an existing category";
+        validation.ErrorMessage = "This will be created as a new category on import. Leave blank to use \"Uncategorized\" for now instead.";
+
+        return categoriesSheet;
     }
 
     public async Task<BulkMenuItemImportResult> ImportMenuItemsAsync(Stream fileStream)
@@ -93,17 +145,17 @@ public class BulkMenuItemImportService : IBulkMenuItemImportService
 
             // ClosedXML's RowsUsed() can include rows that only ever had formatting
             // applied - skip those silently rather than reporting them as invalid data.
-            if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(categoryName))
+            if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(priceRaw))
             {
                 continue;
             }
 
             result.RowsProcessed++;
 
-            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(categoryName))
+            if (string.IsNullOrWhiteSpace(name))
             {
                 result.RowsSkipped++;
-                result.Errors.Add($"Row {rowNumber}: Item Name and Category are required.");
+                result.Errors.Add($"Row {rowNumber}: Item Name is required.");
                 continue;
             }
 
@@ -165,16 +217,21 @@ public class BulkMenuItemImportService : IBulkMenuItemImportService
 
     // Matches an existing Category by name, creating one (appended to the end of the
     // admin's configured display order) if nothing matches yet - a new menu item's
-    // category doesn't need to already exist ahead of time.
+    // category doesn't need to already exist ahead of time. A blank cell (allowed by
+    // the template's dropdown - see AddCategoryDropdownAsync) falls back to
+    // "Uncategorized" rather than being rejected, so the admin can add the item now and
+    // assign a real category later.
     private async Task<string> ResolveCategoryAsync(string categoryName)
     {
-        var existing = await _categoryRepository.GetByNameAsync(categoryName);
+        var name = string.IsNullOrWhiteSpace(categoryName) ? "Uncategorized" : categoryName.Trim();
+
+        var existing = await _categoryRepository.GetByNameAsync(name);
         if (existing is not null)
         {
             return existing.Name;
         }
 
-        var created = await _categoryService.CreateAsync(new CategoryRequest { Name = categoryName });
+        var created = await _categoryService.CreateAsync(new CategoryRequest { Name = name });
         if (!created.Succeeded)
         {
             throw new InvalidOperationException(created.Errors.FirstOrDefault() ?? "Failed to create category.");

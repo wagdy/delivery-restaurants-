@@ -105,9 +105,9 @@ public class MenuItemsController : ControllerBase
 
     [Authorize(Roles = "Admin")]
     [HttpGet("excel-template")]
-    public IActionResult GetExcelTemplate()
+    public async Task<IActionResult> GetExcelTemplate()
     {
-        var stream = _bulkImportService.GenerateTemplate();
+        var stream = await _bulkImportService.GenerateTemplate();
         return File(
             stream,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
