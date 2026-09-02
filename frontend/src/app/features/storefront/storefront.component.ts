@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,8 +14,11 @@ import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { MenuItem } from '../../core/models/menu-item.model';
 import { MenuItemDetailsDialogComponent } from './menu-item-details-dialog/menu-item-details-dialog.component';
+import { MyOrdersComponent } from '../my-orders/my-orders.component';
+import { LoyaltyRewardsComponent } from './loyalty-rewards/loyalty-rewards.component';
 
 export type MenuViewMode = 'list' | 'grid';
+export type HeroTab = 'menu' | 'rewards' | 'orders';
 
 // Keyword -> icon for a bit of visual personality on the category cards (View 1) since
 // Category has no image field to show instead. Falls back to a generic icon below for
@@ -43,11 +46,14 @@ function iconForCategory(name: string): string {
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     MatDialogModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MyOrdersComponent,
+    LoyaltyRewardsComponent
   ],
   templateUrl: './storefront.component.html',
   styleUrl: './storefront.component.scss'
@@ -66,6 +72,11 @@ export class StorefrontComponent {
   readonly menuItems = signal<MenuItem[]>([]);
   readonly searchTerm = signal('');
   readonly viewMode = signal<MenuViewMode>('grid');
+
+  // The hero's tab bar - Menu/Rewards/My Orders. Independent of selectedCategory below:
+  // this picks which whole tab panel is visible, selectedCategory only matters once
+  // 'menu' is the active tab.
+  readonly activeTab = signal<HeroTab>('menu');
 
   // Two-step navigation: null shows the top-level categories grid (View 1); a category
   // name drills into just that category's items (View 2). There is no continuous
@@ -136,12 +147,15 @@ export class StorefrontComponent {
     });
 
     // The hamburger drawer (app.component) links here with ?category=X - drill straight
-    // into that category's View 2. A live subscription (not just route.snapshot) is
-    // needed since Angular reuses this component instance rather than recreating it
-    // when only the query param changes while already sitting on this route.
+    // into that category's View 2, switching back to the Menu tab first in case the
+    // link arrived while Rewards or My Orders was showing. A live subscription (not
+    // just route.snapshot) is needed since Angular reuses this component instance
+    // rather than recreating it when only the query param changes while already
+    // sitting on this route.
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       const category = params.get('category');
       if (category) {
+        this.activeTab.set('menu');
         this.selectedCategory.set(category);
       }
     });

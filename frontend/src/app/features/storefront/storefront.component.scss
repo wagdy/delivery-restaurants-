@@ -8,13 +8,63 @@
   margin-bottom: 24px;
 
   h1 {
-    margin: 0 0 4px;
+    margin: 0 0 16px;
     font-size: 1.75rem;
+  }
+}
+
+// Otantik's brand accent for the active tab - a deliberate, distinct color from the
+// admin-configurable primary/accent/header theme colors used elsewhere on this page.
+$hero-tab-active-color: #7a2e22;
+
+.hero-tabs {
+  display: flex;
+  gap: 28px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.hero-tab {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px; // sit flush over .hero-tabs' own border-bottom
+  padding: 4px 2px 12px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+
+  &:hover:not(.active) {
+    color: rgba(0, 0, 0, 0.75);
+  }
+
+  &.active {
+    color: $hero-tab-active-color;
+    font-weight: 700;
+    border-bottom-color: $hero-tab-active-color;
+  }
+}
+
+.orders-signin-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 64px 24px;
+  color: rgba(0, 0, 0, 0.6);
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: rgba(0, 0, 0, 0.3);
+    margin-bottom: 12px;
   }
 
   p {
-    margin: 0;
-    color: rgba(0, 0, 0, 0.6);
+    margin: 0 0 16px;
   }
 }
 

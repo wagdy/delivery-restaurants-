@@ -5,114 +5,142 @@
     } @else {
       <h1>Welcome to {{ settingsService.settings().restaurantName }}!</h1>
     }
-    <p>Browse the menu below — no account needed to order.</p>
+
+    <nav class="hero-tabs">
+      <button type="button" class="hero-tab" [class.active]="activeTab() === 'menu'" (click)="activeTab.set('menu')">
+        Menu
+      </button>
+      <button type="button" class="hero-tab" [class.active]="activeTab() === 'rewards'" (click)="activeTab.set('rewards')">
+        Rewards
+      </button>
+      <button type="button" class="hero-tab" [class.active]="activeTab() === 'orders'" (click)="activeTab.set('orders')">
+        My Orders
+      </button>
+    </nav>
   </div>
 
-  @if (loading()) {
-    <div class="loading-state">
-      <mat-spinner diameter="40"></mat-spinner>
-    </div>
-  } @else if (errorMessage()) {
-    <p class="error-text">{{ errorMessage() }}</p>
-  } @else if (selectedCategory() === null) {
-    <!-- View 1: top-level categories grid -->
-    @if (categories().length === 0) {
-      <p class="empty-state">No menu items available right now.</p>
-    } @else {
-      <div class="categories-grid">
-        @for (category of categories(); track category) {
-          <div class="category-card" (click)="openCategory(category)">
-            <div class="category-card-icon">
-              <mat-icon>{{ iconFor(category) }}</mat-icon>
-            </div>
-            <h3 class="category-card-name">{{ category }}</h3>
-            <p class="category-card-count">
-              {{ categoryCounts().get(category) }} item{{ categoryCounts().get(category) === 1 ? '' : 's' }}
-            </p>
-          </div>
-        }
+  @if (activeTab() === 'menu') {
+    @if (loading()) {
+      <div class="loading-state">
+        <mat-spinner diameter="40"></mat-spinner>
       </div>
-    }
-  } @else {
-    <!-- View 2: drilled into one category -->
-    <div class="drilldown-header">
-      <button mat-button class="back-button" (click)="backToCategories()">
-        <mat-icon>arrow_back</mat-icon>
-        Back to Categories
-      </button>
-      <h2>{{ selectedCategory() }}</h2>
-    </div>
-
-    <div class="drilldown-toolbar">
-      <div class="search-bar">
-        <mat-icon class="search-icon">search</mat-icon>
-        <input
-          type="text"
-          class="search-input"
-          [placeholder]="'Search in ' + selectedCategory()"
-          [value]="searchTerm()"
-          (input)="searchTerm.set($any($event.target).value)"
-        />
-      </div>
-
-      <div class="view-toggles">
-        <button
-          type="button"
-          class="view-toggle-btn"
-          [class.active]="viewMode() === 'list'"
-          [attr.aria-pressed]="viewMode() === 'list'"
-          aria-label="List view"
-          (click)="viewMode.set('list')"
-        >
-          <mat-icon>view_list</mat-icon>
-        </button>
-        <button
-          type="button"
-          class="view-toggle-btn"
-          [class.active]="viewMode() === 'grid'"
-          [attr.aria-pressed]="viewMode() === 'grid'"
-          aria-label="Grid view"
-          (click)="viewMode.set('grid')"
-        >
-          <mat-icon>grid_view</mat-icon>
-        </button>
-      </div>
-    </div>
-
-    @if (filteredItems().length === 0) {
-      <p class="empty-state">No items match your search.</p>
-    } @else {
-      <div class="items-grid" [class.list-view]="viewMode() === 'list'">
-        @for (item of filteredItems(); track item.id) {
-          <mat-card class="menu-card" (click)="openDetails(item)">
-            @if (item.imageUrl) {
-              <img class="menu-card-image" [src]="item.imageUrl" [alt]="item.name" />
-            }
-            <mat-card-content>
-              <div class="card-header">
-                <h3>{{ item.name }}</h3>
-                <div class="price-col">
-                  <span class="price">L.E {{ item.price.toFixed(2) }}</span>
-                  @if (quantityFor(item.id) > 0) {
-                    <span class="in-cart-badge">In cart: {{ quantityFor(item.id) }}</span>
-                  }
-                </div>
+    } @else if (errorMessage()) {
+      <p class="error-text">{{ errorMessage() }}</p>
+    } @else if (selectedCategory() === null) {
+      <!-- View 1: top-level categories grid -->
+      @if (categories().length === 0) {
+        <p class="empty-state">No menu items available right now.</p>
+      } @else {
+        <div class="categories-grid">
+          @for (category of categories(); track category) {
+            <div class="category-card" (click)="openCategory(category)">
+              <div class="category-card-icon">
+                <mat-icon>{{ iconFor(category) }}</mat-icon>
               </div>
-              @if (item.description) {
-                <p class="description">{{ item.description }}</p>
+              <h3 class="category-card-name">{{ category }}</h3>
+              <p class="category-card-count">
+                {{ categoryCounts().get(category) }} item{{ categoryCounts().get(category) === 1 ? '' : 's' }}
+              </p>
+            </div>
+          }
+        </div>
+      }
+    } @else {
+      <!-- View 2: drilled into one category -->
+      <div class="drilldown-header">
+        <button mat-button class="back-button" (click)="backToCategories()">
+          <mat-icon>arrow_back</mat-icon>
+          Back to Categories
+        </button>
+        <h2>{{ selectedCategory() }}</h2>
+      </div>
+
+      <div class="drilldown-toolbar">
+        <div class="search-bar">
+          <mat-icon class="search-icon">search</mat-icon>
+          <input
+            type="text"
+            class="search-input"
+            [placeholder]="'Search in ' + selectedCategory()"
+            [value]="searchTerm()"
+            (input)="searchTerm.set($any($event.target).value)"
+          />
+        </div>
+
+        <div class="view-toggles">
+          <button
+            type="button"
+            class="view-toggle-btn"
+            [class.active]="viewMode() === 'list'"
+            [attr.aria-pressed]="viewMode() === 'list'"
+            aria-label="List view"
+            (click)="viewMode.set('list')"
+          >
+            <mat-icon>view_list</mat-icon>
+          </button>
+          <button
+            type="button"
+            class="view-toggle-btn"
+            [class.active]="viewMode() === 'grid'"
+            [attr.aria-pressed]="viewMode() === 'grid'"
+            aria-label="Grid view"
+            (click)="viewMode.set('grid')"
+          >
+            <mat-icon>grid_view</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      @if (filteredItems().length === 0) {
+        <p class="empty-state">No items match your search.</p>
+      } @else {
+        <div class="items-grid" [class.list-view]="viewMode() === 'list'">
+          @for (item of filteredItems(); track item.id) {
+            <mat-card class="menu-card" (click)="openDetails(item)">
+              @if (item.imageUrl) {
+                <img class="menu-card-image" [src]="item.imageUrl" [alt]="item.name" />
               }
-              @if (item.addOns.length > 0) {
-                <p class="addons-hint">{{ item.addOns.length }} add-on{{ item.addOns.length === 1 ? '' : 's' }} available</p>
-              }
-            </mat-card-content>
-            <mat-card-actions>
-              <button mat-flat-button color="primary" (click)="openDetails(item); $event.stopPropagation()">
-                <mat-icon>add_shopping_cart</mat-icon>
-                Add to cart
-              </button>
-            </mat-card-actions>
-          </mat-card>
-        }
+              <mat-card-content>
+                <div class="card-header">
+                  <h3>{{ item.name }}</h3>
+                  <div class="price-col">
+                    <span class="price">L.E {{ item.price.toFixed(2) }}</span>
+                    @if (quantityFor(item.id) > 0) {
+                      <span class="in-cart-badge">In cart: {{ quantityFor(item.id) }}</span>
+                    }
+                  </div>
+                </div>
+                @if (item.description) {
+                  <p class="description">{{ item.description }}</p>
+                }
+                @if (item.addOns.length > 0) {
+                  <p class="addons-hint">{{ item.addOns.length }} add-on{{ item.addOns.length === 1 ? '' : 's' }} available</p>
+                }
+              </mat-card-content>
+              <mat-card-actions>
+                <button mat-flat-button color="primary" (click)="openDetails(item); $event.stopPropagation()">
+                  <mat-icon>add_shopping_cart</mat-icon>
+                  Add to cart
+                </button>
+              </mat-card-actions>
+            </mat-card>
+          }
+        </div>
+      }
+    }
+  } @else if (activeTab() === 'rewards') {
+    <app-loyalty-rewards></app-loyalty-rewards>
+  } @else {
+    <!-- My Orders tab - moved here from the header's own link. Order history requires
+         an account, so a guest sees a sign-in prompt instead of the (401-doomed)
+         orders list. -->
+    @if (authService.isAuthenticated()) {
+      <app-my-orders></app-my-orders>
+    } @else {
+      <div class="orders-signin-prompt">
+        <mat-icon>receipt_long</mat-icon>
+        <p>Sign in to view your order history.</p>
+        <a mat-flat-button color="primary" routerLink="/login">Sign in</a>
       </div>
     }
   }

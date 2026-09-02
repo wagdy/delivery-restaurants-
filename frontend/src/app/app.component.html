@@ -62,7 +62,6 @@
           @if (authService.isAdmin()) {
             <a mat-button routerLink="/admin">Admin</a>
           }
-          <a mat-button routerLink="/my-orders">My Orders</a>
           <span class="avatar-slot" [title]="authService.currentUser()?.fullName ?? ''">
             <app-user-avatar [fullName]="authService.currentUser()?.fullName ?? ''" [size]="34"></app-user-avatar>
           </span>
