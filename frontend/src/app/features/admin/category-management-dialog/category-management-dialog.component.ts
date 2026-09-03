@@ -39,9 +39,11 @@ export class CategoryManagementDialogComponent {
   readonly loading = signal(true);
   readonly categories = signal<Category[]>([]);
   readonly newCategoryName = signal('');
+  readonly newCategoryImageUrl = signal('');
   readonly adding = signal(false);
   readonly editingId = signal<number | null>(null);
   readonly editingName = signal('');
+  readonly editingImageUrl = signal('');
   readonly savingEdit = signal(false);
   readonly reordering = signal(false);
   private mutated = false;
@@ -70,11 +72,14 @@ export class CategoryManagementDialogComponent {
       return;
     }
 
+    const imageUrl = this.newCategoryImageUrl().trim() || null;
+
     this.adding.set(true);
-    this.categoryService.create({ name }).subscribe({
+    this.categoryService.create({ name, imageUrl }).subscribe({
       next: () => {
         this.adding.set(false);
         this.newCategoryName.set('');
+        this.newCategoryImageUrl.set('');
         this.mutated = true;
         this.load();
       },
@@ -90,22 +95,30 @@ export class CategoryManagementDialogComponent {
   startEdit(category: Category): void {
     this.editingId.set(category.id);
     this.editingName.set(category.name);
+    this.editingImageUrl.set(category.imageUrl ?? '');
   }
 
   cancelEdit(): void {
     this.editingId.set(null);
     this.editingName.set('');
+    this.editingImageUrl.set('');
   }
 
   saveEdit(category: Category): void {
     const name = this.editingName().trim();
-    if (!name || name === category.name) {
+    const imageUrl = this.editingImageUrl().trim() || null;
+    if (!name) {
+      this.cancelEdit();
+      return;
+    }
+
+    if (name === category.name && imageUrl === (category.imageUrl ?? null)) {
       this.cancelEdit();
       return;
     }
 
     this.savingEdit.set(true);
-    this.categoryService.update(category.id, { name }).subscribe({
+    this.categoryService.update(category.id, { name, imageUrl }).subscribe({
       next: () => {
         this.savingEdit.set(false);
         this.mutated = true;

@@ -1,9 +1,15 @@
+.add-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  min-width: 380px;
+}
+
 .add-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
-  min-width: 380px;
 }
 
 .add-field {
@@ -52,6 +58,14 @@
 
 .category-name {
   flex: 1 1 auto;
+}
+
+.edit-fields {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
 .edit-field {

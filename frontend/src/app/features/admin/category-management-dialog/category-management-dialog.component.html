@@ -1,27 +1,40 @@
 <h2 mat-dialog-title>Manage Categories</h2>
 
 <mat-dialog-content>
-  <div class="add-row">
+  <div class="add-section">
+    <div class="add-row">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="add-field">
+        <mat-label>New category name</mat-label>
+        <input
+          matInput
+          [ngModel]="newCategoryName()"
+          (ngModelChange)="newCategoryName.set($event)"
+          (keydown.enter)="addCategory()"
+          placeholder="e.g. Desserts"
+        />
+      </mat-form-field>
+      <button mat-flat-button color="primary" [disabled]="adding() || !newCategoryName().trim()" (click)="addCategory()">
+        @if (adding()) {
+          <mat-spinner diameter="18"></mat-spinner>
+        } @else {
+          <ng-container>
+            <mat-icon>add</mat-icon>
+            Add
+          </ng-container>
+        }
+      </button>
+    </div>
+
     <mat-form-field appearance="outline" subscriptSizing="dynamic" class="add-field">
-      <mat-label>New category name</mat-label>
+      <mat-label>Image URL (optional)</mat-label>
       <input
         matInput
-        [ngModel]="newCategoryName()"
-        (ngModelChange)="newCategoryName.set($event)"
+        [ngModel]="newCategoryImageUrl()"
+        (ngModelChange)="newCategoryImageUrl.set($event)"
         (keydown.enter)="addCategory()"
-        placeholder="e.g. Desserts"
+        placeholder="https://..."
       />
     </mat-form-field>
-    <button mat-flat-button color="primary" [disabled]="adding() || !newCategoryName().trim()" (click)="addCategory()">
-      @if (adding()) {
-        <mat-spinner diameter="18"></mat-spinner>
-      } @else {
-        <ng-container>
-          <mat-icon>add</mat-icon>
-          Add
-        </ng-container>
-      }
-    </button>
   </div>
 
   @if (loading()) {
@@ -43,15 +56,29 @@
           </div>
 
           @if (editingId() === category.id) {
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="edit-field">
-              <input
-                matInput
-                [ngModel]="editingName()"
-                (ngModelChange)="editingName.set($event)"
-                (keydown.enter)="saveEdit(category)"
-                (keydown.escape)="cancelEdit()"
-              />
-            </mat-form-field>
+            <div class="edit-fields">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="edit-field">
+                <mat-label>Name</mat-label>
+                <input
+                  matInput
+                  [ngModel]="editingName()"
+                  (ngModelChange)="editingName.set($event)"
+                  (keydown.enter)="saveEdit(category)"
+                  (keydown.escape)="cancelEdit()"
+                />
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="edit-field">
+                <mat-label>Image URL</mat-label>
+                <input
+                  matInput
+                  [ngModel]="editingImageUrl()"
+                  (ngModelChange)="editingImageUrl.set($event)"
+                  (keydown.enter)="saveEdit(category)"
+                  (keydown.escape)="cancelEdit()"
+                  placeholder="https://..."
+                />
+              </mat-form-field>
+            </div>
             <button mat-icon-button [disabled]="savingEdit()" (click)="saveEdit(category)" aria-label="Save">
               <mat-icon>check</mat-icon>
             </button>
