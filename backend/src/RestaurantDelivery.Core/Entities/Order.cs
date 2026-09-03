@@ -21,6 +21,14 @@ public class Order
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+    // Set the first time this order's Delivered-transition finishes awarding loyalty
+    // points/punches (see LoyaltyService.ProcessOrderDeliveredAsync) - checked before
+    // re-processing so toggling the status away and back to Delivered can never award
+    // points twice for the same order. Independent of the "was the previous status
+    // already Delivered" check in OrderService.UpdateStatusAsync, which alone doesn't
+    // survive a Delivered -> Cancelled -> Delivered round trip.
+    public bool PointsAwarded { get; set; }
+
     // Set only for orders imported from an external POS (e.g. "Dgtera"). The pair
     // (ExternalSource, ExternalOrderId) is what DgteraSyncService matches on to decide
     // insert vs. update, so re-running a sync never creates duplicates. Both stay null

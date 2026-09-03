@@ -128,10 +128,25 @@ public class LoyaltyService : ILoyaltyService
     {
         var result = new OrderLoyaltyResult();
 
+        // Re-checked here (OrderService.UpdateStatusAsync already checks this once before
+        // calling in) as a defense against two concurrent requests both reading the flag
+        // as false before either commits. Set immediately, in the same tracked-entity
+        // change set as everything below, so it's part of the one SaveChangesAsync at the
+        // end - if that save fails for any reason, PointsAwarded is never persisted as
+        // true either, so a genuine failure can still be retried by a later status change.
+        if (order.PointsAwarded)
+        {
+            return result;
+        }
+
+        order.PointsAwarded = true;
+
         if (order.UserId is null)
         {
             // Guest checkout - no account to credit. Punch campaigns also require an
-            // account, so there's nothing else to do here either.
+            // account, so there's nothing else to do here either - just persist the flag
+            // above so a later toggle doesn't re-attempt this for the same guest order.
+            await _context.SaveChangesAsync(ct);
             return result;
         }
 
@@ -207,11 +222,12 @@ public class LoyaltyService : ILoyaltyService
         }
         catch (DbUpdateException)
         {
-            // A unique-index collision here means this exact order already applied its
-            // loyalty side effects (see the unique indexes on LoyaltyPointTransaction.OrderId
-            // and LoyaltyPunchTransaction (OrderId, ProgressId)) - most likely a duplicate
-            // "mark Delivered" call racing this one. Report nothing new rather than
-            // double-awarding or re-sending a WhatsApp confirmation.
+            // Backstop for the race the PointsAwarded check above can't catch alone: two
+            // concurrent requests both reading PointsAwarded=false before either commits.
+            // The unique indexes on LoyaltyPointTransaction.OrderId and
+            // LoyaltyPunchTransaction (OrderId, ProgressId) catch the actual duplicate
+            // write. Report nothing new rather than double-awarding or re-sending a
+            // WhatsApp confirmation.
             return new OrderLoyaltyResult();
         }
 

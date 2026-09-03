@@ -139,17 +139,20 @@ public class OrderService : IOrderService
             return ServiceResult<OrderResponse>.Failure("Order not found.");
         }
 
-        // Captured before the assignment below - without this, a duplicate PATCH to the
-        // same status (a retried request, a double-tap) would re-fire the loyalty/WhatsApp
-        // side effects on every call rather than only the first transition into Delivered.
-        var wasDelivered = order.Status == OrderStatus.Delivered;
+        // Captured before anything below runs. Deliberately keyed on the persistent
+        // PointsAwarded flag rather than "was the previous status already Delivered" -
+        // that weaker check doesn't survive a Delivered -> Cancelled -> Delivered round
+        // trip (order.Status would read Cancelled just before the second Delivered PATCH,
+        // so a same-status comparison alone would re-fire both the loyalty award and the
+        // WhatsApp confirmation for a second time).
+        var alreadyProcessedForLoyalty = order.PointsAwarded;
 
         order.Status = status;
         order.UpdatedAt = DateTime.UtcNow;
 
         await _repository.SaveChangesAsync();
 
-        if (status == OrderStatus.Delivered && !wasDelivered)
+        if (status == OrderStatus.Delivered && !alreadyProcessedForLoyalty)
         {
             // Both of these must never fail this method - ProcessOrderDeliveredAsync
             // catches its own DbUpdateException race, and the WhatsApp service swallows
