@@ -34,9 +34,13 @@
         <div class="categories-grid">
           @for (category of categories(); track category) {
             <div class="category-card" (click)="openCategory(category)">
-              <div class="category-card-icon">
-                <mat-icon>{{ iconFor(category) }}</mat-icon>
-              </div>
+              @if (imageFor(category); as imageUrl) {
+                <img [src]="imageUrl" [alt]="category" class="category-card-image" />
+              } @else {
+                <div class="category-card-icon">
+                  <mat-icon>{{ iconFor(category) }}</mat-icon>
+                </div>
+              }
               <h3 class="category-card-name">{{ category }}</h3>
               <p class="category-card-count">
                 {{ categoryCounts().get(category) }} item{{ categoryCounts().get(category) === 1 ? '' : 's' }}

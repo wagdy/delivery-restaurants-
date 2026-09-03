@@ -87,29 +87,23 @@ $hero-tab-active-color: #7a2e22;
 // (768px / 1024px) so the column counts land exactly where they'd land with
 // `grid-cols-1 md:grid-cols-2 lg:grid-cols-4`, just expressed as plain SCSS to match
 // this app's existing styling convention (no Tailwind dependency here).
+// Fixed 5 columns on every screen size, deliberately with no responsive breakpoints -
+// equivalent to Tailwind's `grid grid-cols-5 gap-1 p-1` (this project has no Tailwind
+// installed - see storefront.component.ts's imageFor()/CATEGORY_ICONS comments for the
+// same substitution note - so the identical layout is done with plain CSS Grid instead).
 .categories-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
-}
-
-@media (min-width: 768px) {
-  .categories-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .categories-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px; // Tailwind gap-1
+  padding: 4px; // Tailwind p-1
 }
 
 .category-card {
   cursor: pointer;
   background: #fff;
-  border-radius: 16px;
-  padding: 36px 20px;
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 0; // without this, a grid item won't shrink enough for text-overflow below
   text-align: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -120,34 +114,71 @@ $hero-tab-active-color: #7a2e22;
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
 }
 
+// The image and its icon fallback share this exact box so a category with no image
+// never reflows the grid differently than one with an image - equivalent to Tailwind's
+// `w-full aspect-square object-cover rounded`.
+.category-card-image,
 .category-card-icon {
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 16px;
-  border-radius: 50%;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 6px;
+  margin: 0 auto 4px;
+}
+
+.category-card-image {
+  display: block;
+  object-fit: cover;
+}
+
+.category-card-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--app-primary-color, #3f51b5);
-  color: #fff;
+  background: #e0e0e0;
+  color: rgba(0, 0, 0, 0.45);
 
   mat-icon {
-    font-size: 36px;
-    width: 36px;
-    height: 36px;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
   }
 }
 
+// Responsive text, equivalent to Tailwind's `text-[9px] sm:text-[10px] md:text-xs`, plus
+// `truncate` so a long category title clips with an ellipsis instead of wrapping and
+// breaking the fixed 5-column row height.
 .category-card-name {
-  margin: 0 0 4px;
-  font-size: 1.15rem;
+  margin: 0;
   font-weight: 600;
+  font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (min-width: 640px) {
+    font-size: 10px;
+  }
+
+  @media (min-width: 768px) {
+    font-size: 12px; // Tailwind's text-xs
+  }
 }
 
 .category-card-count {
   margin: 0;
   color: rgba(0, 0, 0, 0.55);
-  font-size: 0.85rem;
+  font-size: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (min-width: 640px) {
+    font-size: 9px;
+  }
+
+  @media (min-width: 768px) {
+    font-size: 10px;
+  }
 }
 
 // View 2 - drilled into one category

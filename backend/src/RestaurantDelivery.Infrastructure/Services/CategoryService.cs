@@ -32,7 +32,7 @@ public class CategoryService : ICategoryService
         var existingCategories = await _repository.GetAllOrderedAsync();
         var nextDisplayOrder = existingCategories.Count == 0 ? 0 : existingCategories[^1].DisplayOrder + 1;
 
-        var category = new Category { Name = name, DisplayOrder = nextDisplayOrder };
+        var category = new Category { Name = name, DisplayOrder = nextDisplayOrder, ImageUrl = request.ImageUrl };
         await _repository.AddAsync(category);
         await _repository.SaveChangesAsync();
 
@@ -60,6 +60,8 @@ public class CategoryService : ICategoryService
             await _repository.RenameMenuItemsCategoryAsync(category.Name, name);
             category.Name = name;
         }
+
+        category.ImageUrl = request.ImageUrl;
 
         await _repository.SaveChangesAsync();
 
@@ -123,6 +125,7 @@ public class CategoryService : ICategoryService
     {
         Id = category.Id,
         Name = category.Name,
-        DisplayOrder = category.DisplayOrder
+        DisplayOrder = category.DisplayOrder,
+        ImageUrl = category.ImageUrl
     };
 }

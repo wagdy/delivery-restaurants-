@@ -13,6 +13,7 @@ import { CartService } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { MenuItem } from '../../core/models/menu-item.model';
+import { Category } from '../../core/models/category.model';
 import { MenuItemDetailsDialogComponent } from './menu-item-details-dialog/menu-item-details-dialog.component';
 import { MyOrdersComponent } from '../my-orders/my-orders.component';
 import { LoyaltyRewardsComponent } from './loyalty-rewards/loyalty-rewards.component';
@@ -20,10 +21,9 @@ import { LoyaltyRewardsComponent } from './loyalty-rewards/loyalty-rewards.compo
 export type MenuViewMode = 'list' | 'grid';
 export type HeroTab = 'menu' | 'rewards' | 'orders';
 
-// Keyword -> icon for a bit of visual personality on the category cards (View 1) since
-// Category has no image field to show instead. Falls back to a generic icon below for
-// any name that doesn't match - this is cosmetic only, never blocks a category from
-// rendering.
+// Keyword -> icon fallback for a category card (View 1) with no admin-set image.
+// Falls back to a generic plate icon below for any name that doesn't match - this is
+// cosmetic only, never blocks a category from rendering.
 const CATEGORY_ICONS: { keywords: string[]; icon: string }[] = [
   { keywords: ['drink', 'beverage', 'juice', 'soda'], icon: 'local_bar' },
   { keywords: ['dessert', 'sweet', 'cake'], icon: 'icecream' },
@@ -84,12 +84,13 @@ export class StorefrontComponent {
   // ever on screen at a time.
   readonly selectedCategory = signal<string | null>(null);
 
-  // Admin-configured display order (see CategoryManagementDialogComponent's drag-and-drop),
-  // fetched separately from the menu items themselves since Category is its own entity.
-  private readonly categoryDisplayOrder = signal<string[]>([]);
+  // Admin-configured display order plus per-category image, fetched separately from the
+  // menu items themselves since Category is its own entity (see
+  // CategoryManagementDialogComponent's drag-and-drop for how this is edited).
+  private readonly categoryDisplayOrder = signal<Category[]>([]);
 
   readonly categories = computed(() => {
-    const order = this.categoryDisplayOrder();
+    const order = this.categoryDisplayOrder().map((c) => c.name);
     const present = new Set(this.menuItems().map((m) => m.category));
     // Only categories that actually have menu items right now, in admin-configured
     // order. Any item category with no matching Category row (a data edge case, since
@@ -102,6 +103,13 @@ export class StorefrontComponent {
       .sort();
     return [...ordered, ...extras];
   });
+
+  // Name -> imageUrl lookup for the category cards (View 1). A category with no matching
+  // Category row (see the "extras" comment above) simply has no entry here, which
+  // imageFor() below treats the same as an explicitly null imageUrl - fall back to icon.
+  private readonly categoryImagesByName = computed(
+    () => new Map(this.categoryDisplayOrder().map((c) => [c.name, c.imageUrl]))
+  );
 
   // Item count shown on each category card in View 1.
   readonly categoryCounts = computed(() => {
@@ -140,9 +148,7 @@ export class StorefrontComponent {
     // "extras" branch rather than the whole page erroring out.
     this.categoryService.getAll().subscribe({
       next: (categories) => {
-        this.categoryDisplayOrder.set(
-          [...categories].sort((a, b) => a.displayOrder - b.displayOrder).map((c) => c.name)
-        );
+        this.categoryDisplayOrder.set([...categories].sort((a, b) => a.displayOrder - b.displayOrder));
       }
     });
 
@@ -169,6 +175,12 @@ export class StorefrontComponent {
 
   iconFor(category: string): string {
     return iconForCategory(category);
+  }
+
+  // Null (not just undefined) whenever there's no image to show, so the template's
+  // @if can treat "no Category row" and "Category row with imageUrl: null" identically.
+  imageFor(category: string): string | null {
+    return this.categoryImagesByName().get(category) ?? null;
   }
 
   quantityFor(menuItemId: number): number {
