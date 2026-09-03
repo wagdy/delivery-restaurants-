@@ -11,10 +11,12 @@ namespace RestaurantDelivery.Infrastructure.Services;
 public class CampaignService : ICampaignService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ILoyaltyRealtimeNotifier _realtimeNotifier;
 
-    public CampaignService(ApplicationDbContext context)
+    public CampaignService(ApplicationDbContext context, ILoyaltyRealtimeNotifier realtimeNotifier)
     {
         _context = context;
+        _realtimeNotifier = realtimeNotifier;
     }
 
     public async Task<List<CampaignResponse>> GetAllAsync(CancellationToken ct = default) =>
@@ -153,6 +155,16 @@ public class CampaignService : ICampaignService
 
         await _context.SaveChangesAsync(ct);
 
+        await _realtimeNotifier.NotifyPunchUpdatedAsync(request.CustomerId, new PunchUpdatedPayload
+        {
+            CampaignId = campaign.Id,
+            CampaignTitle = campaign.Title,
+            CurrentPunches = progress.CurrentPunches,
+            TargetPunches = campaign.TargetPunches,
+            RewardsEarned = progress.RewardsEarned,
+            RewardEarnedThisPunch = rewardEarnedThisPunch
+        }, ct);
+
         return ServiceResult<PunchResult>.Success(new PunchResult
         {
             CustomerId = request.CustomerId,
@@ -195,6 +207,16 @@ public class CampaignService : ICampaignService
         });
 
         await _context.SaveChangesAsync(ct);
+
+        await _realtimeNotifier.NotifyPunchUpdatedAsync(request.CustomerId, new PunchUpdatedPayload
+        {
+            CampaignId = campaign.Id,
+            CampaignTitle = campaign.Title,
+            CurrentPunches = progress.CurrentPunches,
+            TargetPunches = campaign.TargetPunches,
+            RewardsEarned = progress.RewardsEarned,
+            RewardEarnedThisPunch = false
+        }, ct);
 
         return ServiceResult<RedeemRewardResult>.Success(new RedeemRewardResult
         {

@@ -1,11 +1,12 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Injectable, inject, signal } from '@angular/core';
+import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   EarnPointsRequest,
   LoyaltyMe,
   LoyaltyTransactionResult,
+  PointsUpdatedEvent,
   RedeemPointsRequest,
   ScannerCustomer
 } from '../models/loyalty.model';
@@ -15,8 +16,29 @@ export class LoyaltyService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/loyalty`;
 
+  // Shared state (not just a per-call Observable) so every consumer - the Rewards tab,
+  // the realtime service pushing live updates - reads the same live value. Mirrors
+  // SettingsService's existing load()-taps-into-a-signal pattern.
+  private readonly _me = signal<LoyaltyMe | null>(null);
+  readonly me = this._me.asReadonly();
+
   getMe(): Observable<LoyaltyMe> {
-    return this.http.get<LoyaltyMe>(`${this.baseUrl}/me`);
+    return this.http.get<LoyaltyMe>(`${this.baseUrl}/me`).pipe(tap((me) => this._me.set(me)));
+  }
+
+  // Called by LoyaltyRealtimeService when a "PointsUpdated" event arrives - merges just
+  // the changed fields, preserving referralCode/wallet-availability from the last fetch.
+  applyPointsUpdate(event: PointsUpdatedEvent): void {
+    this._me.update((current) =>
+      current
+        ? {
+            ...current,
+            currentPoints: event.currentPoints,
+            totalLifetimePoints: event.totalLifetimePoints,
+            membershipTier: event.membershipTier
+          }
+        : current
+    );
   }
 
   earn(request: EarnPointsRequest): Observable<LoyaltyTransactionResult> {

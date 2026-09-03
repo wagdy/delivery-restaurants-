@@ -7,7 +7,7 @@ import { QRCodeComponent } from 'angularx-qrcode';
 import { LoyaltyService } from '../../../core/services/loyalty.service';
 import { CampaignService } from '../../../core/services/campaign.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { LoyaltyMe, MembershipTier } from '../../../core/models/loyalty.model';
+import { MembershipTier } from '../../../core/models/loyalty.model';
 import { CustomerCampaignProgress } from '../../../core/models/campaign.model';
 
 const TIER_THRESHOLDS: Record<MembershipTier, number | null> = {
@@ -41,11 +41,12 @@ export class LoyaltyRewardsComponent {
   readonly walletError = signal<string | null>(null);
   readonly addingToAppleWallet = signal(false);
   readonly addingToGoogleWallet = signal(false);
-  readonly me = signal<LoyaltyMe | null>(null);
 
-  // Loaded independently of `me` - a failure here shouldn't block the points card from
-  // showing, so it's just an empty list rather than a shared error state.
-  readonly campaigns = signal<CustomerCampaignProgress[]>([]);
+  // Shared state owned by the services (not local signals) - LoyaltyRealtimeService
+  // pushes live updates into these same signals from anywhere in the app, so this
+  // component picks them up automatically with no extra wiring here.
+  readonly me = this.loyaltyService.me;
+  readonly campaigns = this.campaignService.myProgress;
 
   readonly nextTier = computed(() => {
     const me = this.me();
@@ -78,20 +79,18 @@ export class LoyaltyRewardsComponent {
   });
 
   constructor() {
+    // The service's own tap() already populates the shared `me`/`campaigns` signals
+    // above - this subscribe is only here to drive this component's own loading/error
+    // state for the initial fetch.
     this.loyaltyService.getMe().subscribe({
-      next: (me) => {
-        this.me.set(me);
-        this.loading.set(false);
-      },
+      next: () => this.loading.set(false),
       error: () => {
         this.loading.set(false);
         this.errorMessage.set('Failed to load your rewards. Please try again later.');
       }
     });
 
-    this.campaignService.getMyProgress().subscribe({
-      next: (campaigns) => this.campaigns.set(campaigns)
-    });
+    this.campaignService.getMyProgress().subscribe();
   }
 
   // A boolean per stamp slot - filled for slots already punched, empty for the rest.

@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using RestaurantDelivery.Api.Authorization;
 using RestaurantDelivery.Api.Configuration;
+using RestaurantDelivery.Api.Hubs;
 using RestaurantDelivery.Api.Services;
 using RestaurantDelivery.Api.Services.Loyalty;
 using RestaurantDelivery.Core.Entities;
@@ -48,9 +49,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy(AngularClientCorsPolicy, policy =>
     {
+        // AllowCredentials is required for the SignalR hub's cross-origin negotiation
+        // (the dev server at :4200/:4300 is a different origin from the API) - safe
+        // alongside WithOrigins, which is already explicit (never AllowAnyOrigin, which
+        // AllowCredentials can't be combined with).
         policy.WithOrigins(corsOrigins.ToArray())
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -81,6 +87,22 @@ builder.Services
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1)
+        };
+        options.Events = new JwtBearerEvents
+        {
+            // Browsers can't attach an Authorization header to a WebSocket upgrade
+            // request, so the SignalR client sends the token as a query string param
+            // instead (see the Angular loyalty-realtime service's accessTokenFactory) -
+            // only honored under /hubs, never for regular API routes.
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken) && context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -141,6 +163,9 @@ builder.Services.AddSingleton<IWalletAuthTokenService, WalletAuthTokenService>()
 builder.Services.AddSingleton<IGoogleWalletClientProvider, GoogleWalletClientProvider>();
 builder.Services.AddScoped<IGoogleWalletService, GoogleWalletService>();
 builder.Services.AddScoped<ICampaignService, CampaignService>();
+
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<ILoyaltyRealtimeNotifier, LoyaltyRealtimeNotifier>();
 
 builder.Services.Configure<DgteraOptions>(builder.Configuration.GetSection("Dgtera"));
 builder.Services.AddHttpClient<IDgteraClient, DgteraClient>();
@@ -209,5 +234,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<LoyaltyHub>("/hubs/loyalty");
 
 app.Run();

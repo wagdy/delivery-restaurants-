@@ -60,3 +60,16 @@ export interface RedeemRewardResult {
   campaignTitle: string;
   rewardsEarned: number;
 }
+
+/**
+ * Mirrors RestaurantDelivery.Core.DTOs.Loyalty.PunchUpdatedPayload - pushed over the
+ * "PunchUpdated" SignalR event (see LoyaltyRealtimeService).
+ */
+export interface PunchUpdatedEvent {
+  campaignId: string;
+  campaignTitle: string;
+  currentPunches: number;
+  targetPunches: number;
+  rewardsEarned: number;
+  rewardEarnedThisPunch: boolean;
+}

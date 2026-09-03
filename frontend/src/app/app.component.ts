@@ -11,6 +11,7 @@ import { AuthService } from './core/services/auth.service';
 import { CartService } from './core/services/cart.service';
 import { SettingsService } from './core/services/settings.service';
 import { CategoryService } from './core/services/category.service';
+import { LoyaltyRealtimeService } from './core/services/loyalty-realtime.service';
 import { Category } from './core/models/category.model';
 import { CartDialogComponent } from './features/storefront/cart-dialog/cart-dialog.component';
 import { UserAvatarComponent } from './shared/user-avatar/user-avatar.component';
@@ -40,6 +41,12 @@ export class AppComponent {
   private readonly categoryService = inject(CategoryService);
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
+
+  // Never referenced again after this - injecting it here is what instantiates the
+  // providedIn: 'root' singleton and starts its connect/disconnect effect() app-wide.
+  // Angular's DI is lazy otherwise, so without an eager injection like this the service
+  // would never actually run until something else happened to need it.
+  private readonly loyaltyRealtimeService = inject(LoyaltyRealtimeService);
 
   // The hamburger's category drawer - best-effort, same "don't block the app on this"
   // reasoning as StorefrontComponent's own category fetch.

@@ -17,11 +17,13 @@ public class LoyaltyService : ILoyaltyService
     private const int RedemptionDivisor = 10;
 
     private readonly ApplicationDbContext _context;
+    private readonly ILoyaltyRealtimeNotifier _realtimeNotifier;
     private readonly decimal _currencyPerPoint;
 
-    public LoyaltyService(ApplicationDbContext context, IConfiguration configuration)
+    public LoyaltyService(ApplicationDbContext context, ILoyaltyRealtimeNotifier realtimeNotifier, IConfiguration configuration)
     {
         _context = context;
+        _realtimeNotifier = realtimeNotifier;
         _currencyPerPoint = decimal.TryParse(configuration["Loyalty:CurrencyPerPoint"], out var configured)
             ? configured
             : DefaultCurrencyPerPoint;
@@ -69,6 +71,16 @@ public class LoyaltyService : ILoyaltyService
 
         await _context.SaveChangesAsync(ct);
 
+        var tierUpgraded = profile.MembershipTier != previousTier;
+
+        await _realtimeNotifier.NotifyPointsUpdatedAsync(profile.AppUserId, new PointsUpdatedPayload
+        {
+            CurrentPoints = profile.CurrentPoints,
+            TotalLifetimePoints = profile.TotalLifetimePoints,
+            MembershipTier = profile.MembershipTier.ToString(),
+            TierUpgraded = tierUpgraded
+        }, ct);
+
         return ServiceResult<LoyaltyTransactionResponse>.Success(new LoyaltyTransactionResponse
         {
             CustomerId = profile.AppUserId,
@@ -76,7 +88,7 @@ public class LoyaltyService : ILoyaltyService
             CurrentPoints = profile.CurrentPoints,
             TotalLifetimePoints = profile.TotalLifetimePoints,
             MembershipTier = profile.MembershipTier.ToString(),
-            TierUpgraded = profile.MembershipTier != previousTier,
+            TierUpgraded = tierUpgraded,
             DiscountAmount = 0m
         });
     }
@@ -111,6 +123,14 @@ public class LoyaltyService : ILoyaltyService
         });
 
         await _context.SaveChangesAsync(ct);
+
+        await _realtimeNotifier.NotifyPointsUpdatedAsync(profile.AppUserId, new PointsUpdatedPayload
+        {
+            CurrentPoints = profile.CurrentPoints,
+            TotalLifetimePoints = profile.TotalLifetimePoints,
+            MembershipTier = profile.MembershipTier.ToString(),
+            TierUpgraded = false
+        }, ct);
 
         return ServiceResult<LoyaltyTransactionResponse>.Success(new LoyaltyTransactionResponse
         {
@@ -177,6 +197,10 @@ public class LoyaltyService : ILoyaltyService
 
         result.NewTotalPoints = profile.CurrentPoints;
 
+        // Collected during the loop below and only sent after SaveChangesAsync succeeds -
+        // never fire a "your balance changed" push for a change that got rolled back.
+        var pendingPunchNotifications = new List<PunchUpdatedPayload>();
+
         var activeCampaigns = await _context.LoyaltyCampaigns.Where(c => c.IsActive).ToListAsync(ct);
         foreach (var campaign in activeCampaigns)
         {
@@ -214,6 +238,16 @@ public class LoyaltyService : ILoyaltyService
                 TargetPunches = campaign.TargetPunches,
                 RewardsEarnedThisOrder = rewardsToAdd
             });
+
+            pendingPunchNotifications.Add(new PunchUpdatedPayload
+            {
+                CampaignId = campaign.Id,
+                CampaignTitle = campaign.Title,
+                CurrentPunches = progress.CurrentPunches,
+                TargetPunches = campaign.TargetPunches,
+                RewardsEarned = progress.RewardsEarned,
+                RewardEarnedThisPunch = rewardsToAdd > 0
+            });
         }
 
         try
@@ -229,6 +263,22 @@ public class LoyaltyService : ILoyaltyService
             // write. Report nothing new rather than double-awarding or re-sending a
             // WhatsApp confirmation.
             return new OrderLoyaltyResult();
+        }
+
+        if (pointsEarned > 0)
+        {
+            await _realtimeNotifier.NotifyPointsUpdatedAsync(profile.AppUserId, new PointsUpdatedPayload
+            {
+                CurrentPoints = profile.CurrentPoints,
+                TotalLifetimePoints = profile.TotalLifetimePoints,
+                MembershipTier = profile.MembershipTier.ToString(),
+                TierUpgraded = result.TierUpgraded
+            }, ct);
+        }
+
+        foreach (var payload in pendingPunchNotifications)
+        {
+            await _realtimeNotifier.NotifyPunchUpdatedAsync(profile.AppUserId, payload, ct);
         }
 
         return result;

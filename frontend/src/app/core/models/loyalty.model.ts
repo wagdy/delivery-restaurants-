@@ -45,3 +45,14 @@ export interface ScannerCustomer {
   membershipTier: MembershipTier;
   campaigns: CustomerCampaignProgress[];
 }
+
+/**
+ * Mirrors RestaurantDelivery.Core.DTOs.Loyalty.PointsUpdatedPayload - pushed over the
+ * "PointsUpdated" SignalR event (see LoyaltyRealtimeService).
+ */
+export interface PointsUpdatedEvent {
+  currentPoints: number;
+  totalLifetimePoints: number;
+  membershipTier: MembershipTier;
+  tierUpgraded: boolean;
+}
