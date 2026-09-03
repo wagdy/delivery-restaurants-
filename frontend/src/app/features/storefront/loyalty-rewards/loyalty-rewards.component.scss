@@ -1,27 +1,204 @@
-.loyalty-placeholder {
+// Fixed, conventional per-tier colors - independent of the app's admin-configurable
+// --app-primary-color/--app-accent-color branding vars, matching the Apple Wallet pass's
+// own per-tier palette (see ApplePassBuilder.TierColors on the backend).
+$tier-bronze-start: #a9784f;
+$tier-bronze-end: #5c3d24;
+$tier-silver-start: #b8b8b8;
+$tier-silver-end: #6e6e6e;
+$tier-gold-start: #e0bb4d;
+$tier-gold-end: #8a6d1f;
+$tier-vip-start: #3a2f2b;
+$tier-vip-end: #0d0a09;
+$tier-vip-accent: #d4af37;
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.error-text {
+  color: var(--mat-sys-error, #b3261e);
+}
+
+.rewards {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 64px 24px;
+  gap: 20px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.loyalty-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 24px;
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+
+  &.tier-bronze {
+    background: linear-gradient(135deg, $tier-bronze-start, $tier-bronze-end);
+  }
+
+  &.tier-silver {
+    background: linear-gradient(135deg, $tier-silver-start, $tier-silver-end);
+  }
+
+  &.tier-gold {
+    background: linear-gradient(135deg, $tier-gold-start, $tier-gold-end);
+  }
+
+  &.tier-vip {
+    background: linear-gradient(135deg, $tier-vip-start, $tier-vip-end);
+
+    .tier-badge {
+      color: $tier-vip-accent;
+    }
+
+    .card-points {
+      color: $tier-vip-accent;
+    }
+  }
+}
+
+.card-glow {
+  position: absolute;
+  right: -40px;
+  top: -40px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.card-top,
+.card-bottom {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.card-bottom {
+  margin-top: 24px;
+  align-items: flex-end;
+}
+
+.card-label {
+  margin: 0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.card-name {
+  margin: 6px 0 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.card-points {
+  margin: 4px 0 0;
+  font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.tier-badge {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.card-qr {
+  background: #fff;
+  border-radius: 10px;
+  padding: 6px;
+  line-height: 0;
+}
+
+.card-referral {
+  position: relative;
+  margin: 20px 0 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.tier-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tier-progress-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.tier-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--app-primary-color, #3f51b5);
+  transition: width 0.2s ease;
+}
+
+.tier-progress-text {
+  margin: 0;
+  font-size: 0.8rem;
   color: rgba(0, 0, 0, 0.6);
 
-  mat-icon {
-    font-size: 48px;
-    width: 48px;
-    height: 48px;
-    color: var(--app-primary-color, #3f51b5);
-    margin-bottom: 12px;
+  &.max-tier {
+    text-align: center;
+  }
+}
+
+.wallet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wallet-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  color: #fff;
+  transition: opacity 0.15s ease;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
   }
 
-  h2 {
-    margin: 0 0 8px;
-    font-size: 1.2rem;
-    color: rgba(0, 0, 0, 0.85);
+  &.apple {
+    background: #000;
   }
 
-  p {
-    margin: 0;
-    max-width: 360px;
+  &.google {
+    background: #4285f4;
   }
+}
+
+.wallet-unavailable {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.5);
 }

@@ -9,7 +9,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using RestaurantDelivery.Api.Authorization;
+using RestaurantDelivery.Api.Configuration;
 using RestaurantDelivery.Api.Services;
+using RestaurantDelivery.Api.Services.Loyalty;
 using RestaurantDelivery.Core.Entities;
 using RestaurantDelivery.Core.Enums;
 using RestaurantDelivery.Core.Interfaces;
@@ -125,6 +127,15 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IRoleService, RoleService>();
+
+builder.Services.Configure<AppleWalletSettings>(builder.Configuration.GetSection(AppleWalletSettings.SectionName));
+builder.Services.Configure<GoogleWalletSettings>(builder.Configuration.GetSection(GoogleWalletSettings.SectionName));
+builder.Services.AddScoped<ILoyaltyService, LoyaltyService>();
+builder.Services.AddScoped<IApplePassBuilder, ApplePassBuilder>();
+builder.Services.AddScoped<IApplePassKitService, ApplePassKitService>();
+builder.Services.AddSingleton<IWalletAuthTokenService, WalletAuthTokenService>();
+builder.Services.AddSingleton<IGoogleWalletClientProvider, GoogleWalletClientProvider>();
+builder.Services.AddScoped<IGoogleWalletService, GoogleWalletService>();
 
 builder.Services.Configure<DgteraOptions>(builder.Configuration.GetSection("Dgtera"));
 builder.Services.AddHttpClient<IDgteraClient, DgteraClient>();

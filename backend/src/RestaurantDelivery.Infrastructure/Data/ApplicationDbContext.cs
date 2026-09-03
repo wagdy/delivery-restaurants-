@@ -19,6 +19,10 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<AddOn> AddOns => Set<AddOn>();
     public DbSet<WebPushSubscription> WebPushSubscriptions => Set<WebPushSubscription>();
 
+    public DbSet<LoyaltyProfile> LoyaltyProfiles => Set<LoyaltyProfile>();
+    public DbSet<LoyaltyPointTransaction> LoyaltyPointTransactions => Set<LoyaltyPointTransaction>();
+    public DbSet<LoyaltyWalletPassRegistration> LoyaltyWalletPassRegistrations => Set<LoyaltyWalletPassRegistration>();
+
     // Named CustomRoles, not Roles - IdentityDbContext<AppUser> already inherits
     // DbSet<IdentityRole> Roles (mapped to the unused AspNetRoles table); reusing that
     // name here would silently hide the inherited member.

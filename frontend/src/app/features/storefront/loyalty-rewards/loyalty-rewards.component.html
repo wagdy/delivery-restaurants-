@@ -1,5 +1,80 @@
-<div class="loyalty-placeholder">
-  <mat-icon>redeem</mat-icon>
-  <h2>Rewards are coming soon</h2>
-  <p>Your loyalty points, tier progress, and promotional offers will show up here.</p>
-</div>
+@if (loading()) {
+  <div class="loading-state">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+} @else if (errorMessage()) {
+  <p class="error-text">{{ errorMessage() }}</p>
+} @else {
+  @if (me(); as loyalty) {
+  <div class="rewards">
+    <div class="loyalty-card" [class]="'tier-' + loyalty.membershipTier.toLowerCase()">
+      <div class="card-glow"></div>
+
+      <div class="card-top">
+        <div>
+          <p class="card-label">Loyalty Member</p>
+          <p class="card-name">{{ authService.currentUser()?.fullName }}</p>
+        </div>
+        <span class="tier-badge">{{ loyalty.membershipTier }}</span>
+      </div>
+
+      <div class="card-bottom">
+        <div>
+          <p class="card-label">Points</p>
+          <p class="card-points">{{ loyalty.currentPoints }}</p>
+        </div>
+        <div class="card-qr">
+          <qrcode [qrdata]="loyalty.appUserId" [width]="88" errorCorrectionLevel="M" elementType="svg"></qrcode>
+        </div>
+      </div>
+
+      <p class="card-referral">Referral Code: {{ loyalty.referralCode }}</p>
+    </div>
+
+    @if (nextTier(); as next) {
+      <div class="tier-progress">
+        <div class="tier-progress-bar">
+          <div class="tier-progress-fill" [style.width.%]="tierProgressPercent()"></div>
+        </div>
+        <p class="tier-progress-text">{{ pointsToNextTier() }} lifetime points to {{ next }}</p>
+      </div>
+    } @else {
+      <p class="tier-progress-text max-tier">You've reached our top tier - thank you for your loyalty!</p>
+    }
+
+    <div class="wallet-actions">
+      @if (loyalty.appleWalletAvailable) {
+        <button
+          type="button"
+          class="wallet-button apple"
+          [disabled]="addingToAppleWallet()"
+          (click)="addToAppleWallet()"
+        >
+          <mat-icon>account_balance_wallet</mat-icon>
+          Add to Apple Wallet
+        </button>
+      }
+
+      @if (loyalty.googleWalletAvailable) {
+        <button
+          type="button"
+          class="wallet-button google"
+          [disabled]="addingToGoogleWallet()"
+          (click)="addToGoogleWallet()"
+        >
+          <mat-icon>account_balance_wallet</mat-icon>
+          Add to Google Wallet
+        </button>
+      }
+
+      @if (!loyalty.appleWalletAvailable && !loyalty.googleWalletAvailable) {
+        <p class="wallet-unavailable">Wallet passes aren't available yet - check back soon.</p>
+      }
+    </div>
+
+    @if (walletError()) {
+      <p class="error-text">{{ walletError() }}</p>
+    }
+  </div>
+  }
+}

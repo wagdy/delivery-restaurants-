@@ -1,14 +1,123 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { QRCodeComponent } from 'angularx-qrcode';
+import { LoyaltyService } from '../../../core/services/loyalty.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { LoyaltyMe, MembershipTier } from '../../../core/models/loyalty.model';
 
-// Placeholder for the Rewards tab - the real loyalty point balance, tier progress, and
-// promotional cards live in the separate otantik-loyalty project and aren't wired up
-// here yet. Drop those components into this template once that integration happens.
+const TIER_THRESHOLDS: Record<MembershipTier, number | null> = {
+  Bronze: 500,
+  Silver: 1000,
+  Gold: 2500,
+  VIP: null
+};
+
+const NEXT_TIER: Record<MembershipTier, MembershipTier | null> = {
+  Bronze: 'Silver',
+  Silver: 'Gold',
+  Gold: 'VIP',
+  VIP: null
+};
+
 @Component({
   selector: 'app-loyalty-rewards',
   standalone: true,
-  imports: [MatIconModule],
+  imports: [CommonModule, MatIconModule, MatButtonModule, MatProgressSpinnerModule, QRCodeComponent],
   templateUrl: './loyalty-rewards.component.html',
   styleUrl: './loyalty-rewards.component.scss'
 })
-export class LoyaltyRewardsComponent {}
+export class LoyaltyRewardsComponent {
+  private readonly loyaltyService = inject(LoyaltyService);
+  protected readonly authService = inject(AuthService);
+
+  readonly loading = signal(true);
+  readonly errorMessage = signal<string | null>(null);
+  readonly walletError = signal<string | null>(null);
+  readonly addingToAppleWallet = signal(false);
+  readonly addingToGoogleWallet = signal(false);
+  readonly me = signal<LoyaltyMe | null>(null);
+
+  readonly nextTier = computed(() => {
+    const me = this.me();
+    return me ? NEXT_TIER[me.membershipTier] : null;
+  });
+
+  // Progress toward the next tier, 0-100. VIP (no next tier) always reads as complete.
+  readonly tierProgressPercent = computed(() => {
+    const me = this.me();
+    if (!me) {
+      return 0;
+    }
+
+    const threshold = TIER_THRESHOLDS[me.membershipTier];
+    if (threshold === null) {
+      return 100;
+    }
+
+    return Math.min(100, Math.round((me.totalLifetimePoints / threshold) * 100));
+  });
+
+  readonly pointsToNextTier = computed(() => {
+    const me = this.me();
+    if (!me) {
+      return 0;
+    }
+
+    const threshold = TIER_THRESHOLDS[me.membershipTier];
+    return threshold === null ? 0 : Math.max(0, threshold - me.totalLifetimePoints);
+  });
+
+  constructor() {
+    this.loyaltyService.getMe().subscribe({
+      next: (me) => {
+        this.me.set(me);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+        this.errorMessage.set('Failed to load your rewards. Please try again later.');
+      }
+    });
+  }
+
+  addToAppleWallet(): void {
+    this.walletError.set(null);
+    this.addingToAppleWallet.set(true);
+
+    this.loyaltyService.getAppleWalletPassBlob().subscribe({
+      next: (blob) => {
+        this.addingToAppleWallet.set(false);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      },
+      error: () => {
+        this.addingToAppleWallet.set(false);
+        this.walletError.set('Apple Wallet is not available right now.');
+      }
+    });
+  }
+
+  addToGoogleWallet(): void {
+    this.walletError.set(null);
+    this.addingToGoogleWallet.set(true);
+
+    this.loyaltyService.getGoogleWalletSaveLink().subscribe({
+      next: ({ saveUrl }) => {
+        this.addingToGoogleWallet.set(false);
+        window.open(saveUrl, '_blank', 'noopener');
+      },
+      error: () => {
+        this.addingToGoogleWallet.set(false);
+        this.walletError.set('Google Wallet is not available right now.');
+      }
+    });
+  }
+}

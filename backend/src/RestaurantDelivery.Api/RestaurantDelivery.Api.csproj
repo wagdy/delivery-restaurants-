@@ -14,11 +14,22 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="dotnet-passbook" Version="4.0.1" />
+    <PackageReference Include="Google.Apis.Walletobjects.v1" Version="1.75.0.4235" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\RestaurantDelivery.Core\RestaurantDelivery.Core.csproj" />
     <ProjectReference Include="..\RestaurantDelivery.Infrastructure\RestaurantDelivery.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Apple Wallet pass artwork (icon/logo/strip PNGs, at 1x/2x/3x) - not shipped yet;
+         AppleWalletSettings.IsConfigured also checks these exist, so the wallet feature
+         stays safely "unconfigured" until real branding is dropped in here. -->
+    <Content Include="Assets\ApplePass\**\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>
