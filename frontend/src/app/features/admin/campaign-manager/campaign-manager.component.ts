@@ -74,7 +74,8 @@ export class CampaignManagerComponent {
   create(): void {
     const title = this.newTitle().trim();
     const description = this.newDescription().trim();
-    if (!title || !description) {
+    const endDate = this.newEndDate();
+    if (!title || !description || !endDate) {
       return;
     }
 
@@ -85,7 +86,7 @@ export class CampaignManagerComponent {
         description,
         categoryName: this.newCategoryName(),
         targetPunches: this.newTargetPunches(),
-        endDate: this.newEndDate() || null
+        endDate
       })
       .subscribe({
         next: () => {

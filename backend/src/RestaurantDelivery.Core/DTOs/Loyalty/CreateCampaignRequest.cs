@@ -18,5 +18,10 @@ public class CreateCampaignRequest
     [Range(1, 100)]
     public int TargetPunches { get; set; } = 1;
 
+    // Kept nullable (not `DateTime`) deliberately: [Required] only fires for a JSON body
+    // when the property can actually represent "missing" - null. A non-nullable DateTime
+    // silently defaults to 0001-01-01 (or throws a raw JSON error for an explicit `null`)
+    // instead of producing the clean "The EndDate field is required." validation error below.
+    [Required(ErrorMessage = "Expiration date is required.")]
     public DateTime? EndDate { get; set; }
 }

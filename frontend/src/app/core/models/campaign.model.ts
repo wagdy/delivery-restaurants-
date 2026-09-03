@@ -16,7 +16,9 @@ export interface CreateCampaignRequest {
   description: string;
   categoryName: string | null;
   targetPunches: number;
-  endDate: string | null;
+  // Mandatory (unlike Campaign.endDate above, which stays nullable for campaigns created
+  // before this field became required).
+  endDate: string;
 }
 
 /** Mirrors RestaurantDelivery.Core.DTOs.Loyalty.CustomerCampaignProgressResponse. */
