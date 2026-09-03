@@ -1,0 +1,92 @@
+<mat-toolbar class="campaigns-toolbar">
+  <h1>Campaign Manager</h1>
+</mat-toolbar>
+
+<div class="page-content">
+  <div class="create-card">
+    <h2>New punch-card campaign</h2>
+
+    <div class="create-form">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Title</mat-label>
+        <input matInput [ngModel]="newTitle()" (ngModelChange)="newTitle.set($event)" placeholder="e.g. Buy 5 Coffees, Get 1 Free" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Description</mat-label>
+        <input matInput [ngModel]="newDescription()" (ngModelChange)="newDescription.set($event)" placeholder="Shown to customers on their card" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Category (optional)</mat-label>
+        <mat-select [ngModel]="newCategoryName()" (ngModelChange)="newCategoryName.set($event)">
+          <mat-option [value]="null">Any item</mat-option>
+          @for (category of categories(); track category.id) {
+            <mat-option [value]="category.name">{{ category.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Target punches</mat-label>
+        <input matInput type="number" min="1" max="100" [ngModel]="newTargetPunches()" (ngModelChange)="newTargetPunches.set($event)" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>End date (optional)</mat-label>
+        <input matInput type="date" [ngModel]="newEndDate()" (ngModelChange)="newEndDate.set($event)" />
+      </mat-form-field>
+
+      <button
+        mat-flat-button
+        color="primary"
+        class="create-button"
+        [disabled]="creating() || !newTitle().trim() || !newDescription().trim()"
+        (click)="create()"
+      >
+        @if (creating()) {
+          <mat-spinner diameter="18"></mat-spinner>
+        } @else {
+          <ng-container>
+            <mat-icon>add</mat-icon>
+            Create campaign
+          </ng-container>
+        }
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (campaigns().length === 0) {
+    <p class="empty-state">No campaigns yet. Create one above.</p>
+  } @else {
+    <div class="campaigns-list">
+      @for (campaign of campaigns(); track campaign.id) {
+        <div class="campaign-row" [class.inactive]="!campaign.isActive">
+          <div class="campaign-info">
+            <p class="campaign-title">{{ campaign.title }}</p>
+            <p class="campaign-description">{{ campaign.description }}</p>
+            <p class="campaign-meta">
+              {{ campaign.categoryName ?? 'Any item' }} · Target: {{ campaign.targetPunches }}
+              @if (campaign.endDate) {
+                · Valid until {{ campaign.endDate | date: 'mediumDate' }}
+              }
+            </p>
+          </div>
+
+          <div class="campaign-actions">
+            <mat-slide-toggle [checked]="campaign.isActive" (change)="toggleStatus(campaign)">
+              {{ campaign.isActive ? 'Active' : 'Inactive' }}
+            </mat-slide-toggle>
+            <button mat-icon-button color="warn" (click)="delete(campaign)" aria-label="Delete">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

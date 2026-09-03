@@ -15,6 +15,32 @@ public class CustomerService : ICustomerService
         _context = context;
     }
 
+    public Task<List<CustomerCrmResponse>> GetCrmCustomersAsync()
+    {
+        // Left join against LoyaltyProfiles (AppUser has no nav property to it, by design -
+        // see LoyaltyProfileConfiguration) so a customer who's never opened the Rewards tab
+        // still appears, with zeroed-out loyalty fields.
+        var query =
+            from u in _context.Users
+            where u.Role == UserRole.Customer
+            join p in _context.LoyaltyProfiles on u.Id equals p.AppUserId into profileJoin
+            from profile in profileJoin.DefaultIfEmpty()
+            orderby u.Orders.Count() descending
+            select new CustomerCrmResponse
+            {
+                Id = u.Id,
+                FullName = u.FullName,
+                PhoneNumber = u.PhoneNumber,
+                TotalOrders = u.Orders.Count(),
+                AverageOrderValue = u.Orders.Any() ? u.Orders.Average(o => o.TotalAmount) : 0m,
+                CurrentPoints = profile != null ? profile.CurrentPoints : 0,
+                TotalLifetimePoints = profile != null ? profile.TotalLifetimePoints : 0,
+                MembershipTier = profile != null ? profile.MembershipTier.ToString() : "Bronze"
+            };
+
+        return query.ToListAsync();
+    }
+
     public Task<List<CustomerInsightResponse>> GetCustomerInsightsAsync()
     {
         // Count() and Average() here are correlated subqueries over each customer's Orders

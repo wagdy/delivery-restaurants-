@@ -1,3 +1,5 @@
+import { CustomerCampaignProgress } from './campaign.model';
+
 export type MembershipTier = 'Bronze' | 'Silver' | 'Gold' | 'VIP';
 
 /** Mirrors RestaurantDelivery.Core.DTOs.Loyalty.LoyaltyMeResponse. */
@@ -31,4 +33,15 @@ export interface LoyaltyTransactionResult {
   membershipTier: MembershipTier;
   tierUpgraded: boolean;
   discountAmount: number;
+}
+
+/** Mirrors RestaurantDelivery.Core.DTOs.Loyalty.ScannerCustomerResponse. */
+export interface ScannerCustomer {
+  appUserId: string;
+  fullName: string;
+  phoneNumber: string | null;
+  currentPoints: number;
+  totalLifetimePoints: number;
+  membershipTier: MembershipTier;
+  campaigns: CustomerCampaignProgress[];
 }

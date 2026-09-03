@@ -24,6 +24,21 @@
       Customers
     </a>
   }
+  @if (authService.hasModule('Crm')) {
+    <a mat-tab-link routerLink="crm" routerLinkActive #crmLink="routerLinkActive" [active]="crmLink.isActive">
+      CRM
+    </a>
+  }
+  @if (authService.hasModule('Campaigns')) {
+    <a mat-tab-link routerLink="campaigns" routerLinkActive #campaignsLink="routerLinkActive" [active]="campaignsLink.isActive">
+      Campaigns
+    </a>
+  }
+  @if (authService.hasModule('Scanner')) {
+    <a mat-tab-link routerLink="scanner" routerLinkActive #scannerLink="routerLinkActive" [active]="scannerLink.isActive">
+      Scanner
+    </a>
+  }
 </nav>
 
 <mat-tab-nav-panel #tabPanel>

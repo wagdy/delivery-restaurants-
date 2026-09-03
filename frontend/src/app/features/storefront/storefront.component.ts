@@ -158,6 +158,12 @@ export class StorefrontComponent {
         this.activeTab.set('menu');
         this.selectedCategory.set(category);
       }
+
+      // Lets the WhatsApp welcome message link straight to the Rewards tab
+      // (?tab=rewards) - see WhatsAppNotificationService.SendWelcomeMessageAsync.
+      if (params.get('tab') === 'rewards') {
+        this.activeTab.set('rewards');
+      }
     });
   }
 

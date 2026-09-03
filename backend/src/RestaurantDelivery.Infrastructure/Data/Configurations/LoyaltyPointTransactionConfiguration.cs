@@ -19,6 +19,11 @@ public class LoyaltyPointTransactionConfiguration : IEntityTypeConfiguration<Loy
         builder.HasIndex(t => t.CustomerId);
         builder.HasIndex(t => t.CreatedAt);
 
+        // Postgres treats every NULL as distinct in a unique index, so the many rows with
+        // no OrderId (manual earn/redeem) never collide with each other - only a genuine
+        // repeat (the same order marked Delivered twice) is rejected.
+        builder.HasIndex(t => t.OrderId).IsUnique();
+
         // Two independent FKs to AppUser (customer being credited/debited, and the staff
         // member who acted) - both WithMany() with no lambda, so neither adds a reverse
         // collection navigation onto AppUser.cs.
@@ -30,6 +35,12 @@ public class LoyaltyPointTransactionConfiguration : IEntityTypeConfiguration<Loy
         builder.HasOne(t => t.Admin)
             .WithMany()
             .HasForeignKey(t => t.AdminId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        builder.HasOne(t => t.Order)
+            .WithMany()
+            .HasForeignKey(t => t.OrderId)
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
     }

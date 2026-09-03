@@ -18,6 +18,7 @@ using RestaurantDelivery.Core.Interfaces;
 using RestaurantDelivery.Infrastructure.Data;
 using RestaurantDelivery.Infrastructure.Data.Seed;
 using RestaurantDelivery.Infrastructure.ExternalServices.Dgtera;
+using RestaurantDelivery.Infrastructure.ExternalServices.GreenApi;
 using RestaurantDelivery.Infrastructure.Repositories;
 using RestaurantDelivery.Infrastructure.Services;
 
@@ -99,6 +100,9 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("Module.Settings", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.Settings)));
     options.AddPolicy("Module.Staff", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.Staff)));
     options.AddPolicy("Module.Customers", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.Customers)));
+    options.AddPolicy("Module.Crm", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.Crm)));
+    options.AddPolicy("Module.Campaigns", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.Campaigns)));
+    options.AddPolicy("Module.Scanner", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.Scanner)));
 });
 
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
@@ -136,10 +140,14 @@ builder.Services.AddScoped<IApplePassKitService, ApplePassKitService>();
 builder.Services.AddSingleton<IWalletAuthTokenService, WalletAuthTokenService>();
 builder.Services.AddSingleton<IGoogleWalletClientProvider, GoogleWalletClientProvider>();
 builder.Services.AddScoped<IGoogleWalletService, GoogleWalletService>();
+builder.Services.AddScoped<ICampaignService, CampaignService>();
 
 builder.Services.Configure<DgteraOptions>(builder.Configuration.GetSection("Dgtera"));
 builder.Services.AddHttpClient<IDgteraClient, DgteraClient>();
 builder.Services.AddScoped<IDgteraSyncService, DgteraSyncService>();
+
+builder.Services.Configure<GreenApiOptions>(builder.Configuration.GetSection("GreenApi"));
+builder.Services.AddHttpClient<IWhatsAppNotificationService, WhatsAppNotificationService>();
 
 var vapidSection = builder.Configuration.GetSection("Vapid");
 var vapidPublicKey = vapidSection["PublicKey"] ?? throw new InvalidOperationException("Vapid:PublicKey is not configured.");

@@ -288,6 +288,80 @@ namespace RestaurantDelivery.Infrastructure.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("RestaurantDelivery.Core.Entities.LoyaltyCampaign", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CategoryName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("TargetPunches")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.ToTable("LoyaltyCampaigns");
+                });
+
+            modelBuilder.Entity("RestaurantDelivery.Core.Entities.LoyaltyCampaignProgress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CurrentPunches")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CustomerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastPunchDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RewardsEarned")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId");
+
+                    b.HasIndex("CustomerId", "CampaignId")
+                        .IsUnique();
+
+                    b.ToTable("LoyaltyCampaignProgress");
+                });
+
             modelBuilder.Entity("RestaurantDelivery.Core.Entities.LoyaltyPointTransaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -312,6 +386,9 @@ namespace RestaurantDelivery.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("OrderId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("PointsTransacted")
                         .HasColumnType("integer");
 
@@ -327,6 +404,9 @@ namespace RestaurantDelivery.Infrastructure.Migrations
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique();
 
                     b.ToTable("LoyaltyPointTransactions");
                 });
@@ -364,6 +444,51 @@ namespace RestaurantDelivery.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("LoyaltyProfiles");
+                });
+
+            modelBuilder.Entity("RestaurantDelivery.Core.Entities.LoyaltyPunchTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AdminId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CheckReference")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("OrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ProgressId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TransactionType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ProgressId");
+
+                    b.HasIndex("OrderId", "ProgressId")
+                        .IsUnique()
+                        .HasFilter("\"OrderId\" IS NOT NULL");
+
+                    b.ToTable("LoyaltyPunchTransactions");
                 });
 
             modelBuilder.Entity("RestaurantDelivery.Core.Entities.LoyaltyWalletPassRegistration", b =>
@@ -786,6 +911,25 @@ namespace RestaurantDelivery.Infrastructure.Migrations
                     b.Navigation("CustomRole");
                 });
 
+            modelBuilder.Entity("RestaurantDelivery.Core.Entities.LoyaltyCampaignProgress", b =>
+                {
+                    b.HasOne("RestaurantDelivery.Core.Entities.LoyaltyCampaign", "Campaign")
+                        .WithMany()
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RestaurantDelivery.Core.Entities.AppUser", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Campaign");
+
+                    b.Navigation("Customer");
+                });
+
             modelBuilder.Entity("RestaurantDelivery.Core.Entities.LoyaltyPointTransaction", b =>
                 {
                     b.HasOne("RestaurantDelivery.Core.Entities.AppUser", "Admin")
@@ -799,9 +943,16 @@ namespace RestaurantDelivery.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("RestaurantDelivery.Core.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Admin");
 
                     b.Navigation("Customer");
+
+                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("RestaurantDelivery.Core.Entities.LoyaltyProfile", b =>
@@ -813,6 +964,31 @@ namespace RestaurantDelivery.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("AppUser");
+                });
+
+            modelBuilder.Entity("RestaurantDelivery.Core.Entities.LoyaltyPunchTransaction", b =>
+                {
+                    b.HasOne("RestaurantDelivery.Core.Entities.AppUser", "Admin")
+                        .WithMany()
+                        .HasForeignKey("AdminId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RestaurantDelivery.Core.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RestaurantDelivery.Core.Entities.LoyaltyCampaignProgress", "Progress")
+                        .WithMany()
+                        .HasForeignKey("ProgressId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Admin");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Progress");
                 });
 
             modelBuilder.Entity("RestaurantDelivery.Core.Entities.LoyaltyWalletPassRegistration", b =>

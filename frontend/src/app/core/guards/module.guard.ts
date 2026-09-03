@@ -11,7 +11,10 @@ const ADMIN_MODULE_PATHS: { module: AdminModuleName; path: string }[] = [
   { module: 'MenuItems', path: 'menu' },
   { module: 'Settings', path: 'settings' },
   { module: 'Staff', path: 'staff' },
-  { module: 'Customers', path: 'customers' }
+  { module: 'Customers', path: 'customers' },
+  { module: 'Crm', path: 'crm' },
+  { module: 'Campaigns', path: 'campaigns' },
+  { module: 'Scanner', path: 'scanner' }
 ];
 
 export function resolveFirstAccessibleAdminPath(authService: AuthService): string {

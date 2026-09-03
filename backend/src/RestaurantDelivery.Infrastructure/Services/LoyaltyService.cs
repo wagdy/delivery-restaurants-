@@ -124,6 +124,115 @@ public class LoyaltyService : ILoyaltyService
         });
     }
 
+    public async Task<OrderLoyaltyResult> ProcessOrderDeliveredAsync(Order order, CancellationToken ct = default)
+    {
+        var result = new OrderLoyaltyResult();
+
+        if (order.UserId is null)
+        {
+            // Guest checkout - no account to credit. Punch campaigns also require an
+            // account, so there's nothing else to do here either.
+            return result;
+        }
+
+        var profile = await GetOrCreateProfileEntityAsync(order.UserId, ct);
+
+        var pointsEarned = (int)Math.Floor(order.TotalAmount / _currencyPerPoint);
+        if (pointsEarned > 0)
+        {
+            var previousTier = profile.MembershipTier;
+
+            profile.CurrentPoints += pointsEarned;
+            profile.TotalLifetimePoints += pointsEarned;
+            profile.LastActivityDate = DateTime.UtcNow;
+            profile.MembershipTier = MembershipTierCalculator.CalculateTier(profile.TotalLifetimePoints, profile.MembershipTier);
+
+            _context.LoyaltyPointTransactions.Add(new LoyaltyPointTransaction
+            {
+                CustomerId = profile.AppUserId,
+                PointsTransacted = pointsEarned,
+                CheckAmount = order.TotalAmount,
+                TransactionType = LoyaltyTransactionType.OrderEarned,
+                OrderId = order.Id
+            });
+
+            result.PointsEarned = pointsEarned;
+            result.TierUpgraded = profile.MembershipTier != previousTier;
+        }
+
+        result.NewTotalPoints = profile.CurrentPoints;
+
+        var activeCampaigns = await _context.LoyaltyCampaigns.Where(c => c.IsActive).ToListAsync(ct);
+        foreach (var campaign in activeCampaigns)
+        {
+            var matchingQuantity = order.OrderItems
+                .Where(oi => campaign.CategoryName is null ||
+                             string.Equals(oi.MenuItem.Category, campaign.CategoryName, StringComparison.OrdinalIgnoreCase))
+                .Sum(oi => oi.Quantity);
+
+            if (matchingQuantity <= 0)
+            {
+                continue;
+            }
+
+            var progress = await GetOrCreateCampaignProgressAsync(profile.AppUserId, campaign.Id, ct);
+
+            var totalPunches = progress.CurrentPunches + matchingQuantity;
+            var rewardsToAdd = totalPunches / campaign.TargetPunches;
+            progress.CurrentPunches = totalPunches % campaign.TargetPunches;
+            progress.RewardsEarned += rewardsToAdd;
+            progress.LastPunchDate = DateTime.UtcNow;
+
+            _context.LoyaltyPunchTransactions.Add(new LoyaltyPunchTransaction
+            {
+                ProgressId = progress.Id,
+                TransactionType = PunchTransactionType.PunchAdded,
+                Quantity = matchingQuantity,
+                OrderId = order.Id
+            });
+
+            result.PunchUpdates.Add(new PunchUpdateSummary
+            {
+                CampaignTitle = campaign.Title,
+                QuantityApplied = matchingQuantity,
+                CurrentPunches = progress.CurrentPunches,
+                TargetPunches = campaign.TargetPunches,
+                RewardsEarnedThisOrder = rewardsToAdd
+            });
+        }
+
+        try
+        {
+            await _context.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // A unique-index collision here means this exact order already applied its
+            // loyalty side effects (see the unique indexes on LoyaltyPointTransaction.OrderId
+            // and LoyaltyPunchTransaction (OrderId, ProgressId)) - most likely a duplicate
+            // "mark Delivered" call racing this one. Report nothing new rather than
+            // double-awarding or re-sending a WhatsApp confirmation.
+            return new OrderLoyaltyResult();
+        }
+
+        return result;
+    }
+
+    // Same race-safe get-or-create pattern as GetOrCreateProfileEntityAsync below.
+    private async Task<LoyaltyCampaignProgress> GetOrCreateCampaignProgressAsync(string customerId, Guid campaignId, CancellationToken ct)
+    {
+        var progress = await _context.LoyaltyCampaignProgress
+            .FirstOrDefaultAsync(p => p.CustomerId == customerId && p.CampaignId == campaignId, ct);
+        if (progress is not null)
+        {
+            return progress;
+        }
+
+        progress = new LoyaltyCampaignProgress { CustomerId = customerId, CampaignId = campaignId };
+        _context.LoyaltyCampaignProgress.Add(progress);
+        return progress;
+    }
+
     // Lazily creates the profile row on first touch. Two concurrent first-touches (e.g. a
     // GET /me and a wallet pass request landing at the same time) would both try to insert
     // the same PK - the loser's SaveChanges throws a unique-violation, so it's caught here

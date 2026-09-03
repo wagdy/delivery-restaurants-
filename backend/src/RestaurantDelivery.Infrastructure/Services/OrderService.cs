@@ -11,11 +11,19 @@ public class OrderService : IOrderService
 {
     private readonly IOrderRepository _repository;
     private readonly IPushNotificationService _pushNotificationService;
+    private readonly ILoyaltyService _loyaltyService;
+    private readonly IWhatsAppNotificationService _whatsAppNotificationService;
 
-    public OrderService(IOrderRepository repository, IPushNotificationService pushNotificationService)
+    public OrderService(
+        IOrderRepository repository,
+        IPushNotificationService pushNotificationService,
+        ILoyaltyService loyaltyService,
+        IWhatsAppNotificationService whatsAppNotificationService)
     {
         _repository = repository;
         _pushNotificationService = pushNotificationService;
+        _loyaltyService = loyaltyService;
+        _whatsAppNotificationService = whatsAppNotificationService;
     }
 
     public async Task<ServiceResult<OrderResponse>> CreateAsync(CreateOrderRequest request, string? userId)
@@ -131,10 +139,26 @@ public class OrderService : IOrderService
             return ServiceResult<OrderResponse>.Failure("Order not found.");
         }
 
+        // Captured before the assignment below - without this, a duplicate PATCH to the
+        // same status (a retried request, a double-tap) would re-fire the loyalty/WhatsApp
+        // side effects on every call rather than only the first transition into Delivered.
+        var wasDelivered = order.Status == OrderStatus.Delivered;
+
         order.Status = status;
         order.UpdatedAt = DateTime.UtcNow;
 
         await _repository.SaveChangesAsync();
+
+        if (status == OrderStatus.Delivered && !wasDelivered)
+        {
+            // Both of these must never fail this method - ProcessOrderDeliveredAsync
+            // catches its own DbUpdateException race, and the WhatsApp service swallows
+            // and logs every failure internally.
+            var loyaltyResult = await _loyaltyService.ProcessOrderDeliveredAsync(order);
+            await _whatsAppNotificationService.SendOrderConfirmationAsync(
+                order.CustomerPhone, order.CustomerName, order,
+                loyaltyResult.PointsEarned, loyaltyResult.NewTotalPoints, loyaltyResult.TierUpgraded, loyaltyResult.PunchUpdates);
+        }
 
         return ServiceResult<OrderResponse>.Success(MapResponse(order));
     }

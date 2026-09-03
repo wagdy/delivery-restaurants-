@@ -1,0 +1,96 @@
+.campaigns-toolbar {
+  background: white;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+
+  h1 {
+    font-size: 1.25rem;
+    margin: 0;
+  }
+}
+
+.page-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 720px;
+}
+
+.create-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+  h2 {
+    margin: 0 0 16px;
+    font-size: 1.05rem;
+  }
+}
+
+.create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.create-button {
+  align-self: flex-start;
+  margin-top: 8px;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.empty-state {
+  color: rgba(0, 0, 0, 0.5);
+  padding: 24px;
+}
+
+.campaigns-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.campaign-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: white;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+  &.inactive {
+    opacity: 0.6;
+  }
+}
+
+.campaign-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.campaign-description {
+  margin: 4px 0 0;
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 0.875rem;
+}
+
+.campaign-meta {
+  margin: 6px 0 0;
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 0.8rem;
+}
+
+.campaign-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}

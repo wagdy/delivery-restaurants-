@@ -6,7 +6,8 @@ import {
   EarnPointsRequest,
   LoyaltyMe,
   LoyaltyTransactionResult,
-  RedeemPointsRequest
+  RedeemPointsRequest,
+  ScannerCustomer
 } from '../models/loyalty.model';
 
 @Injectable({ providedIn: 'root' })
@@ -35,5 +36,10 @@ export class LoyaltyService {
 
   getGoogleWalletSaveLink(): Observable<{ saveUrl: string }> {
     return this.http.get<{ saveUrl: string }>(`${this.baseUrl}/wallet/google/save-link`);
+  }
+
+  // For the Scanner tool - customerId comes from decoding a customer's digital-card QR.
+  getScannerCustomer(customerId: string): Observable<ScannerCustomer> {
+    return this.http.get<ScannerCustomer>(`${this.baseUrl}/scanner/${customerId}`);
   }
 }

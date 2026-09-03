@@ -103,6 +103,25 @@ export const routes: Routes = [
           import('./features/admin/customer-insights/customer-insights.component').then(
             (m) => m.CustomerInsightsComponent
           )
+      },
+      {
+        path: 'crm',
+        canActivate: [moduleGuard('Crm')],
+        loadComponent: () => import('./features/admin/crm/crm.component').then((m) => m.CrmComponent)
+      },
+      {
+        path: 'campaigns',
+        canActivate: [moduleGuard('Campaigns')],
+        loadComponent: () =>
+          import('./features/admin/campaign-manager/campaign-manager.component').then(
+            (m) => m.CampaignManagerComponent
+          )
+      },
+      {
+        path: 'scanner',
+        canActivate: [moduleGuard('Scanner')],
+        loadComponent: () =>
+          import('./features/admin/qr-scanner/qr-scanner.component').then((m) => m.QrScannerComponent)
       }
     ]
   },

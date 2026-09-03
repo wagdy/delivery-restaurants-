@@ -18,7 +18,10 @@ const MODULE_OPTIONS: { value: AdminModuleName; label: string }[] = [
   { value: 'MenuItems', label: 'Menu Items' },
   { value: 'Settings', label: 'Settings' },
   { value: 'Staff', label: 'Staff' },
-  { value: 'Customers', label: 'Customers' }
+  { value: 'Customers', label: 'Customers' },
+  { value: 'Crm', label: 'CRM' },
+  { value: 'Campaigns', label: 'Campaigns' },
+  { value: 'Scanner', label: 'Scanner' }
 ];
 
 @Component({

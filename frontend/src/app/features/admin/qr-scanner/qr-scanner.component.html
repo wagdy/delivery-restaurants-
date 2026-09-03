@@ -1,0 +1,117 @@
+<mat-toolbar class="scanner-toolbar">
+  <h1>Scanner</h1>
+</mat-toolbar>
+
+<div class="page-content">
+  @if (!customer()) {
+    <div class="camera-card">
+      <zxing-scanner
+        [enable]="scanningEnabled()"
+        [formats]="allowedFormats"
+        (scanSuccess)="onScanSuccess($event)"
+        (camerasFound)="onCamerasFound($event)"
+        (permissionResponse)="onPermissionResponse($event)"
+      ></zxing-scanner>
+
+      @if (permissionDenied()) {
+        <p class="camera-hint error-text">Camera access was denied - allow it in your browser to scan a customer's card.</p>
+      } @else if (!cameraAvailable()) {
+        <p class="camera-hint error-text">No camera was found on this device.</p>
+      } @else {
+        <p class="camera-hint">Point the camera at a customer's digital loyalty card QR code.</p>
+      }
+    </div>
+
+    @if (loadingCustomer()) {
+      <div class="loading-state">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+    }
+
+    @if (errorMessage()) {
+      <p class="error-text">{{ errorMessage() }}</p>
+      <button mat-button (click)="scanAnother()">Try again</button>
+    }
+  } @else {
+    <div class="customer-card">
+      <div class="customer-header">
+        <div>
+          <p class="customer-name">{{ customer()!.fullName }}</p>
+          <p class="customer-phone">{{ customer()!.phoneNumber }}</p>
+        </div>
+        <span class="tier-badge">{{ customer()!.membershipTier }}</span>
+      </div>
+
+      <div class="points-summary">
+        <p class="points-value">{{ customer()!.currentPoints }}</p>
+        <p class="points-label">points ({{ customer()!.totalLifetimePoints }} lifetime)</p>
+      </div>
+
+      <div class="action-row">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Check amount (L.E)</mat-label>
+          <input matInput type="number" min="0.01" [ngModel]="checkAmount()" (ngModelChange)="checkAmount.set($event)" />
+        </mat-form-field>
+        <button mat-flat-button color="primary" [disabled]="earning() || !checkAmount()" (click)="earnPoints()">
+          @if (earning()) {
+            <mat-spinner diameter="18"></mat-spinner>
+          } @else {
+            Earn points
+          }
+        </button>
+      </div>
+
+      <div class="action-row">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Points to redeem</mat-label>
+          <input matInput type="number" min="1" [ngModel]="pointsToRedeem()" (ngModelChange)="pointsToRedeem.set($event)" />
+        </mat-form-field>
+        <button mat-stroked-button [disabled]="redeeming() || !pointsToRedeem()" (click)="redeemPoints()">
+          @if (redeeming()) {
+            <mat-spinner diameter="18"></mat-spinner>
+          } @else {
+            Redeem points
+          }
+        </button>
+      </div>
+
+      @if (customer()!.campaigns.length > 0) {
+        <div class="campaigns-section">
+          <p class="section-title">Punch cards</p>
+          @for (campaign of customer()!.campaigns; track campaign.campaignId) {
+            <div class="campaign-row">
+              <div>
+                <p class="campaign-title">{{ campaign.campaignTitle }}</p>
+                <p class="campaign-progress">{{ campaign.currentPunches }} / {{ campaign.targetPunches }} punches @if (campaign.rewardsEarned > 0) {· {{ campaign.rewardsEarned }} reward(s) ready}</p>
+              </div>
+              <div class="campaign-buttons">
+                <button
+                  mat-stroked-button
+                  [disabled]="actingCampaignId() === campaign.campaignId"
+                  (click)="punchCampaign(campaign.campaignId)"
+                >
+                  Punch
+                </button>
+                @if (campaign.rewardsEarned > 0) {
+                  <button
+                    mat-flat-button
+                    color="accent"
+                    [disabled]="actingCampaignId() === campaign.campaignId"
+                    (click)="redeemCampaignReward(campaign.campaignId)"
+                  >
+                    Redeem reward
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <button mat-button class="scan-another-button" (click)="scanAnother()">
+        <mat-icon>qr_code_scanner</mat-icon>
+        Scan another customer
+      </button>
+    </div>
+  }
+</div>

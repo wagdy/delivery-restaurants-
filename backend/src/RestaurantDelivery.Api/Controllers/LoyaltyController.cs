@@ -12,13 +12,14 @@ using RestaurantDelivery.Infrastructure.Data;
 namespace RestaurantDelivery.Api.Controllers;
 
 // No class-level [Authorize] - actions have mixed auth needs: customer-JWT-authenticated
-// (me/earn/redeem/wallet links), staff-only (earn/redeem via Module.Customers), and the
+// (me/wallet links), staff-only (earn/redeem/scanner lookup via Module.Scanner), and the
 // Apple PassKit protocol group (its own "ApplePass <token>" scheme, no JWT at all).
 [ApiController]
 [Route("api/loyalty")]
 public class LoyaltyController : ControllerBase
 {
     private readonly ILoyaltyService _loyaltyService;
+    private readonly ICampaignService _campaignService;
     private readonly ApplicationDbContext _context;
     private readonly IApplePassBuilder _passBuilder;
     private readonly IApplePassKitService _passKitService;
@@ -30,6 +31,7 @@ public class LoyaltyController : ControllerBase
 
     public LoyaltyController(
         ILoyaltyService loyaltyService,
+        ICampaignService campaignService,
         ApplicationDbContext context,
         IApplePassBuilder passBuilder,
         IApplePassKitService passKitService,
@@ -40,6 +42,7 @@ public class LoyaltyController : ControllerBase
         ILogger<LoyaltyController> logger)
     {
         _loyaltyService = loyaltyService;
+        _campaignService = campaignService;
         _context = context;
         _passBuilder = passBuilder;
         _passKitService = passKitService;
@@ -60,7 +63,7 @@ public class LoyaltyController : ControllerBase
         return Ok(response);
     }
 
-    [Authorize(Policy = "Module.Customers")]
+    [Authorize(Policy = "Module.Scanner")]
     [HttpPost("earn")]
     public async Task<ActionResult<LoyaltyTransactionResponse>> Earn(EarnPointsRequest request, CancellationToken ct)
     {
@@ -68,12 +71,40 @@ public class LoyaltyController : ControllerBase
         return result.Succeeded ? Ok(result.Data) : BadRequest(new { errors = result.Errors });
     }
 
-    [Authorize(Policy = "Module.Customers")]
+    [Authorize(Policy = "Module.Scanner")]
     [HttpPost("redeem")]
     public async Task<ActionResult<LoyaltyTransactionResponse>> Redeem(RedeemPointsRequest request, CancellationToken ct)
     {
         var result = await _loyaltyService.RedeemPointsAsync(GetAppUserId(), request, ct);
         return result.Succeeded ? Ok(result.Data) : BadRequest(new { errors = result.Errors });
+    }
+
+    // Combined lookup for the Scanner UI after decoding a customer's digital-card QR
+    // (which encodes their raw AppUserId) - points/tier plus every active campaign's
+    // progress in one call, so the Scanner screen only needs one request per scan.
+    [Authorize(Policy = "Module.Scanner")]
+    [HttpGet("scanner/{customerId}")]
+    public async Task<ActionResult<ScannerCustomerResponse>> GetScannerCustomer(string customerId, CancellationToken ct)
+    {
+        var appUser = await _context.Users.FindAsync([customerId], ct);
+        if (appUser is null)
+        {
+            return NotFound(new { error = "Customer not found." });
+        }
+
+        var profile = await _loyaltyService.GetOrCreateProfileAsync(customerId, ct);
+        var campaigns = await _campaignService.GetMyProgressAsync(customerId, ct);
+
+        return Ok(new ScannerCustomerResponse
+        {
+            AppUserId = appUser.Id,
+            FullName = appUser.FullName,
+            PhoneNumber = appUser.PhoneNumber,
+            CurrentPoints = profile.CurrentPoints,
+            TotalLifetimePoints = profile.TotalLifetimePoints,
+            MembershipTier = profile.MembershipTier,
+            Campaigns = campaigns
+        });
     }
 
     // Deliberately no path-param customerId (the source app took one, unauthenticated -

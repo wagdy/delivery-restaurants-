@@ -26,4 +26,11 @@ public class LoyaltyPointTransaction
     public string? CheckReference { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Set only for TransactionType.OrderEarned - the order whose delivery triggered this
+    // transaction. A unique index on this column (see LoyaltyPointTransactionConfiguration)
+    // guards against double-awarding if the same order is marked Delivered twice.
+    public int? OrderId { get; set; }
+
+    public Order? Order { get; set; }
 }

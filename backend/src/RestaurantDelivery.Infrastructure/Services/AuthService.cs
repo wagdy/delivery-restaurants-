@@ -13,12 +13,18 @@ public class AuthService : IAuthService
     private readonly UserManager<AppUser> _userManager;
     private readonly ITokenService _tokenService;
     private readonly IRoleRepository _roleRepository;
+    private readonly IWhatsAppNotificationService _whatsAppNotificationService;
 
-    public AuthService(UserManager<AppUser> userManager, ITokenService tokenService, IRoleRepository roleRepository)
+    public AuthService(
+        UserManager<AppUser> userManager,
+        ITokenService tokenService,
+        IRoleRepository roleRepository,
+        IWhatsAppNotificationService whatsAppNotificationService)
     {
         _userManager = userManager;
         _tokenService = tokenService;
         _roleRepository = roleRepository;
+        _whatsAppNotificationService = whatsAppNotificationService;
     }
 
     public async Task<ServiceResult<AuthResponse>> RegisterAsync(RegisterRequest request)
@@ -50,6 +56,9 @@ public class AuthService : IAuthService
         {
             return ServiceResult<AuthResponse>.Failure(createResult.Errors.Select(e => e.Description).ToArray());
         }
+
+        // Never allowed to fail registration - see IWhatsAppNotificationService's contract.
+        await _whatsAppNotificationService.SendWelcomeMessageAsync(user.PhoneNumber!, user.FullName);
 
         return ServiceResult<AuthResponse>.Success(await BuildAuthResponseAsync(user));
     }
@@ -155,7 +164,7 @@ public class AuthService : IAuthService
         return ServiceResult<UserProfileResponse>.Success(MapProfile(user, modules));
     }
 
-    // Empty for Customer/CaptainOrder. For Admin: all 5 modules when no custom Role is
+    // Empty for Customer/CaptainOrder. For Admin: every module when no custom Role is
     // assigned (the default, backward-compatible "full access" superuser behavior), else
     // the assigned Role's modules - falling back to full access if that Role has somehow
     // gone missing, rather than silently locking the admin out.
@@ -169,7 +178,8 @@ public class AuthService : IAuthService
         if (user.CustomRoleId is null)
         {
             return AdminModulesMapper.ToNames(
-                AdminModules.Orders | AdminModules.MenuItems | AdminModules.Settings | AdminModules.Staff | AdminModules.Customers);
+                AdminModules.Orders | AdminModules.MenuItems | AdminModules.Settings | AdminModules.Staff | AdminModules.Customers |
+                AdminModules.Crm | AdminModules.Campaigns | AdminModules.Scanner);
         }
 
         var role = await _roleRepository.GetByIdAsync(user.CustomRoleId.Value);

@@ -75,6 +75,36 @@
     @if (walletError()) {
       <p class="error-text">{{ walletError() }}</p>
     }
+
+    @if (campaigns().length > 0) {
+      <div class="punch-cards">
+        @for (campaign of campaigns(); track campaign.campaignId) {
+          <div class="punch-card">
+            <p class="punch-card-title">{{ campaign.campaignTitle }}</p>
+            <p class="punch-card-description">{{ campaign.campaignDescription }}</p>
+
+            <div class="punch-stamps">
+              @for (filled of stampsFor(campaign); track $index) {
+                <span class="punch-stamp" [class.filled]="filled"></span>
+              }
+            </div>
+
+            <p class="punch-card-count">{{ campaign.currentPunches }} / {{ campaign.targetPunches }}</p>
+
+            @if (campaign.rewardsEarned > 0) {
+              <div class="reward-banner">
+                <mat-icon>redeem</mat-icon>
+                {{ campaign.rewardsEarned }} free reward{{ campaign.rewardsEarned === 1 ? '' : 's' }} earned - show this to our staff!
+              </div>
+            }
+
+            @if (campaign.endDate) {
+              <p class="punch-card-valid">Valid until {{ campaign.endDate | date: 'mediumDate' }}</p>
+            }
+          </div>
+        }
+      </div>
+    }
   </div>
   }
 }

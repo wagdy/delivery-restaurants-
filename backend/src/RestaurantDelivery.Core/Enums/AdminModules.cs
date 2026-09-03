@@ -8,7 +8,10 @@ public enum AdminModules
     MenuItems = 1 << 1,
     Settings = 1 << 2,
     Staff = 1 << 3,
-    Customers = 1 << 4
+    Customers = 1 << 4,
+    Crm = 1 << 5,
+    Campaigns = 1 << 6,
+    Scanner = 1 << 7
 }
 
 // Single source of truth for the JWT claim type carrying granted admin modules - the

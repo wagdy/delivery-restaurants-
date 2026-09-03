@@ -1,4 +1,12 @@
-export type AdminModuleName = 'Orders' | 'MenuItems' | 'Settings' | 'Staff' | 'Customers';
+export type AdminModuleName =
+  | 'Orders'
+  | 'MenuItems'
+  | 'Settings'
+  | 'Staff'
+  | 'Customers'
+  | 'Crm'
+  | 'Campaigns'
+  | 'Scanner';
 
 export interface Role {
   id: number;

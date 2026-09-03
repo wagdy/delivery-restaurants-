@@ -202,3 +202,81 @@ $tier-vip-accent: #d4af37;
   font-size: 0.85rem;
   color: rgba(0, 0, 0, 0.5);
 }
+
+// Card 2 - one per active campaign, independent of the points/tier card above and its
+// admin-configurable theme colors.
+.punch-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.punch-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.punch-card-title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.punch-card-description {
+  margin: 4px 0 12px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.85rem;
+}
+
+.punch-stamps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.punch-stamp {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  background: transparent;
+
+  &.filled {
+    background: $tier-gold-start;
+    border-color: $tier-gold-end;
+  }
+}
+
+.punch-card-count {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.reward-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(212, 175, 55, 0.15);
+  color: #7a5c00;
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.punch-card-valid {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.45);
+}
