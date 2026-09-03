@@ -3,57 +3,114 @@
 </mat-toolbar>
 
 <div class="page-content">
-  <div class="create-card">
-    <h2>New punch-card campaign</h2>
+  <div class="panels-grid">
+    <div class="create-card">
+      <h2>New punch-card campaign</h2>
 
-    <div class="create-form">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Title</mat-label>
-        <input matInput [ngModel]="newTitle()" (ngModelChange)="newTitle.set($event)" placeholder="e.g. Buy 5 Coffees, Get 1 Free" />
-      </mat-form-field>
+      <div class="create-form">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Title</mat-label>
+          <input matInput [ngModel]="newTitle()" (ngModelChange)="newTitle.set($event)" placeholder="e.g. Buy 5 Coffees, Get 1 Free" />
+        </mat-form-field>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Description</mat-label>
-        <input matInput [ngModel]="newDescription()" (ngModelChange)="newDescription.set($event)" placeholder="Shown to customers on their card" />
-      </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Description</mat-label>
+          <input matInput [ngModel]="newDescription()" (ngModelChange)="newDescription.set($event)" placeholder="Shown to customers on their card" />
+        </mat-form-field>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Category (optional)</mat-label>
-        <mat-select [ngModel]="newCategoryName()" (ngModelChange)="newCategoryName.set($event)">
-          <mat-option [value]="null">Any item</mat-option>
-          @for (category of categories(); track category.id) {
-            <mat-option [value]="category.name">{{ category.name }}</mat-option>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Category (optional)</mat-label>
+          <mat-select [ngModel]="newCategoryName()" (ngModelChange)="newCategoryName.set($event)">
+            <mat-option [value]="null">Any item</mat-option>
+            @for (category of categories(); track category.id) {
+              <mat-option [value]="category.name">{{ category.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Target punches</mat-label>
+          <input matInput type="number" min="1" max="100" [ngModel]="newTargetPunches()" (ngModelChange)="newTargetPunches.set($event)" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Expiration date</mat-label>
+          <input matInput type="date" required [ngModel]="newEndDate()" (ngModelChange)="newEndDate.set($event)" />
+          <mat-error>Expiration date is required.</mat-error>
+        </mat-form-field>
+
+        <button
+          mat-flat-button
+          color="primary"
+          class="create-button"
+          [disabled]="creating() || !newTitle().trim() || !newDescription().trim() || !newEndDate()"
+          (click)="create()"
+        >
+          @if (creating()) {
+            <mat-spinner diameter="18"></mat-spinner>
+          } @else {
+            <ng-container>
+              <mat-icon>add</mat-icon>
+              Create campaign
+            </ng-container>
           }
-        </mat-select>
-      </mat-form-field>
+        </button>
+      </div>
+    </div>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Target punches</mat-label>
-        <input matInput type="number" min="1" max="100" [ngModel]="newTargetPunches()" (ngModelChange)="newTargetPunches.set($event)" />
-      </mat-form-field>
+    <div class="settings-card">
+      <h2>Points Configuration</h2>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Expiration date</mat-label>
-        <input matInput type="date" required [ngModel]="newEndDate()" (ngModelChange)="newEndDate.set($event)" />
-        <mat-error>Expiration date is required.</mat-error>
-      </mat-form-field>
+      @if (loadingSettings()) {
+        <div class="settings-loading">
+          <mat-spinner diameter="32"></mat-spinner>
+        </div>
+      } @else {
+        <div class="create-form">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Earning Ratio</mat-label>
+            <input
+              matInput
+              type="number"
+              min="0"
+              step="0.01"
+              [ngModel]="pointsPerCurrencyUnit()"
+              (ngModelChange)="pointsPerCurrencyUnit.set($event)"
+            />
+            <mat-hint>Points earned per 1 L.E spent</mat-hint>
+          </mat-form-field>
 
-      <button
-        mat-flat-button
-        color="primary"
-        class="create-button"
-        [disabled]="creating() || !newTitle().trim() || !newDescription().trim() || !newEndDate()"
-        (click)="create()"
-      >
-        @if (creating()) {
-          <mat-spinner diameter="18"></mat-spinner>
-        } @else {
-          <ng-container>
-            <mat-icon>add</mat-icon>
-            Create campaign
-          </ng-container>
-        }
-      </button>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Redemption Value</mat-label>
+            <input
+              matInput
+              type="number"
+              min="0"
+              step="0.01"
+              [ngModel]="redemptionValuePer100Points()"
+              (ngModelChange)="redemptionValuePer100Points.set($event)"
+            />
+            <mat-hint>L.E discount value per 100 Points redeemed</mat-hint>
+          </mat-form-field>
+
+          <button
+            mat-flat-button
+            color="primary"
+            class="create-button"
+            [disabled]="savingSettings()"
+            (click)="saveSettings()"
+          >
+            @if (savingSettings()) {
+              <mat-spinner diameter="18"></mat-spinner>
+            } @else {
+              <ng-container>
+                <mat-icon>save</mat-icon>
+                Save Settings
+              </ng-container>
+            }
+          </button>
+        </div>
+      }
     </div>
   </div>
 

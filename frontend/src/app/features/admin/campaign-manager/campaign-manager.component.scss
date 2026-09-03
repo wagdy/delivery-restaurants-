@@ -13,10 +13,24 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-width: 720px;
+  max-width: 960px;
 }
 
-.create-card {
+// Equivalent to Tailwind's `grid grid-cols-1 md:grid-cols-2` - this project doesn't
+// include Tailwind, so the same single-column-then-two-column responsive behavior is
+// done with plain CSS Grid instead, matching every other component's plain-SCSS styling.
+.panels-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.create-card,
+.settings-card {
   background: white;
   border-radius: 12px;
   padding: 20px;
@@ -26,6 +40,12 @@
     margin: 0 0 16px;
     font-size: 1.05rem;
   }
+}
+
+.settings-loading {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
 }
 
 .create-form {

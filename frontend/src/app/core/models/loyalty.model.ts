@@ -56,3 +56,15 @@ export interface PointsUpdatedEvent {
   membershipTier: MembershipTier;
   tierUpgraded: boolean;
 }
+
+/** Mirrors RestaurantDelivery.Core.DTOs.Loyalty.LoyaltySettingsResponse. */
+export interface LoyaltySettings {
+  pointsPerCurrencyUnit: number;
+  redemptionValuePer100Points: number;
+}
+
+/** Mirrors RestaurantDelivery.Core.DTOs.Loyalty.UpdateLoyaltySettingsRequest. */
+export interface UpdateLoyaltySettingsRequest {
+  pointsPerCurrencyUnit: number;
+  redemptionValuePer100Points: number;
+}

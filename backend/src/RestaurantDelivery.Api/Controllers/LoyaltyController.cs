@@ -80,6 +80,23 @@ public class LoyaltyController : ControllerBase
         return result.Succeeded ? Ok(result.Data) : BadRequest(new { errors = result.Errors });
     }
 
+    // Global earn/redeem ratios - edited from the Campaign Manager screen, so gated the
+    // same way as the rest of that screen (Module.Campaigns) rather than Module.Scanner.
+    [Authorize(Policy = "Module.Campaigns")]
+    [HttpGet("settings")]
+    public async Task<ActionResult<LoyaltySettingsResponse>> GetSettings(CancellationToken ct)
+    {
+        return Ok(await _loyaltyService.GetSettingsAsync(ct));
+    }
+
+    [Authorize(Policy = "Module.Campaigns")]
+    [HttpPut("settings")]
+    public async Task<ActionResult<LoyaltySettingsResponse>> UpdateSettings(UpdateLoyaltySettingsRequest request, CancellationToken ct)
+    {
+        var result = await _loyaltyService.UpdateSettingsAsync(request, ct);
+        return result.Succeeded ? Ok(result.Data) : BadRequest(new { errors = result.Errors });
+    }
+
     // Combined lookup for the Scanner UI after decoding a customer's digital-card QR
     // (which encodes their raw AppUserId) - points/tier plus every active campaign's
     // progress in one call, so the Scanner screen only needs one request per scan.

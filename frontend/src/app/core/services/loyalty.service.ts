@@ -5,10 +5,12 @@ import { environment } from '../../../environments/environment';
 import {
   EarnPointsRequest,
   LoyaltyMe,
+  LoyaltySettings,
   LoyaltyTransactionResult,
   PointsUpdatedEvent,
   RedeemPointsRequest,
-  ScannerCustomer
+  ScannerCustomer,
+  UpdateLoyaltySettingsRequest
 } from '../models/loyalty.model';
 
 @Injectable({ providedIn: 'root' })
@@ -68,5 +70,14 @@ export class LoyaltyService {
   // Manual fallback for the Scanner tool when a QR code can't be scanned.
   getScannerCustomerByPhone(phone: string): Observable<ScannerCustomer> {
     return this.http.get<ScannerCustomer>(`${this.baseUrl}/scanner/by-phone`, { params: { phone } });
+  }
+
+  // Global earn/redeem ratios shown in the Campaign Manager's Points Configuration card.
+  getSettings(): Observable<LoyaltySettings> {
+    return this.http.get<LoyaltySettings>(`${this.baseUrl}/settings`);
+  }
+
+  updateSettings(request: UpdateLoyaltySettingsRequest): Observable<LoyaltySettings> {
+    return this.http.put<LoyaltySettings>(`${this.baseUrl}/settings`, request);
   }
 }

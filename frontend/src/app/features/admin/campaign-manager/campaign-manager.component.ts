@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
@@ -13,6 +13,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CampaignService } from '../../../core/services/campaign.service';
 import { CategoryService } from '../../../core/services/category.service';
+import { LoyaltyService } from '../../../core/services/loyalty.service';
 import { Campaign } from '../../../core/models/campaign.model';
 import { Category } from '../../../core/models/category.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -35,9 +36,10 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
   templateUrl: './campaign-manager.component.html',
   styleUrl: './campaign-manager.component.scss'
 })
-export class CampaignManagerComponent {
+export class CampaignManagerComponent implements OnInit {
   private readonly campaignService = inject(CampaignService);
   private readonly categoryService = inject(CategoryService);
+  private readonly loyaltyService = inject(LoyaltyService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
@@ -52,9 +54,55 @@ export class CampaignManagerComponent {
   readonly newEndDate = signal('');
   readonly creating = signal(false);
 
+  // Global points ratios, shown in the Points Configuration card next to the campaign form.
+  readonly pointsPerCurrencyUnit = signal(0);
+  readonly redemptionValuePer100Points = signal(0);
+  readonly loadingSettings = signal(true);
+  readonly savingSettings = signal(false);
+
   constructor() {
     this.load();
     this.categoryService.getAll().subscribe({ next: (categories) => this.categories.set(categories) });
+  }
+
+  ngOnInit(): void {
+    this.loadSettings();
+  }
+
+  loadSettings(): void {
+    this.loadingSettings.set(true);
+    this.loyaltyService.getSettings().subscribe({
+      next: (settings) => {
+        this.pointsPerCurrencyUnit.set(settings.pointsPerCurrencyUnit);
+        this.redemptionValuePer100Points.set(settings.redemptionValuePer100Points);
+        this.loadingSettings.set(false);
+      },
+      error: () => {
+        this.loadingSettings.set(false);
+        this.snackBar.open('Failed to load points configuration.', 'Dismiss', { duration: 4000 });
+      }
+    });
+  }
+
+  saveSettings(): void {
+    this.savingSettings.set(true);
+    this.loyaltyService
+      .updateSettings({
+        pointsPerCurrencyUnit: this.pointsPerCurrencyUnit(),
+        redemptionValuePer100Points: this.redemptionValuePer100Points()
+      })
+      .subscribe({
+        next: (settings) => {
+          this.pointsPerCurrencyUnit.set(settings.pointsPerCurrencyUnit);
+          this.redemptionValuePer100Points.set(settings.redemptionValuePer100Points);
+          this.savingSettings.set(false);
+          this.snackBar.open('Points configuration saved.', 'Dismiss', { duration: 3000 });
+        },
+        error: (err) => {
+          this.savingSettings.set(false);
+          this.snackBar.open(err.error?.errors?.[0] ?? 'Failed to save points configuration.', 'Dismiss', { duration: 4000 });
+        }
+      });
   }
 
   load(): void {

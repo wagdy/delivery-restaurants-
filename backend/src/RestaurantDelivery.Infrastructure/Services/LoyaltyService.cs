@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using RestaurantDelivery.Core.Common;
 using RestaurantDelivery.Core.DTOs.Loyalty;
 using RestaurantDelivery.Core.Entities;
@@ -11,22 +10,13 @@ namespace RestaurantDelivery.Infrastructure.Services;
 
 public class LoyaltyService : ILoyaltyService
 {
-    private const decimal DefaultCurrencyPerPoint = 10m;
-
-    // 100 points = 10 L.E. discount, i.e. DiscountAmount = PointsToRedeem / RedemptionDivisor.
-    private const int RedemptionDivisor = 10;
-
     private readonly ApplicationDbContext _context;
     private readonly ILoyaltyRealtimeNotifier _realtimeNotifier;
-    private readonly decimal _currencyPerPoint;
 
-    public LoyaltyService(ApplicationDbContext context, ILoyaltyRealtimeNotifier realtimeNotifier, IConfiguration configuration)
+    public LoyaltyService(ApplicationDbContext context, ILoyaltyRealtimeNotifier realtimeNotifier)
     {
         _context = context;
         _realtimeNotifier = realtimeNotifier;
-        _currencyPerPoint = decimal.TryParse(configuration["Loyalty:CurrencyPerPoint"], out var configured)
-            ? configured
-            : DefaultCurrencyPerPoint;
     }
 
     public async Task<LoyaltyMeResponse> GetOrCreateProfileAsync(string appUserId, CancellationToken ct = default)
@@ -44,12 +34,13 @@ public class LoyaltyService : ILoyaltyService
         }
 
         var profile = await GetOrCreateProfileEntityAsync(request.CustomerId, ct);
+        var settings = await GetOrCreateSettingsEntityAsync(ct);
 
-        var pointsEarned = (int)Math.Floor(request.CheckAmount / _currencyPerPoint);
+        var pointsEarned = (int)Math.Floor(request.CheckAmount * settings.PointsPerCurrencyUnit);
         if (pointsEarned <= 0)
         {
             return ServiceResult<LoyaltyTransactionResponse>.Failure(
-                $"CheckAmount is too small to earn a point at the current {_currencyPerPoint} L.E./point ratio.");
+                $"CheckAmount is too small to earn a point at the current {settings.PointsPerCurrencyUnit} points/L.E. ratio.");
         }
 
         var previousTier = profile.MembershipTier;
@@ -108,7 +99,8 @@ public class LoyaltyService : ILoyaltyService
             return ServiceResult<LoyaltyTransactionResponse>.Failure("Customer does not have enough points for this redemption.");
         }
 
-        var discountAmount = request.PointsToRedeem / (decimal)RedemptionDivisor;
+        var settings = await GetOrCreateSettingsEntityAsync(ct);
+        var discountAmount = (request.PointsToRedeem / 100m) * settings.RedemptionValuePer100Points;
 
         profile.CurrentPoints -= request.PointsToRedeem;
         profile.LastActivityDate = DateTime.UtcNow;
@@ -171,8 +163,11 @@ public class LoyaltyService : ILoyaltyService
         }
 
         var profile = await GetOrCreateProfileEntityAsync(order.UserId, ct);
+        var settings = await GetOrCreateSettingsEntityAsync(ct);
 
-        var pointsEarned = (int)Math.Floor(order.TotalAmount / _currencyPerPoint);
+        // Dynamic ratio (admin-editable via GET/PUT api/loyalty/settings) instead of the
+        // old hardcoded currency-per-point constant.
+        var pointsEarned = (int)Math.Floor(order.TotalAmount * settings.PointsPerCurrencyUnit);
         if (pointsEarned > 0)
         {
             var previousTier = profile.MembershipTier;
@@ -284,6 +279,24 @@ public class LoyaltyService : ILoyaltyService
         return result;
     }
 
+    public async Task<LoyaltySettingsResponse> GetSettingsAsync(CancellationToken ct = default)
+    {
+        var settings = await GetOrCreateSettingsEntityAsync(ct);
+        return MapSettingsResponse(settings);
+    }
+
+    public async Task<ServiceResult<LoyaltySettingsResponse>> UpdateSettingsAsync(UpdateLoyaltySettingsRequest request, CancellationToken ct = default)
+    {
+        var settings = await GetOrCreateSettingsEntityAsync(ct);
+
+        settings.PointsPerCurrencyUnit = request.PointsPerCurrencyUnit;
+        settings.RedemptionValuePer100Points = request.RedemptionValuePer100Points;
+
+        await _context.SaveChangesAsync(ct);
+
+        return ServiceResult<LoyaltySettingsResponse>.Success(MapSettingsResponse(settings));
+    }
+
     // Same race-safe get-or-create pattern as GetOrCreateProfileEntityAsync below.
     private async Task<LoyaltyCampaignProgress> GetOrCreateCampaignProgressAsync(string customerId, Guid campaignId, CancellationToken ct)
     {
@@ -326,6 +339,30 @@ public class LoyaltyService : ILoyaltyService
 
         return profile;
     }
+
+    // Simple get-or-create (no race-safe catch/retry like the profile/progress helpers
+    // above) - mirrors SettingsService.GetOrCreateAsync's pattern for the same reason:
+    // this row is written rarely (an admin editing a form), not on every checkout, so the
+    // odds of a genuine concurrent first-touch are negligible.
+    private async Task<LoyaltySettings> GetOrCreateSettingsEntityAsync(CancellationToken ct)
+    {
+        var settings = await _context.LoyaltySettings.FirstOrDefaultAsync(ct);
+        if (settings is not null)
+        {
+            return settings;
+        }
+
+        settings = new LoyaltySettings();
+        _context.LoyaltySettings.Add(settings);
+        await _context.SaveChangesAsync(ct);
+        return settings;
+    }
+
+    private static LoyaltySettingsResponse MapSettingsResponse(LoyaltySettings settings) => new()
+    {
+        PointsPerCurrencyUnit = settings.PointsPerCurrencyUnit,
+        RedemptionValuePer100Points = settings.RedemptionValuePer100Points
+    };
 
     private static LoyaltyMeResponse MapResponse(LoyaltyProfile profile) => new()
     {
