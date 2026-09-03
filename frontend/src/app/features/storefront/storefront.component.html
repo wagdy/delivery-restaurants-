@@ -129,7 +129,17 @@
       }
     }
   } @else if (activeTab() === 'rewards') {
-    <app-loyalty-rewards></app-loyalty-rewards>
+    <!-- Loyalty points/tier/wallet passes require an account, so a guest sees a sign-in
+         prompt instead of the (401-doomed) rewards profile. -->
+    @if (authService.isAuthenticated()) {
+      <app-loyalty-rewards></app-loyalty-rewards>
+    } @else {
+      <div class="signin-prompt">
+        <mat-icon>redeem</mat-icon>
+        <p>Sign in to view your points and rewards.</p>
+        <a mat-flat-button color="primary" routerLink="/login">Sign in</a>
+      </div>
+    }
   } @else {
     <!-- My Orders tab - moved here from the header's own link. Order history requires
          an account, so a guest sees a sign-in prompt instead of the (401-doomed)
@@ -137,7 +147,7 @@
     @if (authService.isAuthenticated()) {
       <app-my-orders></app-my-orders>
     } @else {
-      <div class="orders-signin-prompt">
+      <div class="signin-prompt">
         <mat-icon>receipt_long</mat-icon>
         <p>Sign in to view your order history.</p>
         <a mat-flat-button color="primary" routerLink="/login">Sign in</a>
