@@ -30,8 +30,19 @@ public class CampaignsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<CampaignResponse>> Create(CreateCampaignRequest request, CancellationToken ct)
     {
-        var result = await _campaignService.CreateAsync(request, ct);
-        return result.Succeeded ? Ok(result.Data) : BadRequest(new { errors = result.Errors });
+        // [ApiController] already returns a 400 automatically for DataAnnotations failures
+        // (e.g. a missing Title) before this action ever runs - this catch is only for a
+        // failure at the database layer itself (e.g. the Npgsql DateTimeKind issue this was
+        // added to diagnose), so the admin sees the real cause instead of a generic 500.
+        try
+        {
+            var result = await _campaignService.CreateAsync(request, ct);
+            return result.Succeeded ? Ok(result.Data) : BadRequest(new { errors = result.Errors });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { errors = new[] { ex.InnerException?.Message ?? ex.Message } });
+        }
     }
 
     [Authorize(Policy = "Module.Campaigns")]

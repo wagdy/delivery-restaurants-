@@ -31,7 +31,12 @@ public class CampaignService : ICampaignService
             Description = request.Description.Trim(),
             CategoryName = string.IsNullOrWhiteSpace(request.CategoryName) ? null : request.CategoryName.Trim(),
             TargetPunches = request.TargetPunches,
-            EndDate = request.EndDate,
+            // System.Text.Json parses "2026-12-25" (the <input type="date"> value) into a
+            // DateTime with Kind=Unspecified - Npgsql refuses to write that into a
+            // "timestamp with time zone" column ("only UTC is supported"). EndDate has no
+            // meaningful time-of-day/timezone here, it's just a calendar boundary, so
+            // tagging it UTC (rather than converting) is the correct interpretation.
+            EndDate = request.EndDate.HasValue ? DateTime.SpecifyKind(request.EndDate.Value, DateTimeKind.Utc) : null,
             StartDate = DateTime.UtcNow
         };
 
