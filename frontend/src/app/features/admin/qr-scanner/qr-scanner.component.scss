@@ -17,6 +17,55 @@
   gap: 16px;
 }
 
+.phone-search-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.phone-search-label {
+  margin: 0 0 10px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.phone-search-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+
+  mat-form-field {
+    flex: 1;
+  }
+
+  button {
+    // Aligns the button with the input's text baseline rather than the outline's full
+    // height (which includes the space subscriptSizing="dynamic" would otherwise reserve).
+    margin-top: 4px;
+  }
+}
+
+.divider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.divider-text {
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .camera-card {
   background: #000;
   border-radius: 12px;

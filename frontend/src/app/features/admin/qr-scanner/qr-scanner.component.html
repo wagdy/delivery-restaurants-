@@ -4,6 +4,40 @@
 
 <div class="page-content">
   @if (!customer()) {
+    <div class="phone-search-card">
+      <p class="phone-search-label">Can't scan? Find them by phone number</p>
+      <div class="phone-search-row">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Phone number</mat-label>
+          <input
+            matInput
+            type="tel"
+            inputmode="tel"
+            placeholder="e.g. 01012345678"
+            [ngModel]="phoneSearch()"
+            (ngModelChange)="phoneSearch.set($event)"
+            (keydown.enter)="searchByPhone()"
+          />
+        </mat-form-field>
+        <button mat-flat-button color="primary" [disabled]="searchingByPhone() || !phoneSearch().trim()" (click)="searchByPhone()">
+          @if (searchingByPhone()) {
+            <mat-spinner diameter="18"></mat-spinner>
+          } @else {
+            <ng-container>
+              <mat-icon>search</mat-icon>
+              Search
+            </ng-container>
+          }
+        </button>
+      </div>
+    </div>
+
+    <div class="divider-row">
+      <span class="divider-line"></span>
+      <span class="divider-text">or scan their card</span>
+      <span class="divider-line"></span>
+    </div>
+
     <div class="camera-card">
       <zxing-scanner
         [enable]="scanningEnabled()"

@@ -48,6 +48,9 @@ export class QrScannerComponent {
   readonly customer = signal<ScannerCustomer | null>(null);
   readonly errorMessage = signal<string | null>(null);
 
+  readonly phoneSearch = signal('');
+  readonly searchingByPhone = signal(false);
+
   readonly checkAmount = signal<number | null>(null);
   readonly earning = signal(false);
   readonly pointsToRedeem = signal<number | null>(null);
@@ -87,11 +90,37 @@ export class QrScannerComponent {
     });
   }
 
+  // Manual fallback alongside the camera - e.g. the customer's phone is dead/QR unreadable.
+  // Loads the exact same customer() state a successful scan would, so every downstream
+  // action (earn/redeem/punch) works identically regardless of how the customer was found.
+  searchByPhone(): void {
+    const phone = this.phoneSearch().trim();
+    if (!phone || this.searchingByPhone()) {
+      return;
+    }
+
+    this.searchingByPhone.set(true);
+
+    this.loyaltyService.getScannerCustomerByPhone(phone).subscribe({
+      next: (customer) => {
+        this.searchingByPhone.set(false);
+        this.scanningEnabled.set(false);
+        this.customer.set(customer);
+        this.phoneSearch.set('');
+      },
+      error: () => {
+        this.searchingByPhone.set(false);
+        this.snackBar.open('Customer not found.', 'Dismiss', { duration: 4000 });
+      }
+    });
+  }
+
   scanAnother(): void {
     this.customer.set(null);
     this.errorMessage.set(null);
     this.checkAmount.set(null);
     this.pointsToRedeem.set(null);
+    this.phoneSearch.set('');
     this.scanningEnabled.set(true);
   }
 

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using RestaurantDelivery.Api.Configuration;
 using RestaurantDelivery.Api.Services.Loyalty;
 using RestaurantDelivery.Core.DTOs.Loyalty;
+using RestaurantDelivery.Core.Entities;
 using RestaurantDelivery.Core.Interfaces;
 using RestaurantDelivery.Infrastructure.Data;
 
@@ -92,10 +93,37 @@ public class LoyaltyController : ControllerBase
             return NotFound(new { error = "Customer not found." });
         }
 
-        var profile = await _loyaltyService.GetOrCreateProfileAsync(customerId, ct);
-        var campaigns = await _campaignService.GetMyProgressAsync(customerId, ct);
+        return Ok(await BuildScannerCustomerResponseAsync(appUser, ct));
+    }
 
-        return Ok(new ScannerCustomerResponse
+    // Manual fallback for the Scanner UI when a customer's phone is scratched/unreadable
+    // or their phone battery is dead - staff type the number instead of scanning the QR.
+    // Exact match only (delivery has no phone-normalization utility, unlike the punch-card
+    // source app) - staff should type the number as the customer originally registered it.
+    [Authorize(Policy = "Module.Scanner")]
+    [HttpGet("scanner/by-phone")]
+    public async Task<ActionResult<ScannerCustomerResponse>> GetScannerCustomerByPhone([FromQuery] string phone, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            return BadRequest(new { error = "Phone number is required." });
+        }
+
+        var appUser = await _context.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phone.Trim(), ct);
+        if (appUser is null)
+        {
+            return NotFound(new { error = "Customer not found." });
+        }
+
+        return Ok(await BuildScannerCustomerResponseAsync(appUser, ct));
+    }
+
+    private async Task<ScannerCustomerResponse> BuildScannerCustomerResponseAsync(AppUser appUser, CancellationToken ct)
+    {
+        var profile = await _loyaltyService.GetOrCreateProfileAsync(appUser.Id, ct);
+        var campaigns = await _campaignService.GetMyProgressAsync(appUser.Id, ct);
+
+        return new ScannerCustomerResponse
         {
             AppUserId = appUser.Id,
             FullName = appUser.FullName,
@@ -104,7 +132,7 @@ public class LoyaltyController : ControllerBase
             TotalLifetimePoints = profile.TotalLifetimePoints,
             MembershipTier = profile.MembershipTier,
             Campaigns = campaigns
-        });
+        };
     }
 
     // Deliberately no path-param customerId (the source app took one, unauthenticated -

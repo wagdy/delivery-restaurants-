@@ -42,4 +42,9 @@ export class LoyaltyService {
   getScannerCustomer(customerId: string): Observable<ScannerCustomer> {
     return this.http.get<ScannerCustomer>(`${this.baseUrl}/scanner/${customerId}`);
   }
+
+  // Manual fallback for the Scanner tool when a QR code can't be scanned.
+  getScannerCustomerByPhone(phone: string): Observable<ScannerCustomer> {
+    return this.http.get<ScannerCustomer>(`${this.baseUrl}/scanner/by-phone`, { params: { phone } });
+  }
 }
