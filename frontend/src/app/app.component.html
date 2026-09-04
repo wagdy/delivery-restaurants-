@@ -33,13 +33,17 @@
       <!-- Center - absolutely centered regardless of how wide the left/right groups are -->
       <a [routerLink]="authService.isCaptain() ? '/captain' : '/'" class="brand">
         @if (settingsService.settings().centerLogoUrl) {
-          <img
-            class="brand-logo prominent"
-            [src]="settingsService.settings().centerLogoUrl"
-            [alt]="settingsService.settings().restaurantName"
-          />
+          <span class="logo-wrapper prominent">
+            <img
+              class="brand-logo"
+              [src]="settingsService.settings().centerLogoUrl"
+              [alt]="settingsService.settings().restaurantName"
+            />
+          </span>
         } @else if (settingsService.settings().logoUrl) {
-          <img class="brand-logo" [src]="settingsService.settings().logoUrl" [alt]="settingsService.settings().restaurantName" />
+          <span class="logo-wrapper">
+            <img class="brand-logo" [src]="settingsService.settings().logoUrl" [alt]="settingsService.settings().restaurantName" />
+          </span>
           @if (settingsService.settings().restaurantName) {
             <span class="brand-name">{{ settingsService.settings().restaurantName }}</span>
           }

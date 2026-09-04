@@ -64,26 +64,40 @@
   }
 }
 
-.brand-logo {
-  width: 28px;
+// Equivalent to Tailwind's `relative h-7 w-7 flex items-center justify-center` - a
+// fixed-size box so the `.brand-logo` img's `w-full h-full object-contain` below
+// resolves against a real, predictable size and stays perfectly centered with no
+// cropping or distortion, whatever aspect ratio the uploaded logo happens to be.
+.logo-wrapper {
+  position: relative;
   height: 28px;
-  border-radius: 6px;
-  object-fit: cover;
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 
-  // Equivalent to applying `w-full h-full object-contain` directly to the <img> so it
-  // scales to fill the .brand wrapper's fixed height above without stretching.
+  // Equivalent to Tailwind's `h-12 w-32` (relative to the `.brand` link's own fixed
+  // height and anti-overlap max-width - see above and the max-width: 1119px override
+  // further down, both untouched and still the source of truth for the header's overall
+  // bounds) - the prominent center-header logo gets the full box `.brand` reserves
+  // instead of the small 28px brand-mark box above.
   &.prominent {
-    width: 100%;
     height: 100%;
+    width: 100%;
     max-width: 120px;
-    border-radius: 0;
-    object-fit: contain;
 
     @media (min-width: 1120px) {
       max-width: none;
     }
   }
+}
+
+// Equivalent to Tailwind's `w-full h-full object-contain`.
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 // Equivalent to Tailwind's `text-sm md:text-xl font-bold whitespace-nowrap truncate

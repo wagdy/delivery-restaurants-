@@ -1,5 +1,5 @@
 export interface RestaurantSettings {
-  restaurantName: string;
+  restaurantName?: string | null;
   logoUrl?: string | null;
   primaryColor: string;
   accentColor: string;

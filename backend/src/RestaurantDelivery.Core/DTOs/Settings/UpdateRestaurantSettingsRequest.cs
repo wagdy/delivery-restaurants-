@@ -4,8 +4,8 @@ namespace RestaurantDelivery.Core.DTOs.Settings;
 
 public class UpdateRestaurantSettingsRequest
 {
-    [Required, MaxLength(200)]
-    public string RestaurantName { get; set; } = string.Empty;
+    [MaxLength(200)]
+    public string? RestaurantName { get; set; }
 
     [MaxLength(2048)]
     public string? LogoUrl { get; set; }

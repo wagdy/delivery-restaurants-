@@ -39,11 +39,8 @@
               </mat-card-header>
               <mat-card-content>
                 <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Restaurant name</mat-label>
+                  <mat-label>Restaurant name (optional)</mat-label>
                   <input matInput formControlName="restaurantName" />
-                  @if (form.controls.restaurantName.hasError('required') && form.controls.restaurantName.touched) {
-                    <mat-error>Name is required</mat-error>
-                  }
                 </mat-form-field>
 
                 <div class="upload-section">
@@ -51,7 +48,9 @@
                   <p class="field-hint">Small brand mark shown next to the restaurant name.</p>
                   <div class="upload-row">
                     @if (form.controls.logoUrl.value) {
-                      <img class="image-preview" [src]="form.controls.logoUrl.value" alt="Restaurant logo preview" />
+                      <div class="logo-preview-wrapper">
+                        <img class="logo-preview-img" [src]="form.controls.logoUrl.value" alt="Restaurant logo preview" />
+                      </div>
                     } @else {
                       <div class="image-placeholder">
                         <mat-icon>restaurant</mat-icon>
@@ -91,7 +90,9 @@
                   </p>
                   <div class="upload-row">
                     @if (form.controls.centerLogoUrl.value) {
-                      <img class="image-preview wide" [src]="form.controls.centerLogoUrl.value" alt="Center header logo preview" />
+                      <div class="logo-preview-wrapper wide">
+                        <img class="logo-preview-img" [src]="form.controls.centerLogoUrl.value" alt="Center header logo preview" />
+                      </div>
                     } @else {
                       <div class="image-placeholder">
                         <mat-icon>image</mat-icon>

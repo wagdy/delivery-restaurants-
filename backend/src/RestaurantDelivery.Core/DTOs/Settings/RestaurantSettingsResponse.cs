@@ -2,7 +2,7 @@ namespace RestaurantDelivery.Core.DTOs.Settings;
 
 public class RestaurantSettingsResponse
 {
-    public string RestaurantName { get; set; } = string.Empty;
+    public string? RestaurantName { get; set; }
     public string? LogoUrl { get; set; }
     public string PrimaryColor { get; set; } = string.Empty;
     public string AccentColor { get; set; } = string.Empty;

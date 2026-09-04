@@ -8,7 +8,7 @@ public class RestaurantSettingsConfiguration : IEntityTypeConfiguration<Restaura
 {
     public void Configure(EntityTypeBuilder<RestaurantSettings> builder)
     {
-        builder.Property(s => s.RestaurantName).HasMaxLength(200).IsRequired();
+        builder.Property(s => s.RestaurantName).HasMaxLength(200);
         builder.Property(s => s.LogoUrl).HasMaxLength(2048);
         builder.Property(s => s.PrimaryColor).HasMaxLength(7).IsRequired();
         builder.Property(s => s.AccentColor).HasMaxLength(7).IsRequired();

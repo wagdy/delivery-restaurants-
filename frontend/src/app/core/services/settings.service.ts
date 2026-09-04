@@ -76,6 +76,6 @@ export class SettingsService {
       '--app-body-image',
       settings.backgroundImageUrl ? `url('${settings.backgroundImageUrl}')` : 'none'
     );
-    document.title = settings.restaurantName;
+    document.title = settings.restaurantName || 'Restaurant Delivery';
   }
 }

@@ -47,7 +47,7 @@ export class SiteSettingsComponent {
   readonly uploadError = signal<string | null>(null);
 
   readonly form = this.fb.nonNullable.group({
-    restaurantName: ['', [Validators.required, Validators.maxLength(200)]],
+    restaurantName: ['', [Validators.maxLength(200)]],
     logoUrl: [''],
     primaryColor: ['#3f51b5', [Validators.required, Validators.pattern(HEX_COLOR_PATTERN)]],
     accentColor: ['#ff4081', [Validators.required, Validators.pattern(HEX_COLOR_PATTERN)]],
@@ -65,7 +65,7 @@ export class SiteSettingsComponent {
     this.settingsService.load().subscribe({
       next: (settings) => {
         this.form.patchValue({
-          restaurantName: settings.restaurantName,
+          restaurantName: settings.restaurantName ?? '',
           logoUrl: settings.logoUrl ?? '',
           primaryColor: settings.primaryColor,
           accentColor: settings.accentColor,
@@ -211,7 +211,7 @@ export class SiteSettingsComponent {
 
     this.settingsService
       .update({
-        restaurantName: raw.restaurantName,
+        restaurantName: raw.restaurantName || null,
         logoUrl: raw.logoUrl || null,
         primaryColor: raw.primaryColor,
         accentColor: raw.accentColor,

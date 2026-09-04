@@ -6,7 +6,10 @@ public class RestaurantSettings
 {
     public int Id { get; set; }
 
-    public string RestaurantName { get; set; } = "Restaurant Delivery";
+    // Nullable/optional - an admin can clear the name entirely (e.g. to let the header's
+    // logo speak for itself with no text beside it); see app.component.html's brand-name
+    // @if guards, which already treat an empty/null name as "don't render the text".
+    public string? RestaurantName { get; set; } = "Restaurant Delivery";
     public string? LogoUrl { get; set; }
     public string PrimaryColor { get; set; } = "#3f51b5";
     public string AccentColor { get; set; } = "#ff4081";
