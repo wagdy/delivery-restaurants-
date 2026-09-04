@@ -171,6 +171,12 @@ export class StorefrontComponent {
       if (params.get('tab') === 'rewards') {
         this.activeTab.set('rewards');
       }
+
+      // Lets the header's "My Orders" quick link (app.component.html) jump straight
+      // here from any page, same deep-link mechanism as ?tab=rewards above.
+      if (params.get('tab') === 'orders') {
+        this.activeTab.set('orders');
+      }
     });
   }
 

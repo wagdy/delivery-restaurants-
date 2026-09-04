@@ -16,9 +16,9 @@
   </mat-sidenav>
 
   <mat-sidenav-content>
-    <mat-toolbar color="primary">
+    <mat-toolbar color="primary" class="app-header">
       <!-- Left -->
-      <button mat-icon-button (click)="drawer.toggle()" aria-label="Open menu">
+      <button mat-icon-button class="icon-hover" (click)="drawer.toggle()" aria-label="Open menu">
         <mat-icon>menu</mat-icon>
       </button>
 
@@ -45,31 +45,51 @@
       @if (authService.isCaptain()) {
         <!-- Captain Order accounts are restricted to the Orders section only: no cart,
              no customer "My Orders", no admin console. -->
-        <a mat-button routerLink="/captain">
-          <mat-icon>local_shipping</mat-icon>
-          My Deliveries
-        </a>
-        <span class="avatar-slot" [title]="authService.currentUser()?.fullName ?? ''">
-          <app-user-avatar [fullName]="authService.currentUser()?.fullName ?? ''" [size]="34"></app-user-avatar>
-        </span>
-        <button mat-button (click)="authService.logout()">Logout</button>
-      } @else {
-        <button mat-icon-button (click)="openCart()" aria-label="View cart" [matBadge]="cart.itemCount() || null" matBadgeColor="accent" matBadgeSize="small">
-          <mat-icon>shopping_cart</mat-icon>
-        </button>
-
-        @if (authService.isAuthenticated()) {
-          @if (authService.isAdmin()) {
-            <a mat-button routerLink="/admin">Admin</a>
-          }
-          <span class="avatar-slot" [title]="authService.currentUser()?.fullName ?? ''">
+        <div class="header-actions">
+          <a class="action-link" routerLink="/captain">
+            <mat-icon>local_shipping</mat-icon>
+            <span class="action-label">My Deliveries</span>
+          </a>
+          <span class="avatar-slot action-link" [title]="authService.currentUser()?.fullName ?? ''">
             <app-user-avatar [fullName]="authService.currentUser()?.fullName ?? ''" [size]="34"></app-user-avatar>
           </span>
-          <button mat-button (click)="authService.logout()">Logout</button>
-        } @else {
-          <a mat-button routerLink="/login">Login</a>
-          <a mat-button routerLink="/register">Register</a>
-        }
+          <button class="action-link" (click)="authService.logout()" aria-label="Logout">
+            <mat-icon>logout</mat-icon>
+            <span class="action-label">Logout</span>
+          </button>
+        </div>
+      } @else {
+        <div class="header-actions">
+          <button mat-icon-button class="icon-hover cart-button" (click)="openCart()" aria-label="View cart">
+            <mat-icon>shopping_cart</mat-icon>
+            @if (cart.itemCount() > 0) {
+              <span class="cart-badge">{{ cart.itemCount() }}</span>
+            }
+          </button>
+
+          @if (authService.isAuthenticated()) {
+            <!-- Desktop-only: on mobile the Menu page's own "My Orders" tab already
+                 covers this, and there's no room to also carry it as a 5th persistent
+                 header icon without crowding (see app.component.scss's .my-orders-link). -->
+            <a class="action-link my-orders-link" [routerLink]="['/']" [queryParams]="{ tab: 'orders' }">
+              <mat-icon>receipt_long</mat-icon>
+              <span class="action-label">My Orders</span>
+            </a>
+            @if (authService.isAdmin()) {
+              <a mat-button routerLink="/admin">Admin</a>
+            }
+            <span class="avatar-slot action-link" [title]="authService.currentUser()?.fullName ?? ''">
+              <app-user-avatar [fullName]="authService.currentUser()?.fullName ?? ''" [size]="34"></app-user-avatar>
+            </span>
+            <button class="action-link" (click)="authService.logout()" aria-label="Logout">
+              <mat-icon>logout</mat-icon>
+              <span class="action-label">Logout</span>
+            </button>
+          } @else {
+            <a mat-button routerLink="/login">Login</a>
+            <a mat-button routerLink="/register">Register</a>
+          }
+        </div>
       }
     </mat-toolbar>
 

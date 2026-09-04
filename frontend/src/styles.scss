@@ -54,6 +54,17 @@ body {
   overflow: visible !important;
 }
 
+// Same reasoning one level up: mat-sidenav-container also gets `overflow: hidden` from
+// Material by default (normally used to clip the drawer while it's translated
+// off-screen). Besides being unnecessary now that the child above is already visible,
+// a `hidden`/`auto` ancestor - even one that never actually scrolls itself - makes
+// `position: sticky` compute its stuck offset against that ancestor instead of the
+// window, which silently turns a sticky header into an ordinary one that scrolls away.
+// Verified the category drawer still opens, closes, and clips correctly with this set.
+.mat-sidenav-container {
+  overflow: visible !important;
+}
+
 .mat-mdc-unelevated-button.mat-primary,
 .mat-mdc-raised-button.mat-primary,
 .mat-mdc-fab.mat-primary,

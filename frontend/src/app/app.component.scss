@@ -21,10 +21,23 @@
   padding: 16px;
 }
 
-mat-toolbar {
+// Equivalent to Tailwind's `sticky top-0 z-50 shadow-sm px-4 py-2 md:px-8 md:py-4`
+// (this project has no Tailwind installed - see storefront.component.ts's imageFor()
+// comment for the standing note on why - so the same result is done in plain SCSS).
+// Sticking works because mat-sidenav-content keeps `overflow: visible` (see below),
+// leaving the window itself as the only scroll container `position: sticky` needs.
+.app-header {
   // Left/right groups stay in normal flex flow; .brand is taken out of flow and
   // centered against this toolbar regardless of how wide either side is.
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  padding: 8px 16px;
+
+  @media (min-width: 1120px) {
+    padding: 16px 32px;
+  }
 }
 
 .brand {
@@ -55,13 +68,17 @@ mat-toolbar {
   object-fit: cover;
   flex-shrink: 0;
 
+  // Equivalent to Tailwind's `h-8 md:h-12 w-auto object-contain`.
   &.prominent {
     width: auto;
-    height: auto;
-    max-height: 40px;
+    height: 32px;
     max-width: 100%;
     border-radius: 0;
     object-fit: contain;
+
+    @media (min-width: 1120px) {
+      height: 48px;
+    }
   }
 }
 
@@ -69,11 +86,109 @@ mat-toolbar {
   flex: 1 1 auto;
 }
 
-.avatar-slot {
+// Equivalent to Tailwind's `flex items-center gap-2 md:gap-4`.
+.header-actions {
   display: flex;
   align-items: center;
-  margin: 0 8px;
+  gap: 8px;
+
+  @media (min-width: 1120px) {
+    gap: 16px;
+  }
+}
+
+// Hover treatment for Material's own icon-buttons (hamburger, cart) - Material already
+// gives these their circular shape and click ripple, so this only adds the persistent
+// hover backdrop on top. A translucent white (not Tailwind's literal hover:bg-gray-100)
+// is the correct equivalent here: the toolbar itself sits on an admin-configurable
+// colored background (see styles.scss's --app-header-color), not white, so a light-gray
+// tint would barely show or look muddy - white-on-color is the standard Material
+// pattern for hover feedback on a colored surface.
+.icon-hover {
+  transition: background-color 150ms ease;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.16);
+  }
+}
+
+// Custom (non-Material) icon+label actions - My Orders, the avatar/profile slot, and
+// Logout all share this so they get the same rounded-full hover treatment and the same
+// "icon only on mobile, icon+label from md: up" behavior as the spec asked for.
+.action-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 9999px;
+  color: inherit;
+  background: none;
+  border: none;
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.16);
+  }
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+.avatar-slot {
   cursor: default;
+}
+
+// Equivalent to Tailwind's "hidden on mobile, visible from md: up" pattern for the
+// "My Orders" / "Logout" text next to their icons. The reveal breakpoint is 1120px,
+// not Tailwind's literal 768px "md:" - see the max-width: 1119px block below for why.
+.action-label {
+  display: none;
+  white-space: nowrap;
+
+  @media (min-width: 1120px) {
+    display: inline;
+  }
+}
+
+// Desktop-only (see the 1120px note above): the header already carries the hamburger,
+// brand, cart, avatar and logout at every width below that - a 5th persistent icon for
+// "My Orders" doesn't fit next to a real restaurant name/logo without overlapping the
+// centered brand until there's this much room. Phones and tablets reach the same place
+// via the Menu page's own "My Orders" tab (already visible there on every viewport).
+.my-orders-link {
+  display: none;
+
+  @media (min-width: 1120px) {
+    display: flex;
+  }
+}
+
+// Equivalent to Tailwind's `absolute -top-1 -right-1 bg-red-600 text-white text-[10px]
+// w-4 h-4 flex items-center justify-center rounded-full`.
+.cart-button {
+  position: relative;
+  overflow: visible;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 // The footer is position: fixed, so page content needs matching bottom
@@ -83,10 +198,22 @@ mat-toolbar {
   padding-bottom: var(--footer-height, 160px);
 }
 
-@media (max-width: 480px) {
-  // Narrow phones: the toolbar's left/right groups alone can approach the
-  // viewport width, so the centered brand gets less room before it must ellipsize.
+// Below 1024px (not Tailwind's literal 768px "md:"): empirically, this app's actual
+// header content - a real admin-uploaded logo/restaurant name plus cart+avatar+logout -
+// still overlaps the centered brand at 768px with the roomier desktop spacing/labels
+// turned on. Everything from phones through tablets instead gets this single compact
+// treatment (icon-only actions, tighter gaps, a smaller brand cap), verified to clear
+// at 375px, 768px, and 1023px before the 1024px+ desktop rules above take over.
+@media (max-width: 1119px) {
   .brand {
-    max-width: 40%;
+    max-width: 20%;
+  }
+
+  .header-actions {
+    gap: 2px;
+  }
+
+  .action-link {
+    padding: 4px;
   }
 }
