@@ -65,3 +65,14 @@ export interface PagedResult<T> {
   page: number;
   pageSize: number;
 }
+
+// Lightweight OrderHub "NewOrderReceived" push payload - mirrors the backend's
+// NewOrderNotification DTO. Deliberately not the full Order shape; the admin dashboard
+// fetches the complete order by orderId once notified.
+export interface NewOrderNotification {
+  orderId: number;
+  customerName: string;
+  totalAmount: number;
+  itemCount: number;
+  createdAt: string;
+}

@@ -18,6 +18,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "otantik-loyalty/frontend", "run", "start", "--", "--port", "4201"],
       "port": 4201
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "backend/src/RestaurantDelivery.Api", "--urls", "http://localhost:5080"],
+      "port": 5080
     }
   ]
 }

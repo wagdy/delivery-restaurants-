@@ -1,4 +1,5 @@
-import { Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { saveAs } from 'file-saver';
@@ -12,6 +13,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { OrderService } from '../../../core/services/order.service';
 import { DgteraSyncService } from '../../../core/services/dgtera-sync.service';
+import { OrderRealtimeService } from '../../../core/services/order-realtime.service';
 import { ORDER_STATUSES, Order, OrderStatus } from '../../../core/models/order.model';
 import { OrderDetailsDialogComponent } from '../order-details-dialog/order-details-dialog.component';
 import { OrderFormDialogComponent } from '../order-form-dialog/order-form-dialog.component';
@@ -33,11 +35,13 @@ import { OrderFormDialogComponent } from '../order-form-dialog/order-form-dialog
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss'
 })
-export class AdminDashboardComponent {
+export class AdminDashboardComponent implements OnInit {
   private readonly orderService = inject(OrderService);
   private readonly dgteraSyncService = inject(DgteraSyncService);
+  private readonly orderRealtimeService = inject(OrderRealtimeService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly destroyRef = inject(DestroyRef);
 
   @ViewChild('fileInput') private readonly fileInput?: ElementRef<HTMLInputElement>;
 
@@ -66,6 +70,68 @@ export class AdminDashboardComponent {
 
   constructor() {
     this.loadOrders();
+  }
+
+  ngOnInit(): void {
+    this.orderRealtimeService.newOrderReceived.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((notification) => {
+      // Duplicate guard: this same order could also arrive via a background
+      // loadOrders() refresh (e.g. from syncDgteraOrders()) racing the socket push.
+      if (this.orders().some((o) => o.id === notification.orderId)) {
+        return;
+      }
+
+      this.orderService.getById(notification.orderId).subscribe({
+        next: (order) => {
+          // Re-check post-fetch in case the race above resolved while this HTTP call
+          // was in flight.
+          if (!this.orders().some((o) => o.id === order.id)) {
+            this.orders.update((current) => [order, ...current]);
+          }
+        }
+      });
+
+      this.playNewOrderChime();
+      this.snackBar
+        .open(
+          `New order received - ${notification.customerName} (${notification.totalAmount.toFixed(2)} EGP)`,
+          'View',
+          { duration: 8000 }
+        )
+        .onAction()
+        .subscribe(() => {
+          const order = this.orders().find((o) => o.id === notification.orderId);
+          if (order) {
+            this.openDetails(order);
+          }
+        });
+    });
+  }
+
+  // Short two-tone chime via the Web Audio API - no external sound asset needed, and
+  // avoids autoplay-policy issues an <audio> element with a preloaded src can hit.
+  private playNewOrderChime(): void {
+    try {
+      const AudioContextCtor = window.AudioContext ?? (window as any).webkitAudioContext;
+      const context = new AudioContextCtor();
+      const playTone = (frequency: number, startTime: number, duration: number) => {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.type = 'sine';
+        oscillator.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.2, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(startTime);
+        oscillator.stop(startTime + duration);
+      };
+
+      const now = context.currentTime;
+      playTone(880, now, 0.18);
+      playTone(1175, now + 0.18, 0.22);
+    } catch (err) {
+      console.error('Failed to play new-order chime.', err);
+    }
   }
 
   columnOrders(status: OrderStatus): Order[] {

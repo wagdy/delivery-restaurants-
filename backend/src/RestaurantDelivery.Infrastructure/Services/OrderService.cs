@@ -13,17 +13,20 @@ public class OrderService : IOrderService
     private readonly IPushNotificationService _pushNotificationService;
     private readonly ILoyaltyService _loyaltyService;
     private readonly IWhatsAppNotificationService _whatsAppNotificationService;
+    private readonly IOrderRealtimeNotifier _orderRealtimeNotifier;
 
     public OrderService(
         IOrderRepository repository,
         IPushNotificationService pushNotificationService,
         ILoyaltyService loyaltyService,
-        IWhatsAppNotificationService whatsAppNotificationService)
+        IWhatsAppNotificationService whatsAppNotificationService,
+        IOrderRealtimeNotifier orderRealtimeNotifier)
     {
         _repository = repository;
         _pushNotificationService = pushNotificationService;
         _loyaltyService = loyaltyService;
         _whatsAppNotificationService = whatsAppNotificationService;
+        _orderRealtimeNotifier = orderRealtimeNotifier;
     }
 
     public async Task<ServiceResult<OrderResponse>> CreateAsync(CreateOrderRequest request, string? userId)
@@ -53,6 +56,18 @@ public class OrderService : IOrderService
         // Notification failures must never surface as an order-creation failure —
         // NotifyCaptainsOfNewOrderAsync swallows and logs its own errors internally.
         await _pushNotificationService.NotifyCaptainsOfNewOrderAsync(order);
+
+        // Live-updates the admin/cashier Orders tab the instant this order lands, instead
+        // of staff having to manually refresh to see it. Same "never throw" contract as
+        // the push notification above - order.Id is already populated by SaveChangesAsync.
+        await _orderRealtimeNotifier.NotifyNewOrderAsync(new NewOrderNotification
+        {
+            OrderId = order.Id,
+            CustomerName = order.CustomerName,
+            TotalAmount = order.TotalAmount,
+            ItemCount = orderItems.Sum(i => i.Quantity),
+            CreatedAt = order.CreatedAt
+        });
 
         return ServiceResult<OrderResponse>.Success(MapResponse(order));
     }

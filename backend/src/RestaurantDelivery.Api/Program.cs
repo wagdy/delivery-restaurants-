@@ -166,6 +166,7 @@ builder.Services.AddScoped<ICampaignService, CampaignService>();
 
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<ILoyaltyRealtimeNotifier, LoyaltyRealtimeNotifier>();
+builder.Services.AddSingleton<IOrderRealtimeNotifier, OrderRealtimeNotifier>();
 
 builder.Services.Configure<DgteraOptions>(builder.Configuration.GetSection("Dgtera"));
 builder.Services.AddHttpClient<IDgteraClient, DgteraClient>();
@@ -235,5 +236,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<LoyaltyHub>("/hubs/loyalty");
+app.MapHub<OrderHub>("/hubs/orders");
 
 app.Run();
