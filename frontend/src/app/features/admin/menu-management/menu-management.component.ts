@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
@@ -15,9 +15,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MenuItemService } from '../../../core/services/menu-item.service';
 import { CategoryService } from '../../../core/services/category.service';
+import { SubCategoryService } from '../../../core/services/sub-category.service';
 import { AddOnService } from '../../../core/services/add-on.service';
 import { MenuItem } from '../../../core/models/menu-item.model';
 import { Category } from '../../../core/models/category.model';
+import { SubCategory } from '../../../core/models/sub-category.model';
 import { AddOn } from '../../../core/models/add-on.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { MenuItemFormDialogComponent } from '../menu-item-form-dialog/menu-item-form-dialog.component';
@@ -49,6 +51,7 @@ type AddOnsFilter = 'all' | 'has' | 'none';
 export class MenuManagementComponent {
   private readonly menuItemService = inject(MenuItemService);
   private readonly categoryService = inject(CategoryService);
+  private readonly subCategoryService = inject(SubCategoryService);
   private readonly addOnService = inject(AddOnService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
@@ -59,6 +62,7 @@ export class MenuManagementComponent {
   readonly errorMessage = signal<string | null>(null);
   readonly menuItems = signal<MenuItem[]>([]);
   readonly categories = signal<Category[]>([]);
+  readonly subCategories = signal<SubCategory[]>([]);
   readonly addOns = signal<AddOn[]>([]);
   readonly downloadingTemplate = signal(false);
   readonly uploading = signal(false);
@@ -73,8 +77,6 @@ export class MenuManagementComponent {
 
   readonly displayedColumns = ['photo', 'name', 'category', 'price', 'available', 'actions'];
 
-  readonly categoryNames = computed(() => this.categories().map((c) => c.name));
-
   // Keystrokes go through this Subject rather than straight onto searchTerm, so typing
   // doesn't fire a request per character - dropdown changes still apply immediately.
   private readonly searchInput$ = new Subject<string>();
@@ -87,6 +89,7 @@ export class MenuManagementComponent {
 
     this.applyFilters();
     this.loadCategories();
+    this.loadSubCategories();
     this.loadAddOns();
   }
 
@@ -141,6 +144,13 @@ export class MenuManagementComponent {
     this.categoryService.getAll().subscribe({
       next: (categories) => this.categories.set(categories),
       error: () => this.snackBar.open('Failed to load categories.', 'Dismiss', { duration: 4000 })
+    });
+  }
+
+  loadSubCategories(): void {
+    this.subCategoryService.getAll().subscribe({
+      next: (subCategories) => this.subCategories.set(subCategories),
+      error: () => this.snackBar.open('Failed to load sub-categories.', 'Dismiss', { duration: 4000 })
     });
   }
 
@@ -219,11 +229,14 @@ export class MenuManagementComponent {
   }
 
   openCategoryManagement(): void {
-    const dialogRef = this.dialog.open(CategoryManagementDialogComponent, { width: '480px' });
+    const dialogRef = this.dialog.open(CategoryManagementDialogComponent, { width: '560px' });
 
     dialogRef.afterClosed().subscribe((mutated: boolean | undefined) => {
       if (mutated) {
         this.loadCategories();
+        // Sub-categories are managed inline within this same dialog (renaming a
+        // category, deleting one, etc. can all affect them), so refresh alongside.
+        this.loadSubCategories();
         this.applyFilters();
       }
     });
@@ -243,7 +256,12 @@ export class MenuManagementComponent {
   openCreate(): void {
     const dialogRef = this.dialog.open(MenuItemFormDialogComponent, {
       width: '520px',
-      data: { mode: 'create', categories: this.categoryNames(), availableAddOns: this.addOns() }
+      data: {
+        mode: 'create',
+        categories: this.categories(),
+        subCategories: this.subCategories(),
+        availableAddOns: this.addOns()
+      }
     });
 
     dialogRef.afterClosed().subscribe((created) => {
@@ -259,7 +277,8 @@ export class MenuManagementComponent {
       data: {
         mode: 'edit',
         menuItem,
-        categories: this.categoryNames(),
+        categories: this.categories(),
+        subCategories: this.subCategories(),
         availableAddOns: this.addOns()
       }
     });
@@ -279,6 +298,7 @@ export class MenuManagementComponent {
         description: menuItem.description,
         price: menuItem.price,
         category: menuItem.category,
+        subCategoryId: menuItem.subCategoryId ?? null,
         imageUrl: menuItem.imageUrl,
         isAvailable: nextAvailable,
         addOnIds: menuItem.addOns.map((a) => a.id)

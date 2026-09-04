@@ -9,17 +9,27 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MenuItemService } from '../../core/services/menu-item.service';
 import { CategoryService } from '../../core/services/category.service';
+import { SubCategoryService } from '../../core/services/sub-category.service';
 import { CartService } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { MenuItem } from '../../core/models/menu-item.model';
 import { Category } from '../../core/models/category.model';
+import { SubCategory } from '../../core/models/sub-category.model';
 import { MenuItemDetailsDialogComponent } from './menu-item-details-dialog/menu-item-details-dialog.component';
 import { MyOrdersComponent } from '../my-orders/my-orders.component';
 import { LoyaltyRewardsComponent } from './loyalty-rewards/loyalty-rewards.component';
 
 export type MenuViewMode = 'list' | 'grid';
 export type HeroTab = 'menu' | 'rewards' | 'orders';
+
+// One inline section within View 2's item grid - a sub-category headline followed by
+// just its own items. Never a clickable card, unlike the top-level category cards in
+// View 1 - see the template's sub-category-headline rendering.
+export interface SubCategorySection {
+  subCategory: SubCategory;
+  items: MenuItem[];
+}
 
 // Keyword -> icon fallback for a category card (View 1) with no admin-set image.
 // Falls back to a generic plate icon below for any name that doesn't match - this is
@@ -62,6 +72,7 @@ function iconForCategory(name: string): string {
 export class StorefrontComponent {
   private readonly menuItemService = inject(MenuItemService);
   private readonly categoryService = inject(CategoryService);
+  private readonly subCategoryService = inject(SubCategoryService);
   private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
   protected readonly cart = inject(CartService);
@@ -89,6 +100,11 @@ export class StorefrontComponent {
   // menu items themselves since Category is its own entity (see
   // CategoryManagementDialogComponent's drag-and-drop for how this is edited).
   private readonly categoryDisplayOrder = signal<Category[]>([]);
+
+  // All sub-categories across every category, fetched once like categoryDisplayOrder
+  // above - subCategorySections() below narrows this down to just the drilled-into
+  // category's own sub-categories, in display order.
+  private readonly subCategories = signal<SubCategory[]>([]);
 
   readonly categories = computed(() => {
     const order = this.categoryDisplayOrder().map((c) => c.name);
@@ -133,6 +149,45 @@ export class StorefrontComponent {
     });
   });
 
+  // filteredItems() grouped by sub-category for View 2's inline headlines. Only
+  // sub-categories that (a) belong to the drilled-into category and (b) currently have
+  // at least one matching item are included, in the category's own configured sub-order
+  // - an empty sub-category (nothing matches the search term, or no items assigned yet)
+  // simply doesn't render a headline rather than showing an empty section.
+  readonly subCategorySections = computed<SubCategorySection[]>(() => {
+    const categoryName = this.selectedCategory();
+    const categoryId = this.categoryDisplayOrder().find((c) => c.name === categoryName)?.id;
+    if (categoryId === undefined) {
+      return [];
+    }
+
+    const itemsBySubCategoryId = new Map<number, MenuItem[]>();
+    for (const item of this.filteredItems()) {
+      if (item.subCategoryId == null) {
+        continue;
+      }
+      const bucket = itemsBySubCategoryId.get(item.subCategoryId);
+      if (bucket) {
+        bucket.push(item);
+      } else {
+        itemsBySubCategoryId.set(item.subCategoryId, [item]);
+      }
+    }
+
+    return this.subCategories()
+      .filter((sc) => sc.categoryId === categoryId)
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+      .map((subCategory) => ({ subCategory, items: itemsBySubCategoryId.get(subCategory.id) ?? [] }))
+      .filter((section) => section.items.length > 0);
+  });
+
+  // filteredItems() with no sub-category assigned - rendered first, in a plain grid with
+  // no headline, so a category that never uses sub-categories at all looks exactly like
+  // it did before this feature existed.
+  readonly ungroupedItems = computed(() =>
+    this.filteredItems().filter((item) => item.subCategoryId == null)
+  );
+
   constructor() {
     this.menuItemService.getAll({ isAvailable: true }).subscribe({
       next: (items) => {
@@ -151,6 +206,12 @@ export class StorefrontComponent {
       next: (categories) => {
         this.categoryDisplayOrder.set([...categories].sort((a, b) => a.displayOrder - b.displayOrder));
       }
+    });
+
+    // Best-effort: if this fails, View 2 just shows a flat grid with no headlines
+    // (subCategorySections() returns empty), same as a category with none defined.
+    this.subCategoryService.getAll().subscribe({
+      next: (subCategories) => this.subCategories.set(subCategories)
     });
 
     // The hamburger drawer (app.component) links here with ?category=X - drill straight

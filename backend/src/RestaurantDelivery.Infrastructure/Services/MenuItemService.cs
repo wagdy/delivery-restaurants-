@@ -12,15 +12,18 @@ public class MenuItemService : IMenuItemService
     private readonly IMenuItemRepository _repository;
     private readonly IAddOnRepository _addOnRepository;
     private readonly ICategoryRepository _categoryRepository;
+    private readonly ISubCategoryRepository _subCategoryRepository;
 
     public MenuItemService(
         IMenuItemRepository repository,
         IAddOnRepository addOnRepository,
-        ICategoryRepository categoryRepository)
+        ICategoryRepository categoryRepository,
+        ISubCategoryRepository subCategoryRepository)
     {
         _repository = repository;
         _addOnRepository = addOnRepository;
         _categoryRepository = categoryRepository;
+        _subCategoryRepository = subCategoryRepository;
     }
 
     public async Task<List<MenuItemResponse>> GetAllAsync(MenuItemFilterRequest filter)
@@ -64,12 +67,19 @@ public class MenuItemService : IMenuItemService
             return ServiceResult<MenuItemResponse>.Failure(addOnsResult.Errors.ToArray());
         }
 
+        var subCategoryResult = await ResolveSubCategoryAsync(request.SubCategoryId, request.Category);
+        if (!subCategoryResult.Succeeded)
+        {
+            return ServiceResult<MenuItemResponse>.Failure(subCategoryResult.Errors.ToArray());
+        }
+
         var item = new MenuItem
         {
             Name = request.Name,
             Description = request.Description,
             Price = request.Price,
             Category = request.Category,
+            SubCategory = subCategoryResult.Data,
             ImageUrl = request.ImageUrl,
             IsAvailable = request.IsAvailable,
             MenuItemAddOns = addOnsResult.Data!.Select(a => new MenuItemAddOn { AddOn = a }).ToList()
@@ -95,10 +105,17 @@ public class MenuItemService : IMenuItemService
             return ServiceResult<MenuItemResponse>.Failure(addOnsResult.Errors.ToArray());
         }
 
+        var subCategoryResult = await ResolveSubCategoryAsync(request.SubCategoryId, request.Category);
+        if (!subCategoryResult.Succeeded)
+        {
+            return ServiceResult<MenuItemResponse>.Failure(subCategoryResult.Errors.ToArray());
+        }
+
         item.Name = request.Name;
         item.Description = request.Description;
         item.Price = request.Price;
         item.Category = request.Category;
+        item.SubCategory = subCategoryResult.Data;
         item.ImageUrl = request.ImageUrl;
         item.IsAvailable = request.IsAvailable;
 
@@ -154,6 +171,32 @@ public class MenuItemService : IMenuItemService
         return ServiceResult<List<AddOn>>.Success(addOns);
     }
 
+    // Null subCategoryId is always valid (no sub-category assigned). A non-null one must
+    // both exist and belong to the same category the item is being filed under - without
+    // this second check, an admin switching an item's top-level Category via the free-
+    // text dropdown could silently leave it pointing at another category's sub-category.
+    private async Task<ServiceResult<SubCategory?>> ResolveSubCategoryAsync(int? subCategoryId, string categoryName)
+    {
+        if (subCategoryId is null)
+        {
+            return ServiceResult<SubCategory?>.Success(null);
+        }
+
+        var subCategory = await _subCategoryRepository.GetByIdAsync(subCategoryId.Value);
+        if (subCategory is null)
+        {
+            return ServiceResult<SubCategory?>.Failure("Selected sub-category was not found.");
+        }
+
+        var category = await _categoryRepository.GetByIdAsync(subCategory.CategoryId);
+        if (category is null || !string.Equals(category.Name, categoryName, StringComparison.OrdinalIgnoreCase))
+        {
+            return ServiceResult<SubCategory?>.Failure("Selected sub-category does not belong to this item's category.");
+        }
+
+        return ServiceResult<SubCategory?>.Success(subCategory);
+    }
+
     private static MenuItemResponse MapResponse(MenuItem item) => new()
     {
         Id = item.Id,
@@ -161,6 +204,8 @@ public class MenuItemService : IMenuItemService
         Description = item.Description,
         Price = item.Price,
         Category = item.Category,
+        SubCategoryId = item.SubCategoryId,
+        SubCategoryName = item.SubCategory?.Name,
         ImageUrl = item.ImageUrl,
         IsAvailable = item.IsAvailable,
         AddOns = item.MenuItemAddOns

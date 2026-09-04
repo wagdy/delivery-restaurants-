@@ -16,6 +16,10 @@ public class MenuItemRequest
     [Required, MaxLength(100)]
     public string Category { get; set; } = string.Empty;
 
+    // Optional finer-grained grouping within Category above - must reference an existing
+    // SubCategory belonging to that same category (validated in MenuItemService).
+    public int? SubCategoryId { get; set; }
+
     [MaxLength(2048)]
     public string? ImageUrl { get; set; }
 

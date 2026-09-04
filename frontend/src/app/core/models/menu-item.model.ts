@@ -6,6 +6,10 @@ export interface MenuItem {
   description?: string | null;
   price: number;
   category: string;
+  // Optional finer-grained grouping within category above (e.g. "Hot Drinks" inside
+  // "Drinks") - a real foreign key, unlike category, which is free text.
+  subCategoryId?: number | null;
+  subCategoryName?: string | null;
   imageUrl?: string | null;
   isAvailable: boolean;
   addOns: AddOn[];
@@ -31,6 +35,7 @@ export interface MenuItemRequest {
   description?: string | null;
   price: number;
   category: string;
+  subCategoryId?: number | null;
   imageUrl?: string | null;
   isAvailable: boolean;
   addOnIds: number[];

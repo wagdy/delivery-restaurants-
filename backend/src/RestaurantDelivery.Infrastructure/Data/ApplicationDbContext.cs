@@ -16,6 +16,7 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<RestaurantSettings> RestaurantSettings => Set<RestaurantSettings>();
     public DbSet<Category> Categories => Set<Category>();
+    public DbSet<SubCategory> SubCategories => Set<SubCategory>();
     public DbSet<AddOn> AddOns => Set<AddOn>();
     public DbSet<WebPushSubscription> WebPushSubscriptions => Set<WebPushSubscription>();
 

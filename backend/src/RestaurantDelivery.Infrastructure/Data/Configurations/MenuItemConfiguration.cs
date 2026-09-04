@@ -26,5 +26,13 @@ public class MenuItemConfiguration : IEntityTypeConfiguration<MenuItem>
             .HasPrecision(10, 2);
 
         builder.HasIndex(m => m.Category);
+
+        // SubCategoryService.DeleteAsync already blocks deleting a sub-category that
+        // still has menu items, so SetNull here is a defensive fallback (e.g. the
+        // cascading category delete above), not the normal path.
+        builder.HasOne(m => m.SubCategory)
+            .WithMany(sc => sc.MenuItems)
+            .HasForeignKey(m => m.SubCategoryId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

@@ -30,9 +30,9 @@
 
       <mat-form-field appearance="outline" class="category-field">
         <mat-label>Category</mat-label>
-        <mat-select formControlName="category">
-          @for (category of data.categories; track category) {
-            <mat-option [value]="category">{{ category }}</mat-option>
+        <mat-select formControlName="category" (selectionChange)="onCategoryChange($event.value)">
+          @for (category of data.categories; track category.id) {
+            <mat-option [value]="category.name">{{ category.name }}</mat-option>
           }
         </mat-select>
         @if (form.controls.category.hasError('required') && form.controls.category.touched) {
@@ -43,6 +43,19 @@
         }
       </mat-form-field>
     </div>
+
+    @if (availableSubCategories().length > 0) {
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Sub-category (optional)</mat-label>
+        <mat-select formControlName="subCategoryId">
+          <mat-option [value]="null">None</mat-option>
+          @for (subCategory of availableSubCategories(); track subCategory.id) {
+            <mat-option [value]="subCategory.id">{{ subCategory.name }}</mat-option>
+          }
+        </mat-select>
+        <mat-hint>Groups this item under a headline on the storefront (e.g. "Hot Drinks").</mat-hint>
+      </mat-form-field>
+    }
 
     <div class="photo-section">
       <span class="photo-label">Photo</span>

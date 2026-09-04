@@ -109,11 +109,11 @@
         </div>
       </div>
 
-      @if (filteredItems().length === 0) {
-        <p class="empty-state">No items match your search.</p>
-      } @else {
+      <!-- Reusable item grid, shared by the ungrouped items below and each sub-category
+           section further down - keeps the mat-card markup defined exactly once. -->
+      <ng-template #itemsGrid let-items>
         <div class="items-grid" [class.list-view]="viewMode() === 'list'">
-          @for (item of filteredItems(); track item.id) {
+          @for (item of items; track item.id) {
             <mat-card class="menu-card" (click)="openDetails(item)">
               @if (item.imageUrl) {
                 <img class="menu-card-image" [src]="item.imageUrl" [alt]="item.name" />
@@ -144,6 +144,23 @@
             </mat-card>
           }
         </div>
+      </ng-template>
+
+      @if (filteredItems().length === 0) {
+        <p class="empty-state">No items match your search.</p>
+      } @else {
+        <!-- Items with no sub-category render first, in a plain grid with no headline -
+             a category that never uses sub-categories looks exactly as it did before. -->
+        @if (ungroupedItems().length > 0) {
+          <ng-container [ngTemplateOutlet]="itemsGrid" [ngTemplateOutletContext]="{ $implicit: ungroupedItems() }"></ng-container>
+        }
+
+        <!-- Sub-category sections: an inline headline (never a clickable card) directly
+             above just that sub-category's own items. -->
+        @for (section of subCategorySections(); track section.subCategory.id) {
+          <h3 class="sub-category-headline">{{ section.subCategory.name }}</h3>
+          <ng-container [ngTemplateOutlet]="itemsGrid" [ngTemplateOutletContext]="{ $implicit: section.items }"></ng-container>
+        }
       }
     }
   } @else if (activeTab() === 'rewards') {

@@ -304,6 +304,21 @@ $hero-tab-active-color: #7a2e22;
   }
 }
 
+// Equivalent to Tailwind's `text-lg md:text-xl font-bold mt-6 mb-3 pb-2 border-b-2
+// border-gray-100` - an inline section headline grouping the item grid directly below
+// it, never a clickable card (see subCategorySections() in the component).
+.sub-category-headline {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 24px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f3f4f6;
+
+  @media (min-width: 768px) {
+    font-size: 1.25rem;
+  }
+}
+
 .items-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));

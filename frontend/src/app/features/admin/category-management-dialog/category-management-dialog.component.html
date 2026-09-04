@@ -49,49 +49,147 @@
         <li
           class="category-row"
           cdkDrag
-          [cdkDragDisabled]="editingId() === category.id"
+          [cdkDragDisabled]="editingId() === category.id || expandedCategoryId() === category.id"
         >
-          <div class="drag-handle" cdkDragHandle aria-label="Drag to reorder">
-            <mat-icon>drag_indicator</mat-icon>
+          <div class="category-row-main">
+            <div class="drag-handle" cdkDragHandle aria-label="Drag to reorder">
+              <mat-icon>drag_indicator</mat-icon>
+            </div>
+
+            @if (editingId() === category.id) {
+              <div class="edit-fields">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="edit-field">
+                  <mat-label>Name</mat-label>
+                  <input
+                    matInput
+                    [ngModel]="editingName()"
+                    (ngModelChange)="editingName.set($event)"
+                    (keydown.enter)="saveEdit(category)"
+                    (keydown.escape)="cancelEdit()"
+                  />
+                </mat-form-field>
+                <div class="image-picker">
+                  @if (editingImagePreview(); as preview) {
+                    <img [src]="preview" alt="" class="image-thumb" />
+                  }
+                  <input #editImageInput type="file" accept="image/*" hidden (change)="onEditImageSelected($event)" />
+                  <button mat-stroked-button type="button" (click)="editImageInput.click()">
+                    <mat-icon>upload</mat-icon>
+                    {{ editingImagePreview() ? 'Change image' : 'Choose image' }}
+                  </button>
+                </div>
+              </div>
+              <button mat-icon-button [disabled]="savingEdit()" (click)="saveEdit(category)" aria-label="Save">
+                <mat-icon>check</mat-icon>
+              </button>
+              <button mat-icon-button [disabled]="savingEdit()" (click)="cancelEdit()" aria-label="Cancel">
+                <mat-icon>close</mat-icon>
+              </button>
+            } @else {
+              <span class="category-name">{{ category.name }}</span>
+              <button
+                mat-icon-button
+                [class.active]="expandedCategoryId() === category.id"
+                (click)="toggleExpand(category.id)"
+                [attr.aria-label]="expandedCategoryId() === category.id ? 'Hide sub-categories' : 'Manage sub-categories'"
+              >
+                <mat-icon>{{ expandedCategoryId() === category.id ? 'expand_less' : 'list' }}</mat-icon>
+              </button>
+              <button mat-icon-button (click)="startEdit(category)" aria-label="Rename">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="delete(category)" aria-label="Delete">
+                <mat-icon>delete</mat-icon>
+              </button>
+            }
           </div>
 
-          @if (editingId() === category.id) {
-            <div class="edit-fields">
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="edit-field">
-                <mat-label>Name</mat-label>
+          @if (expandedCategoryId() === category.id) {
+          <div class="sub-category-panel">
+            <div class="add-row">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="add-field">
+                <mat-label>New sub-category name</mat-label>
                 <input
                   matInput
-                  [ngModel]="editingName()"
-                  (ngModelChange)="editingName.set($event)"
-                  (keydown.enter)="saveEdit(category)"
-                  (keydown.escape)="cancelEdit()"
+                  [ngModel]="newSubCategoryName()"
+                  (ngModelChange)="newSubCategoryName.set($event)"
+                  (keydown.enter)="addSubCategory(category.id)"
+                  placeholder="e.g. Hot Drinks"
                 />
               </mat-form-field>
-              <div class="image-picker">
-                @if (editingImagePreview(); as preview) {
-                  <img [src]="preview" alt="" class="image-thumb" />
+              <button
+                mat-flat-button
+                color="primary"
+                [disabled]="addingSubCategory() || !newSubCategoryName().trim()"
+                (click)="addSubCategory(category.id)"
+              >
+                @if (addingSubCategory()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>
+                    <mat-icon>add</mat-icon>
+                    Add
+                  </ng-container>
                 }
-                <input #editImageInput type="file" accept="image/*" hidden (change)="onEditImageSelected($event)" />
-                <button mat-stroked-button type="button" (click)="editImageInput.click()">
-                  <mat-icon>upload</mat-icon>
-                  {{ editingImagePreview() ? 'Change image' : 'Choose image' }}
-                </button>
-              </div>
+              </button>
             </div>
-            <button mat-icon-button [disabled]="savingEdit()" (click)="saveEdit(category)" aria-label="Save">
-              <mat-icon>check</mat-icon>
-            </button>
-            <button mat-icon-button [disabled]="savingEdit()" (click)="cancelEdit()" aria-label="Cancel">
-              <mat-icon>close</mat-icon>
-            </button>
-          } @else {
-            <span class="category-name">{{ category.name }}</span>
-            <button mat-icon-button (click)="startEdit(category)" aria-label="Rename">
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button mat-icon-button color="warn" (click)="delete(category)" aria-label="Delete">
-              <mat-icon>delete</mat-icon>
-            </button>
+
+            @if (subCategoriesFor(category.id).length === 0) {
+              <p class="empty-state sub">No sub-categories yet.</p>
+            } @else {
+              <ul class="sub-category-list">
+                @for (subCategory of subCategoriesFor(category.id); track subCategory.id; let i = $index; let count = $count) {
+                  <li class="sub-category-row">
+                    <div class="reorder-buttons">
+                      <button
+                        mat-icon-button
+                        [disabled]="i === 0"
+                        (click)="moveSubCategory(category.id, subCategory, -1)"
+                        aria-label="Move up"
+                      >
+                        <mat-icon>arrow_upward</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        [disabled]="i === count - 1"
+                        (click)="moveSubCategory(category.id, subCategory, 1)"
+                        aria-label="Move down"
+                      >
+                        <mat-icon>arrow_downward</mat-icon>
+                      </button>
+                    </div>
+
+                    @if (editingSubCategoryId() === subCategory.id) {
+                      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="edit-field">
+                        <mat-label>Name</mat-label>
+                        <input
+                          matInput
+                          [ngModel]="editingSubCategoryName()"
+                          (ngModelChange)="editingSubCategoryName.set($event)"
+                          (keydown.enter)="saveEditSubCategory(subCategory)"
+                          (keydown.escape)="cancelEditSubCategory()"
+                        />
+                      </mat-form-field>
+                      <button mat-icon-button [disabled]="savingSubCategoryEdit()" (click)="saveEditSubCategory(subCategory)" aria-label="Save">
+                        <mat-icon>check</mat-icon>
+                      </button>
+                      <button mat-icon-button [disabled]="savingSubCategoryEdit()" (click)="cancelEditSubCategory()" aria-label="Cancel">
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    } @else {
+                      <span class="category-name">{{ subCategory.name }}</span>
+                      <button mat-icon-button (click)="startEditSubCategory(subCategory)" aria-label="Rename">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button mat-icon-button color="warn" (click)="deleteSubCategory(subCategory)" aria-label="Delete">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+          </div>
           }
         </li>
       }

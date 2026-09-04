@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -13,11 +13,14 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MenuItemService } from '../../../core/services/menu-item.service';
 import { MenuItem } from '../../../core/models/menu-item.model';
 import { AddOn } from '../../../core/models/add-on.model';
+import { Category } from '../../../core/models/category.model';
+import { SubCategory } from '../../../core/models/sub-category.model';
 
 export interface MenuItemFormDialogData {
   mode: 'create' | 'edit';
   menuItem?: MenuItem;
-  categories: string[];
+  categories: Category[];
+  subCategories: SubCategory[];
   availableAddOns: AddOn[];
 }
 
@@ -59,9 +62,33 @@ export class MenuItemFormDialogComponent {
     description: [this.data.menuItem?.description ?? ''],
     price: [this.data.menuItem?.price ?? 0, [Validators.required, Validators.min(0.01)]],
     category: [this.data.menuItem?.category ?? '', [Validators.required, Validators.maxLength(100)]],
+    subCategoryId: [this.data.menuItem?.subCategoryId ?? null] as [number | null],
     imageUrl: [this.data.menuItem?.imageUrl ?? ''],
     isAvailable: [this.data.menuItem?.isAvailable ?? true]
   });
+
+  // Re-read on every change to the category control below, so switching category updates
+  // the sub-category dropdown's options without a page reload.
+  private readonly selectedCategoryName = signal(this.data.menuItem?.category ?? '');
+
+  readonly availableSubCategories = computed(() => {
+    const categoryId = this.data.categories.find((c) => c.name === this.selectedCategoryName())?.id;
+    return categoryId === undefined ? [] : this.data.subCategories.filter((sc) => sc.categoryId === categoryId);
+  });
+
+  onCategoryChange(categoryName: string): void {
+    this.selectedCategoryName.set(categoryName);
+
+    // The previously selected sub-category may belong to a different category now -
+    // clear it rather than silently submitting a mismatched pair (MenuItemService
+    // rejects that combination server-side anyway).
+    const stillValid = this.availableSubCategories().some(
+      (sc) => sc.id === this.form.controls.subCategoryId.value
+    );
+    if (!stillValid) {
+      this.form.controls.subCategoryId.setValue(null);
+    }
+  }
 
   readonly selectedAddOnIds = signal<Set<number>>(
     new Set(this.data.menuItem?.addOns.map((a) => a.id) ?? [])
@@ -134,6 +161,7 @@ export class MenuItemFormDialogComponent {
       description: raw.description || null,
       price: raw.price,
       category: raw.category,
+      subCategoryId: raw.subCategoryId || null,
       imageUrl: raw.imageUrl || null,
       isAvailable: raw.isAvailable,
       addOnIds: Array.from(this.selectedAddOnIds())

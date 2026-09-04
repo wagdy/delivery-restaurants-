@@ -16,6 +16,7 @@ public class MenuItemRepository : GenericRepository<MenuItem>, IMenuItemReposito
         var query = DbSet
             .Include(m => m.MenuItemAddOns)
             .ThenInclude(ma => ma.AddOn)
+            .Include(m => m.SubCategory)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(category))
@@ -52,5 +53,6 @@ public class MenuItemRepository : GenericRepository<MenuItem>, IMenuItemReposito
         DbSet
             .Include(m => m.MenuItemAddOns)
             .ThenInclude(ma => ma.AddOn)
+            .Include(m => m.SubCategory)
             .FirstOrDefaultAsync(m => m.Id == id);
 }

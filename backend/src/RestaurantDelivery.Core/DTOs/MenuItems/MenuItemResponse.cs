@@ -9,6 +9,10 @@ public class MenuItemResponse
     public string? Description { get; set; }
     public decimal Price { get; set; }
     public string Category { get; set; } = string.Empty;
+    public int? SubCategoryId { get; set; }
+    // Denormalized alongside SubCategoryId, mirroring OrderItemResponse.MenuItemName -
+    // saves every consumer (the storefront grouping, admin tables) a lookup join.
+    public string? SubCategoryName { get; set; }
     public string? ImageUrl { get; set; }
     public bool IsAvailable { get; set; }
     public List<AddOnResponse> AddOns { get; set; } = new();

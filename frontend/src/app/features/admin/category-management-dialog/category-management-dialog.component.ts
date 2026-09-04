@@ -10,7 +10,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CategoryService } from '../../../core/services/category.service';
+import { SubCategoryService } from '../../../core/services/sub-category.service';
 import { Category } from '../../../core/models/category.model';
+import { SubCategory } from '../../../core/models/sub-category.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 
 @Component({
@@ -32,6 +34,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 })
 export class CategoryManagementDialogComponent implements OnDestroy {
   private readonly categoryService = inject(CategoryService);
+  private readonly subCategoryService = inject(SubCategoryService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly ref = inject(MatDialogRef<CategoryManagementDialogComponent>);
@@ -55,8 +58,20 @@ export class CategoryManagementDialogComponent implements OnDestroy {
   readonly reordering = signal(false);
   private mutated = false;
 
+  // Sub-categories, grouped by their parent CategoryId - each category row can expand
+  // to show/manage just its own slice of this map (see expandedCategoryId below).
+  readonly subCategoriesByCategory = signal<Map<number, SubCategory[]>>(new Map());
+  readonly expandedCategoryId = signal<number | null>(null);
+  readonly newSubCategoryName = signal('');
+  readonly addingSubCategory = signal(false);
+  readonly editingSubCategoryId = signal<number | null>(null);
+  readonly editingSubCategoryName = signal('');
+  readonly savingSubCategoryEdit = signal(false);
+  readonly reorderingSubCategories = signal(false);
+
   constructor() {
     this.load();
+    this.loadSubCategories();
   }
 
   load(): void {
@@ -69,6 +84,154 @@ export class CategoryManagementDialogComponent implements OnDestroy {
       error: () => {
         this.loading.set(false);
         this.snackBar.open('Failed to load categories.', 'Dismiss', { duration: 4000 });
+      }
+    });
+  }
+
+  loadSubCategories(): void {
+    this.subCategoryService.getAll().subscribe({
+      next: (subCategories) => {
+        const byCategory = new Map<number, SubCategory[]>();
+        for (const sc of subCategories) {
+          const bucket = byCategory.get(sc.categoryId);
+          if (bucket) {
+            bucket.push(sc);
+          } else {
+            byCategory.set(sc.categoryId, [sc]);
+          }
+        }
+        for (const bucket of byCategory.values()) {
+          bucket.sort((a, b) => a.displayOrder - b.displayOrder);
+        }
+        this.subCategoriesByCategory.set(byCategory);
+      },
+      error: () => this.snackBar.open('Failed to load sub-categories.', 'Dismiss', { duration: 4000 })
+    });
+  }
+
+  subCategoriesFor(categoryId: number): SubCategory[] {
+    return this.subCategoriesByCategory().get(categoryId) ?? [];
+  }
+
+  toggleExpand(categoryId: number): void {
+    this.cancelEditSubCategory();
+    this.newSubCategoryName.set('');
+    this.expandedCategoryId.set(this.expandedCategoryId() === categoryId ? null : categoryId);
+  }
+
+  addSubCategory(categoryId: number): void {
+    const name = this.newSubCategoryName().trim();
+    if (!name) {
+      return;
+    }
+
+    this.addingSubCategory.set(true);
+    this.subCategoryService.create({ name, categoryId }).subscribe({
+      next: () => {
+        this.addingSubCategory.set(false);
+        this.newSubCategoryName.set('');
+        this.mutated = true;
+        this.loadSubCategories();
+      },
+      error: (err) => {
+        this.addingSubCategory.set(false);
+        this.snackBar.open(err.error?.errors?.[0] ?? 'Failed to create sub-category.', 'Dismiss', {
+          duration: 4000
+        });
+      }
+    });
+  }
+
+  startEditSubCategory(subCategory: SubCategory): void {
+    this.editingSubCategoryId.set(subCategory.id);
+    this.editingSubCategoryName.set(subCategory.name);
+  }
+
+  cancelEditSubCategory(): void {
+    this.editingSubCategoryId.set(null);
+    this.editingSubCategoryName.set('');
+  }
+
+  saveEditSubCategory(subCategory: SubCategory): void {
+    const name = this.editingSubCategoryName().trim();
+    if (!name || name === subCategory.name) {
+      this.cancelEditSubCategory();
+      return;
+    }
+
+    this.savingSubCategoryEdit.set(true);
+    this.subCategoryService.update(subCategory.id, { name, categoryId: subCategory.categoryId }).subscribe({
+      next: () => {
+        this.savingSubCategoryEdit.set(false);
+        this.mutated = true;
+        this.cancelEditSubCategory();
+        this.loadSubCategories();
+      },
+      error: (err) => {
+        this.savingSubCategoryEdit.set(false);
+        this.snackBar.open(err.error?.errors?.[0] ?? 'Failed to rename sub-category.', 'Dismiss', {
+          duration: 4000
+        });
+      }
+    });
+  }
+
+  deleteSubCategory(subCategory: SubCategory): void {
+    const confirmRef = this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Delete sub-category',
+        message: `Delete "${subCategory.name}"? This only works if no menu items use it.`,
+        confirmLabel: 'Delete',
+        danger: true
+      }
+    });
+
+    confirmRef.afterClosed().subscribe((confirmed: boolean) => {
+      if (!confirmed) {
+        return;
+      }
+
+      this.subCategoryService.delete(subCategory.id).subscribe({
+        next: () => {
+          this.mutated = true;
+          this.loadSubCategories();
+        },
+        error: (err) => {
+          this.snackBar.open(err.error?.errors?.[0] ?? 'Failed to delete sub-category.', 'Dismiss', {
+            duration: 6000
+          });
+        }
+      });
+    });
+  }
+
+  // Simple up/down reordering rather than drag-and-drop - avoids a separate cdkDropList
+  // instance per category row (only one, for categories themselves, is worth the extra
+  // wiring; sub-category lists are short and reordered far less often).
+  moveSubCategory(categoryId: number, subCategory: SubCategory, direction: -1 | 1): void {
+    const list = [...this.subCategoriesFor(categoryId)];
+    const index = list.findIndex((sc) => sc.id === subCategory.id);
+    const targetIndex = index + direction;
+    if (index === -1 || targetIndex < 0 || targetIndex >= list.length) {
+      return;
+    }
+
+    [list[index], list[targetIndex]] = [list[targetIndex], list[index]];
+
+    const byCategory = new Map(this.subCategoriesByCategory());
+    byCategory.set(categoryId, list);
+    this.subCategoriesByCategory.set(byCategory);
+    this.mutated = true;
+
+    this.reorderingSubCategories.set(true);
+    this.subCategoryService.reorder(categoryId, list.map((sc) => sc.id)).subscribe({
+      next: () => this.reorderingSubCategories.set(false),
+      error: (err) => {
+        this.reorderingSubCategories.set(false);
+        this.snackBar.open(err.error?.errors?.[0] ?? 'Failed to save new order.', 'Dismiss', {
+          duration: 4000
+        });
+        this.loadSubCategories();
       }
     });
   }
@@ -213,7 +376,12 @@ export class CategoryManagementDialogComponent implements OnDestroy {
       this.categoryService.delete(category.id).subscribe({
         next: () => {
           this.mutated = true;
+          if (this.expandedCategoryId() === category.id) {
+            this.expandedCategoryId.set(null);
+          }
           this.load();
+          // A deleted category cascades to its (already-empty) sub-categories server-side.
+          this.loadSubCategories();
         },
         error: (err) => {
           this.snackBar.open(err.error?.errors?.[0] ?? 'Failed to delete category.', 'Dismiss', {

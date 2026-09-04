@@ -50,12 +50,63 @@
 }
 
 .category-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
   padding: 6px 4px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   background: #fff;
+}
+
+.category-row-main {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sub-category-panel {
+  margin: 8px 0 4px 28px; // aligned under the row's name, past the drag handle
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 6px;
+
+  .add-row {
+    margin-bottom: 4px;
+    min-width: 0;
+  }
+}
+
+.sub-category-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sub-category-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.reorder-buttons {
+  display: flex;
+  flex-direction: column;
+
+  button {
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      line-height: 16px;
+    }
+  }
+}
+
+.empty-state.sub {
+  font-size: 0.85rem;
+  padding: 4px 0;
 }
 
 .drag-handle {
@@ -72,6 +123,10 @@
 
 .category-name {
   flex: 1 1 auto;
+}
+
+button.active mat-icon {
+  color: var(--app-primary-color, #3f51b5);
 }
 
 .edit-fields {
