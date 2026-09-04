@@ -17,10 +17,18 @@
 
   <mat-sidenav-content>
     <mat-toolbar color="primary" class="app-header">
-      <!-- Left -->
-      <button mat-icon-button class="icon-hover" (click)="drawer.toggle()" aria-label="Open menu">
-        <mat-icon>menu</mat-icon>
-      </button>
+      <!-- Left: hamburger + Logout (any authenticated role - customer, admin, or captain) -->
+      <div class="header-actions">
+        <button mat-icon-button class="icon-hover" (click)="drawer.toggle()" aria-label="Open menu">
+          <mat-icon>menu</mat-icon>
+        </button>
+        @if (authService.isAuthenticated()) {
+          <button class="action-link" (click)="authService.logout()" aria-label="Logout">
+            <mat-icon>logout</mat-icon>
+            <span class="action-label">Logout</span>
+          </button>
+        }
+      </div>
 
       <!-- Center - absolutely centered regardless of how wide the left/right groups are -->
       <a [routerLink]="authService.isCaptain() ? '/captain' : '/'" class="brand">
@@ -32,10 +40,14 @@
           />
         } @else if (settingsService.settings().logoUrl) {
           <img class="brand-logo" [src]="settingsService.settings().logoUrl" [alt]="settingsService.settings().restaurantName" />
-          <span>{{ settingsService.settings().restaurantName }}</span>
+          @if (settingsService.settings().restaurantName) {
+            <span class="brand-name">{{ settingsService.settings().restaurantName }}</span>
+          }
         } @else {
           <mat-icon>restaurant</mat-icon>
-          <span>{{ settingsService.settings().restaurantName }}</span>
+          @if (settingsService.settings().restaurantName) {
+            <span class="brand-name">{{ settingsService.settings().restaurantName }}</span>
+          }
         }
       </a>
 
@@ -53,10 +65,6 @@
           <span class="avatar-slot action-link" [title]="authService.currentUser()?.fullName ?? ''">
             <app-user-avatar [fullName]="authService.currentUser()?.fullName ?? ''" [size]="34"></app-user-avatar>
           </span>
-          <button class="action-link" (click)="authService.logout()" aria-label="Logout">
-            <mat-icon>logout</mat-icon>
-            <span class="action-label">Logout</span>
-          </button>
         </div>
       } @else {
         <div class="header-actions">
@@ -68,23 +76,19 @@
           </button>
 
           @if (authService.isAuthenticated()) {
-            <!-- Desktop-only: on mobile the Menu page's own "My Orders" tab already
-                 covers this, and there's no room to also carry it as a 5th persistent
-                 header icon without crowding (see app.component.scss's .my-orders-link). -->
-            <a class="action-link my-orders-link" [routerLink]="['/']" [queryParams]="{ tab: 'orders' }">
+            <a class="action-link" [routerLink]="['/']" [queryParams]="{ tab: 'orders' }">
               <mat-icon>receipt_long</mat-icon>
               <span class="action-label">My Orders</span>
             </a>
             @if (authService.isAdmin()) {
-              <a mat-button routerLink="/admin">Admin</a>
+              <a class="action-link" routerLink="/admin">
+                <mat-icon>admin_panel_settings</mat-icon>
+                <span class="action-label">Admin</span>
+              </a>
             }
             <span class="avatar-slot action-link" [title]="authService.currentUser()?.fullName ?? ''">
               <app-user-avatar [fullName]="authService.currentUser()?.fullName ?? ''" [size]="34"></app-user-avatar>
             </span>
-            <button class="action-link" (click)="authService.logout()" aria-label="Logout">
-              <mat-icon>logout</mat-icon>
-              <span class="action-label">Logout</span>
-            </button>
           } @else {
             <a mat-button routerLink="/login">Login</a>
             <a mat-button routerLink="/register">Register</a>

@@ -54,11 +54,6 @@
   text-decoration: none;
   font-weight: 500;
   white-space: nowrap;
-
-  span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
 }
 
 .brand-logo {
@@ -68,17 +63,37 @@
   object-fit: cover;
   flex-shrink: 0;
 
-  // Equivalent to Tailwind's `h-8 md:h-12 w-auto object-contain`.
+  // Equivalent to Tailwind's `h-8 md:h-10 w-auto object-contain max-w-[120px] md:max-w-none`.
   &.prominent {
     width: auto;
     height: 32px;
-    max-width: 100%;
+    max-width: 120px;
     border-radius: 0;
     object-fit: contain;
 
     @media (min-width: 1120px) {
-      height: 48px;
+      height: 40px;
+      max-width: none;
     }
+  }
+}
+
+// Equivalent to Tailwind's `text-sm md:text-xl font-bold whitespace-nowrap truncate
+// hidden sm:block`.
+.brand-name {
+  display: none;
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (min-width: 640px) {
+    display: inline;
+  }
+
+  @media (min-width: 1120px) {
+    font-size: 20px;
   }
 }
 
@@ -142,28 +157,18 @@
   cursor: default;
 }
 
-// Equivalent to Tailwind's "hidden on mobile, visible from md: up" pattern for the
-// "My Orders" / "Logout" text next to their icons. The reveal breakpoint is 1120px,
-// not Tailwind's literal 768px "md:" - see the max-width: 1119px block below for why.
+// Equivalent to Tailwind's "hidden md:inline" pattern for the text next to each
+// action icon (Logout, My Orders, Admin) - only the icon shows below this breakpoint.
+// The reveal point is 1120px, not Tailwind's literal 768px "md:" - see the
+// max-width: 1119px block below for why (the worst case is an admin viewing the
+// storefront: Logout on the left, Cart+My Orders+Admin+avatar all with labels on the
+// right, which measurably overlaps the centered brand anywhere below ~1100px).
 .action-label {
   display: none;
   white-space: nowrap;
 
   @media (min-width: 1120px) {
     display: inline;
-  }
-}
-
-// Desktop-only (see the 1120px note above): the header already carries the hamburger,
-// brand, cart, avatar and logout at every width below that - a 5th persistent icon for
-// "My Orders" doesn't fit next to a real restaurant name/logo without overlapping the
-// centered brand until there's this much room. Phones and tablets reach the same place
-// via the Menu page's own "My Orders" tab (already visible there on every viewport).
-.my-orders-link {
-  display: none;
-
-  @media (min-width: 1120px) {
-    display: flex;
   }
 }
 
@@ -198,15 +203,15 @@
   padding-bottom: var(--footer-height, 160px);
 }
 
-// Below 1024px (not Tailwind's literal 768px "md:"): empirically, this app's actual
-// header content - a real admin-uploaded logo/restaurant name plus cart+avatar+logout -
-// still overlaps the centered brand at 768px with the roomier desktop spacing/labels
-// turned on. Everything from phones through tablets instead gets this single compact
-// treatment (icon-only actions, tighter gaps, a smaller brand cap), verified to clear
-// at 375px, 768px, and 1023px before the 1024px+ desktop rules above take over.
+// Below 1120px: tighter gaps/padding and a smaller brand cap so the hamburger+Logout on
+// the left and cart+My-Orders+Admin+avatar on the right (all icon-only here) don't
+// overlap the centered brand. Verified with a real logo/name against the actual worst
+// case (an admin account, which adds a 4th right-side icon) at 375, 640, 767, 1024,
+// 1080, 1119, and 1120px before landing on this threshold - anywhere from roughly
+// 900-1100px still measurably overlapped once labels were shown.
 @media (max-width: 1119px) {
   .brand {
-    max-width: 20%;
+    max-width: 16%;
   }
 
   .header-actions {
