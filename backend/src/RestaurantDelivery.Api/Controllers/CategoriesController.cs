@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RestaurantDelivery.Api.Services;
 using RestaurantDelivery.Core.DTOs.Categories;
 using RestaurantDelivery.Core.Interfaces;
 
@@ -9,11 +10,15 @@ namespace RestaurantDelivery.Api.Controllers;
 [Route("api/categories")]
 public class CategoriesController : ControllerBase
 {
-    private readonly ICategoryService _service;
+    private const long MaxImageSizeBytes = 5 * 1024 * 1024; // 5 MB
 
-    public CategoriesController(ICategoryService service)
+    private readonly ICategoryService _service;
+    private readonly IFileUploadService _fileUploadService;
+
+    public CategoriesController(ICategoryService service, IFileUploadService fileUploadService)
     {
         _service = service;
+        _fileUploadService = fileUploadService;
     }
 
     [HttpGet]
@@ -24,9 +29,22 @@ public class CategoriesController : ControllerBase
 
     [Authorize(Policy = "Module.MenuItems")]
     [HttpPost]
-    public async Task<ActionResult<CategoryResponse>> Create(CategoryRequest request)
+    [RequestSizeLimit(MaxImageSizeBytes)]
+    public async Task<ActionResult<CategoryResponse>> Create([FromForm] CategoryFormRequest form)
     {
-        var result = await _service.CreateAsync(request);
+        string? imageUrl = null;
+        if (form.Image is not null)
+        {
+            var uploadResult = await _fileUploadService.SaveImageAsync(form.Image, "categories");
+            if (!uploadResult.Succeeded)
+            {
+                return BadRequest(new { errors = new[] { uploadResult.Error } });
+            }
+
+            imageUrl = $"{Request.Scheme}://{Request.Host}{uploadResult.RelativePath}";
+        }
+
+        var result = await _service.CreateAsync(new CategoryRequest { Name = form.Name, ImageUrl = imageUrl });
         if (!result.Succeeded)
         {
             return BadRequest(new { errors = result.Errors });
@@ -50,9 +68,23 @@ public class CategoriesController : ControllerBase
 
     [Authorize(Policy = "Module.MenuItems")]
     [HttpPut("{id:int}")]
-    public async Task<ActionResult<CategoryResponse>> Update(int id, CategoryRequest request)
+    [RequestSizeLimit(MaxImageSizeBytes)]
+    public async Task<ActionResult<CategoryResponse>> Update(int id, [FromForm] CategoryFormRequest form)
     {
-        var result = await _service.UpdateAsync(id, request);
+        string? imageUrl = null;
+        var updateImage = form.Image is not null;
+        if (updateImage)
+        {
+            var uploadResult = await _fileUploadService.SaveImageAsync(form.Image!, "categories");
+            if (!uploadResult.Succeeded)
+            {
+                return BadRequest(new { errors = new[] { uploadResult.Error } });
+            }
+
+            imageUrl = $"{Request.Scheme}://{Request.Host}{uploadResult.RelativePath}";
+        }
+
+        var result = await _service.UpdateAsync(id, new CategoryRequest { Name = form.Name, ImageUrl = imageUrl }, updateImage);
         if (!result.Succeeded)
         {
             var message = result.Errors.FirstOrDefault() ?? string.Empty;

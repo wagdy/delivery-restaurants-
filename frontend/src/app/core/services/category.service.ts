@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Category, CategoryRequest } from '../models/category.model';
+import { Category } from '../models/category.model';
 
 @Injectable({ providedIn: 'root' })
 export class CategoryService {
@@ -13,12 +13,14 @@ export class CategoryService {
     return this.http.get<Category[]>(this.baseUrl);
   }
 
-  create(request: CategoryRequest): Observable<Category> {
-    return this.http.post<Category>(this.baseUrl, request);
+  // FormData, not JSON - the backend binds these as [FromForm] CategoryFormRequest so it
+  // can accept an optional image file (multipart/form-data) alongside the name.
+  create(formData: FormData): Observable<Category> {
+    return this.http.post<Category>(this.baseUrl, formData);
   }
 
-  update(id: number, request: CategoryRequest): Observable<Category> {
-    return this.http.put<Category>(`${this.baseUrl}/${id}`, request);
+  update(id: number, formData: FormData): Observable<Category> {
+    return this.http.put<Category>(`${this.baseUrl}/${id}`, formData);
   }
 
   delete(id: number): Observable<void> {

@@ -25,16 +25,16 @@
       </button>
     </div>
 
-    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="add-field">
-      <mat-label>Image URL (optional)</mat-label>
-      <input
-        matInput
-        [ngModel]="newCategoryImageUrl()"
-        (ngModelChange)="newCategoryImageUrl.set($event)"
-        (keydown.enter)="addCategory()"
-        placeholder="https://..."
-      />
-    </mat-form-field>
+    <div class="image-picker">
+      @if (newCategoryImagePreview(); as preview) {
+        <img [src]="preview" alt="" class="image-thumb" />
+      }
+      <input #newImageInput type="file" accept="image/*" hidden (change)="onNewImageSelected($event)" />
+      <button mat-stroked-button type="button" (click)="newImageInput.click()">
+        <mat-icon>upload</mat-icon>
+        {{ newCategoryImagePreview() ? 'Change image' : 'Choose image (optional)' }}
+      </button>
+    </div>
   </div>
 
   @if (loading()) {
@@ -67,17 +67,16 @@
                   (keydown.escape)="cancelEdit()"
                 />
               </mat-form-field>
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="edit-field">
-                <mat-label>Image URL</mat-label>
-                <input
-                  matInput
-                  [ngModel]="editingImageUrl()"
-                  (ngModelChange)="editingImageUrl.set($event)"
-                  (keydown.enter)="saveEdit(category)"
-                  (keydown.escape)="cancelEdit()"
-                  placeholder="https://..."
-                />
-              </mat-form-field>
+              <div class="image-picker">
+                @if (editingImagePreview(); as preview) {
+                  <img [src]="preview" alt="" class="image-thumb" />
+                }
+                <input #editImageInput type="file" accept="image/*" hidden (change)="onEditImageSelected($event)" />
+                <button mat-stroked-button type="button" (click)="editImageInput.click()">
+                  <mat-icon>upload</mat-icon>
+                  {{ editingImagePreview() ? 'Change image' : 'Choose image' }}
+                </button>
+              </div>
             </div>
             <button mat-icon-button [disabled]="savingEdit()" (click)="saveEdit(category)" aria-label="Save">
               <mat-icon>check</mat-icon>

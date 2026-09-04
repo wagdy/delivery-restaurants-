@@ -4,8 +4,3 @@ export interface Category {
   displayOrder: number;
   imageUrl: string | null;
 }
-
-export interface CategoryRequest {
-  name: string;
-  imageUrl?: string | null;
-}

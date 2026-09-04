@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
@@ -30,7 +30,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
   templateUrl: './category-management-dialog.component.html',
   styleUrl: './category-management-dialog.component.scss'
 })
-export class CategoryManagementDialogComponent {
+export class CategoryManagementDialogComponent implements OnDestroy {
   private readonly categoryService = inject(CategoryService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
@@ -39,11 +39,18 @@ export class CategoryManagementDialogComponent {
   readonly loading = signal(true);
   readonly categories = signal<Category[]>([]);
   readonly newCategoryName = signal('');
-  readonly newCategoryImageUrl = signal('');
+  readonly newCategoryImageFile = signal<File | null>(null);
+  // An object URL for the thumbnail preview - always a blob: URL, never the category's
+  // real (http) imageUrl, since a brand-new category has no existing image to show.
+  readonly newCategoryImagePreview = signal<string | null>(null);
   readonly adding = signal(false);
   readonly editingId = signal<number | null>(null);
   readonly editingName = signal('');
-  readonly editingImageUrl = signal('');
+  readonly editingImageFile = signal<File | null>(null);
+  // Starts as the category's existing (http) imageUrl; replaced with a blob: object URL
+  // once the admin picks a new file. revokeEditPreviewIfBlob() below only ever revokes
+  // the latter - revoking a real http URL would be a no-op but is worth avoiding anyway.
+  readonly editingImagePreview = signal<string | null>(null);
   readonly savingEdit = signal(false);
   readonly reordering = signal(false);
   private mutated = false;
@@ -66,20 +73,46 @@ export class CategoryManagementDialogComponent {
     });
   }
 
+  onNewImageSelected(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    (event.target as HTMLInputElement).value = ''; // lets picking the same file again re-fire 'change'
+    if (!file) {
+      return;
+    }
+
+    this.clearNewImage();
+    this.newCategoryImageFile.set(file);
+    this.newCategoryImagePreview.set(URL.createObjectURL(file));
+  }
+
+  private clearNewImage(): void {
+    const preview = this.newCategoryImagePreview();
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
+    this.newCategoryImageFile.set(null);
+    this.newCategoryImagePreview.set(null);
+  }
+
   addCategory(): void {
     const name = this.newCategoryName().trim();
     if (!name) {
       return;
     }
 
-    const imageUrl = this.newCategoryImageUrl().trim() || null;
+    const formData = new FormData();
+    formData.set('name', name);
+    const file = this.newCategoryImageFile();
+    if (file) {
+      formData.set('image', file);
+    }
 
     this.adding.set(true);
-    this.categoryService.create({ name, imageUrl }).subscribe({
+    this.categoryService.create(formData).subscribe({
       next: () => {
         this.adding.set(false);
         this.newCategoryName.set('');
-        this.newCategoryImageUrl.set('');
+        this.clearNewImage();
         this.mutated = true;
         this.load();
       },
@@ -95,30 +128,58 @@ export class CategoryManagementDialogComponent {
   startEdit(category: Category): void {
     this.editingId.set(category.id);
     this.editingName.set(category.name);
-    this.editingImageUrl.set(category.imageUrl ?? '');
+    this.editingImageFile.set(null);
+    this.editingImagePreview.set(category.imageUrl);
   }
 
   cancelEdit(): void {
+    this.revokeEditPreviewIfBlob();
     this.editingId.set(null);
     this.editingName.set('');
-    this.editingImageUrl.set('');
+    this.editingImageFile.set(null);
+    this.editingImagePreview.set(null);
+  }
+
+  onEditImageSelected(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    (event.target as HTMLInputElement).value = '';
+    if (!file) {
+      return;
+    }
+
+    this.revokeEditPreviewIfBlob();
+    this.editingImageFile.set(file);
+    this.editingImagePreview.set(URL.createObjectURL(file));
+  }
+
+  private revokeEditPreviewIfBlob(): void {
+    const preview = this.editingImagePreview();
+    if (preview?.startsWith('blob:')) {
+      URL.revokeObjectURL(preview);
+    }
   }
 
   saveEdit(category: Category): void {
     const name = this.editingName().trim();
-    const imageUrl = this.editingImageUrl().trim() || null;
+    const imageFile = this.editingImageFile();
     if (!name) {
       this.cancelEdit();
       return;
     }
 
-    if (name === category.name && imageUrl === (category.imageUrl ?? null)) {
+    if (name === category.name && !imageFile) {
       this.cancelEdit();
       return;
     }
 
+    const formData = new FormData();
+    formData.set('name', name);
+    if (imageFile) {
+      formData.set('image', imageFile);
+    }
+
     this.savingEdit.set(true);
-    this.categoryService.update(category.id, { name, imageUrl }).subscribe({
+    this.categoryService.update(category.id, formData).subscribe({
       next: () => {
         this.savingEdit.set(false);
         this.mutated = true;
@@ -190,5 +251,10 @@ export class CategoryManagementDialogComponent {
 
   close(): void {
     this.ref.close(this.mutated);
+  }
+
+  ngOnDestroy(): void {
+    this.clearNewImage();
+    this.revokeEditPreviewIfBlob();
   }
 }

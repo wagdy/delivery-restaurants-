@@ -39,7 +39,7 @@ public class CategoryService : ICategoryService
         return ServiceResult<CategoryResponse>.Success(MapResponse(category));
     }
 
-    public async Task<ServiceResult<CategoryResponse>> UpdateAsync(int id, CategoryRequest request)
+    public async Task<ServiceResult<CategoryResponse>> UpdateAsync(int id, CategoryRequest request, bool updateImage)
     {
         var category = await _repository.GetByIdAsync(id);
         if (category is null)
@@ -61,7 +61,10 @@ public class CategoryService : ICategoryService
             category.Name = name;
         }
 
-        category.ImageUrl = request.ImageUrl;
+        if (updateImage)
+        {
+            category.ImageUrl = request.ImageUrl;
+        }
 
         await _repository.SaveChangesAsync();
 
