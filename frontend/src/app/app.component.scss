@@ -40,6 +40,8 @@
   }
 }
 
+// Equivalent to Tailwind's `absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+// h-10 md:h-14 w-auto`.
 .brand {
   position: absolute;
   left: 50%;
@@ -48,12 +50,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  height: 40px;
+  width: auto;
   max-width: min(55%, 320px);
   overflow: hidden;
   color: inherit;
   text-decoration: none;
   font-weight: 500;
   white-space: nowrap;
+
+  @media (min-width: 1120px) {
+    height: 56px;
+  }
 }
 
 .brand-logo {
@@ -63,16 +71,16 @@
   object-fit: cover;
   flex-shrink: 0;
 
-  // Equivalent to Tailwind's `h-8 md:h-10 w-auto object-contain max-w-[120px] md:max-w-none`.
+  // Equivalent to applying `w-full h-full object-contain` directly to the <img> so it
+  // scales to fill the .brand wrapper's fixed height above without stretching.
   &.prominent {
-    width: auto;
-    height: 32px;
+    width: 100%;
+    height: 100%;
     max-width: 120px;
     border-radius: 0;
     object-fit: contain;
 
     @media (min-width: 1120px) {
-      height: 40px;
       max-width: none;
     }
   }
@@ -127,9 +135,9 @@
   }
 }
 
-// Custom (non-Material) icon+label actions - My Orders, the avatar/profile slot, and
-// Logout all share this so they get the same rounded-full hover treatment and the same
-// "icon only on mobile, icon+label from md: up" behavior as the spec asked for.
+// Custom (non-Material) icon+label actions - Logout, Admin, and Login/Register all
+// share this so they get the same rounded-full hover treatment and the same "icon only
+// on mobile, icon+label from md: up" behavior as the spec asked for.
 .action-link {
   display: flex;
   align-items: center;
@@ -153,16 +161,10 @@
   }
 }
 
-.avatar-slot {
-  cursor: default;
-}
-
 // Equivalent to Tailwind's "hidden md:inline" pattern for the text next to each
-// action icon (Logout, My Orders, Admin) - only the icon shows below this breakpoint.
-// The reveal point is 1120px, not Tailwind's literal 768px "md:" - see the
-// max-width: 1119px block below for why (the worst case is an admin viewing the
-// storefront: Logout on the left, Cart+My Orders+Admin+avatar all with labels on the
-// right, which measurably overlaps the centered brand anywhere below ~1100px).
+// action icon (Logout, Admin, Login/Register) - only the icon shows below this
+// breakpoint. The reveal point is 1120px, not Tailwind's literal 768px "md:" - see the
+// max-width: 1119px block below for why.
 .action-label {
   display: none;
   white-space: nowrap;
@@ -204,11 +206,10 @@
 }
 
 // Below 1120px: tighter gaps/padding and a smaller brand cap so the hamburger+Logout on
-// the left and cart+My-Orders+Admin+avatar on the right (all icon-only here) don't
-// overlap the centered brand. Verified with a real logo/name against the actual worst
-// case (an admin account, which adds a 4th right-side icon) at 375, 640, 767, 1024,
-// 1080, 1119, and 1120px before landing on this threshold - anywhere from roughly
-// 900-1100px still measurably overlapped once labels were shown.
+// the left and cart+Admin (or cart+Login+Register for a guest) on the right - all
+// icon-only here - don't overlap the centered brand. Verified against every right-side
+// composition (guest, customer, admin) at 375, 640, 767, 1024, 1080, 1119, and 1120px
+// before landing on this threshold.
 @media (max-width: 1119px) {
   .brand {
     max-width: 16%;

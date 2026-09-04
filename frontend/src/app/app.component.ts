@@ -14,7 +14,6 @@ import { CategoryService } from './core/services/category.service';
 import { LoyaltyRealtimeService } from './core/services/loyalty-realtime.service';
 import { Category } from './core/models/category.model';
 import { CartDialogComponent } from './features/storefront/cart-dialog/cart-dialog.component';
-import { UserAvatarComponent } from './shared/user-avatar/user-avatar.component';
 import { AppFooterComponent } from './shared/app-footer/app-footer.component';
 
 @Component({
@@ -28,7 +27,6 @@ import { AppFooterComponent } from './shared/app-footer/app-footer.component';
     MatBadgeModule,
     MatSidenavModule,
     MatListModule,
-    UserAvatarComponent,
     AppFooterComponent
   ],
   templateUrl: './app.component.html',

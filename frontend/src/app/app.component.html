@@ -62,9 +62,6 @@
             <mat-icon>local_shipping</mat-icon>
             <span class="action-label">My Deliveries</span>
           </a>
-          <span class="avatar-slot action-link" [title]="authService.currentUser()?.fullName ?? ''">
-            <app-user-avatar [fullName]="authService.currentUser()?.fullName ?? ''" [size]="34"></app-user-avatar>
-          </span>
         </div>
       } @else {
         <div class="header-actions">
@@ -76,22 +73,26 @@
           </button>
 
           @if (authService.isAuthenticated()) {
-            <a class="action-link" [routerLink]="['/']" [queryParams]="{ tab: 'orders' }">
-              <mat-icon>receipt_long</mat-icon>
-              <span class="action-label">My Orders</span>
-            </a>
             @if (authService.isAdmin()) {
               <a class="action-link" routerLink="/admin">
                 <mat-icon>admin_panel_settings</mat-icon>
                 <span class="action-label">Admin</span>
               </a>
             }
-            <span class="avatar-slot action-link" [title]="authService.currentUser()?.fullName ?? ''">
-              <app-user-avatar [fullName]="authService.currentUser()?.fullName ?? ''" [size]="34"></app-user-avatar>
-            </span>
           } @else {
-            <a mat-button routerLink="/login">Login</a>
-            <a mat-button routerLink="/register">Register</a>
+            <!-- Icon+label, same as every other header action, so a guest's row never
+                 grows wider than the compact icon-only footprint the mobile layout
+                 budget assumes (unlike the two full-text mat-buttons this replaced,
+                 which had no responsive handling and were the actual cause of the
+                 cart/logo overlap this was reported for). -->
+            <a class="action-link" routerLink="/login">
+              <mat-icon>login</mat-icon>
+              <span class="action-label">Login</span>
+            </a>
+            <a class="action-link" routerLink="/register">
+              <mat-icon>person_add</mat-icon>
+              <span class="action-label">Register</span>
+            </a>
           }
         </div>
       }
