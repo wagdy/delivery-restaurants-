@@ -19,7 +19,6 @@
           <mat-expansion-panel-header>
             <mat-panel-title>Order #{{ order.id }}</mat-panel-title>
             <mat-panel-description>
-              <span class="status-chip" [class]="'status-' + order.status">{{ order.status }}</span>
               <span class="order-date">{{ order.createdAt | date: 'medium' }}</span>
             </mat-panel-description>
           </mat-expansion-panel-header>

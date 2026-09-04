@@ -28,21 +28,6 @@
   }
 }
 
-.status-chip {
-  font-size: 0.65rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 10px;
-  text-transform: uppercase;
-  color: white;
-  margin-right: 8px;
-}
-.status-Pending { background: #f9a825; }
-.status-Preparing { background: #1e88e5; }
-.status-OutForDelivery { background: #8e24aa; }
-.status-Delivered { background: #43a047; }
-.status-Cancelled { background: #e53935; }
-
 .order-date {
   color: rgba(0, 0, 0, 0.5);
   font-size: 0.8rem;
