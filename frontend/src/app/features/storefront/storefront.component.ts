@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatCardModule } from '@angular/material/card';
@@ -46,6 +46,7 @@ function iconForCategory(name: string): string {
   standalone: true,
   imports: [
     CommonModule,
+    NgOptimizedImage,
     RouterLink,
     MatDialogModule,
     MatCardModule,
@@ -181,6 +182,21 @@ export class StorefrontComponent {
   // @if can treat "no Category row" and "Category row with imageUrl: null" identically.
   imageFor(category: string): string | null {
     return this.categoryImagesByName().get(category) ?? null;
+  }
+
+  // Tracks which category images have actually finished downloading, so the template
+  // can show a skeleton placeholder (instant, zero network cost) until each image's own
+  // (load) event fires, then reveal it - keyed by category name like everything else
+  // in this View 1 section, not by URL, since that's already this class's identity for
+  // a category.
+  private readonly loadedCategoryImages = signal<ReadonlySet<string>>(new Set());
+
+  isImageLoaded(category: string): boolean {
+    return this.loadedCategoryImages().has(category);
+  }
+
+  onImageLoad(category: string): void {
+    this.loadedCategoryImages.update((current) => new Set(current).add(category));
   }
 
   quantityFor(menuItemId: number): number {

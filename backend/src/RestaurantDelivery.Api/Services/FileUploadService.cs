@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using RestaurantDelivery.Core.Common;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Processing;
 
 namespace RestaurantDelivery.Api.Services;
 
@@ -11,6 +14,7 @@ public class FileUploadService : IFileUploadService
     };
 
     private const long MaxImageSizeBytes = 5 * 1024 * 1024; // 5 MB
+    private const int WebpQuality = 75;
 
     private readonly IWebHostEnvironment _webHostEnvironment;
 
@@ -19,7 +23,7 @@ public class FileUploadService : IFileUploadService
         _webHostEnvironment = webHostEnvironment;
     }
 
-    public async Task<FileUploadResult> SaveImageAsync(IFormFile file, string subfolder)
+    public async Task<FileUploadResult> SaveImageAsync(IFormFile file, string subfolder, int? maxDimension = null, bool convertToWebp = false)
     {
         if (file.Length == 0)
         {
@@ -40,6 +44,15 @@ public class FileUploadService : IFileUploadService
         var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", subfolder);
         Directory.CreateDirectory(uploadsFolder);
 
+        // SVG is a vector/XML format ImageSharp can't decode as a raster image - saved
+        // as-is regardless of convertToWebp, same as before this method could resize.
+        var isSvg = string.Equals(extension, ".svg", StringComparison.OrdinalIgnoreCase);
+
+        if (convertToWebp && !isSvg)
+        {
+            return await SaveResizedWebpAsync(file, uploadsFolder, subfolder, maxDimension);
+        }
+
         var fileName = $"{Guid.NewGuid()}{extension}";
         var filePath = Path.Combine(uploadsFolder, fileName);
 
@@ -49,5 +62,41 @@ public class FileUploadService : IFileUploadService
         }
 
         return FileUploadResult.Success($"/uploads/{subfolder}/{fileName}");
+    }
+
+    private static async Task<FileUploadResult> SaveResizedWebpAsync(IFormFile file, string uploadsFolder, string subfolder, int? maxDimension)
+    {
+        Image image;
+        try
+        {
+            await using var inputStream = file.OpenReadStream();
+            image = await Image.LoadAsync(inputStream);
+        }
+        catch (UnknownImageFormatException)
+        {
+            return FileUploadResult.Failure("The uploaded file is not a valid image.");
+        }
+
+        using (image)
+        {
+            if (maxDimension is int max)
+            {
+                // ResizeMode.Max scales the image down to fit within max x max while
+                // preserving its aspect ratio (never upscales, never crops) - the grid's
+                // own CSS (object-fit: cover) handles cropping to a perfect square for
+                // display, so the stored file only needs to be small, not pre-cropped.
+                image.Mutate(ctx => ctx.Resize(new ResizeOptions
+                {
+                    Mode = ResizeMode.Max,
+                    Size = new Size(max, max)
+                }));
+            }
+
+            var fileName = $"{Guid.NewGuid()}.webp";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+            await image.SaveAsync(filePath, new WebpEncoder { Quality = WebpQuality });
+
+            return FileUploadResult.Success($"/uploads/{subfolder}/{fileName}");
+        }
     }
 }

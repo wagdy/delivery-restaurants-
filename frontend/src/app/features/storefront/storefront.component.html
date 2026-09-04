@@ -35,7 +35,21 @@
           @for (category of categories(); track category) {
             <div class="category-card" (click)="openCategory(category)">
               @if (imageFor(category); as imageUrl) {
-                <img [src]="imageUrl" [alt]="category" class="category-card-image" />
+                <div class="category-card-media">
+                  <!-- Shown instantly (no network cost) and faded out once the real
+                       image's (load) event fires below - never left visible forever,
+                       even if the image request errors, since isImageLoaded() only
+                       depends on a successful load. -->
+                  <div class="category-card-skeleton" [class.is-hidden]="isImageLoaded(category)"></div>
+                  <img
+                    [ngSrc]="imageUrl"
+                    [alt]="category"
+                    fill
+                    priority
+                    class="category-card-image"
+                    (load)="onImageLoad(category)"
+                  />
+                </div>
               } @else {
                 <div class="category-card-icon">
                   <mat-icon>{{ iconFor(category) }}</mat-icon>

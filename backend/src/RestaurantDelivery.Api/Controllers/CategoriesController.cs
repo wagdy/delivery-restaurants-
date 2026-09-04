@@ -12,6 +12,11 @@ public class CategoriesController : ControllerBase
 {
     private const long MaxImageSizeBytes = 5 * 1024 * 1024; // 5 MB
 
+    // Category images only ever render at a small size in a 5-column grid - shrinking
+    // them server-side (and re-encoding to WebP) keeps the grid fast regardless of how
+    // large a photo an admin uploads.
+    private const int CategoryImageMaxDimension = 200;
+
     private readonly ICategoryService _service;
     private readonly IFileUploadService _fileUploadService;
 
@@ -35,7 +40,8 @@ public class CategoriesController : ControllerBase
         string? imageUrl = null;
         if (form.Image is not null)
         {
-            var uploadResult = await _fileUploadService.SaveImageAsync(form.Image, "categories");
+            var uploadResult = await _fileUploadService.SaveImageAsync(
+                form.Image, "categories", maxDimension: CategoryImageMaxDimension, convertToWebp: true);
             if (!uploadResult.Succeeded)
             {
                 return BadRequest(new { errors = new[] { uploadResult.Error } });
@@ -75,7 +81,8 @@ public class CategoriesController : ControllerBase
         var updateImage = form.Image is not null;
         if (updateImage)
         {
-            var uploadResult = await _fileUploadService.SaveImageAsync(form.Image!, "categories");
+            var uploadResult = await _fileUploadService.SaveImageAsync(
+                form.Image!, "categories", maxDimension: CategoryImageMaxDimension, convertToWebp: true);
             if (!uploadResult.Succeeded)
             {
                 return BadRequest(new { errors = new[] { uploadResult.Error } });

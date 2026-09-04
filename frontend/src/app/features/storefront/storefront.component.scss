@@ -117,7 +117,7 @@ $hero-tab-active-color: #7a2e22;
 // The image and its icon fallback share this exact box so a category with no image
 // never reflows the grid differently than one with an image - equivalent to Tailwind's
 // `w-full aspect-square object-cover rounded`.
-.category-card-image,
+.category-card-media,
 .category-card-icon {
   width: 100%;
   aspect-ratio: 1 / 1;
@@ -125,9 +125,59 @@ $hero-tab-active-color: #7a2e22;
   margin: 0 auto 4px;
 }
 
+// NgOptimizedImage's `fill` mode absolutely-positions the <img> to cover this box (and
+// requires the box itself to be `position: relative`). The skeleton sits in this same
+// box as another absolutely positioned layer, on top until the real image has loaded.
+//
+// Dev console note: Angular logs an NG02952 warning here ("height of the fill-mode
+// image is zero") on every load, even though the rendered layout is correct (verified
+// via computed style: a real, non-zero square). This is a known false positive in
+// NgOptimizedImage's synchronous zero-height check when the container is sized via
+// `aspect-ratio` inside a CSS Grid - Angular's own team has an open issue about
+// loosening this exact check (angular/angular#59495). Dev-mode only; stripped from
+// production builds along with every other ngDevMode-gated assertion.
+.category-card-media {
+  position: relative;
+  overflow: hidden;
+}
+
 .category-card-image {
-  display: block;
   object-fit: cover;
+}
+
+// Equivalent to Tailwind's `animate-pulse` + a gray background (this project has no
+// Tailwind installed - see the "w-full aspect-square" note above for the standing
+// reason). Sits on top of the <img> and fades out once isImageLoaded() is true,
+// rather than disappearing abruptly, for the "seamless" hand-off that was asked for.
+.category-card-skeleton {
+  position: absolute;
+  inset: 0;
+  background: #e0e0e0;
+  border-radius: inherit;
+  opacity: 1;
+  transition: opacity 200ms ease;
+  animation: category-image-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  &.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+    // animation: none (not animation-play-state: paused) - pausing freezes on whatever
+    // opacity the pulse keyframes happened to be mid-cycle, which would still win over
+    // the static opacity: 0 above and leave the skeleton visibly stuck at a random
+    // brightness. Removing the animation entirely lets the static value take effect.
+    animation: none;
+  }
+}
+
+@keyframes category-image-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .category-card-icon {
