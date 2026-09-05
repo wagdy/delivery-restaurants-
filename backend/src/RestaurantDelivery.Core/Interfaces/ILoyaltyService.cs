@@ -13,6 +13,11 @@ public interface ILoyaltyService
 
     Task<ServiceResult<LoyaltyTransactionResponse>> RedeemPointsAsync(string actorId, RedeemPointsRequest request, CancellationToken ct = default);
 
+    // Called once from AuthService.RegisterAsync, right after a new customer account is
+    // created - a flat, system-awarded bonus (no staff actor, no CheckAmount), distinct
+    // from EarnPointsAsync's ratio-based staff-scanned earn.
+    Task AwardWelcomeBonusAsync(string customerId, CancellationToken ct = default);
+
     // Called once from OrderService.UpdateStatusAsync when an order first transitions to
     // Delivered. No-op (PointsEarned = 0) if order.UserId is null (guest checkout).
     Task<OrderLoyaltyResult> ProcessOrderDeliveredAsync(Order order, CancellationToken ct = default);

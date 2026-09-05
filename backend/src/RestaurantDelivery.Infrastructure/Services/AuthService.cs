@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using RestaurantDelivery.Core.Common;
 using RestaurantDelivery.Core.DTOs.Auth;
 using RestaurantDelivery.Core.Entities;
@@ -14,17 +15,23 @@ public class AuthService : IAuthService
     private readonly ITokenService _tokenService;
     private readonly IRoleRepository _roleRepository;
     private readonly IWhatsAppNotificationService _whatsAppNotificationService;
+    private readonly ILoyaltyService _loyaltyService;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         UserManager<AppUser> userManager,
         ITokenService tokenService,
         IRoleRepository roleRepository,
-        IWhatsAppNotificationService whatsAppNotificationService)
+        IWhatsAppNotificationService whatsAppNotificationService,
+        ILoyaltyService loyaltyService,
+        ILogger<AuthService> logger)
     {
         _userManager = userManager;
         _tokenService = tokenService;
         _roleRepository = roleRepository;
         _whatsAppNotificationService = whatsAppNotificationService;
+        _loyaltyService = loyaltyService;
+        _logger = logger;
     }
 
     public async Task<ServiceResult<AuthResponse>> RegisterAsync(RegisterRequest request)
@@ -60,30 +67,38 @@ public class AuthService : IAuthService
         // Never allowed to fail registration - see IWhatsAppNotificationService's contract.
         await _whatsAppNotificationService.SendWelcomeMessageAsync(user.PhoneNumber!, user.FullName);
 
-        return ServiceResult<AuthResponse>.Success(await BuildAuthResponseAsync(user));
-    }
-
-    // Email-based login, kept for the two pre-existing seeded staff accounts
-    // (admin@restaurant.com / captain@restaurant.com) and any legacy account that
-    // predates the switch to phone-based login - neither has a PhoneNumber on file.
-    public async Task<ServiceResult<AuthResponse>> LoginAsync(LoginRequest request)
-    {
-        var user = await _userManager.FindByEmailAsync(request.Email);
-        if (user is null || !await _userManager.CheckPasswordAsync(user, request.Password))
+        // Same "never fail the caller" contract: the account has already been committed by
+        // _userManager.CreateAsync above, so a hiccup awarding the signup bonus must not
+        // turn an otherwise-successful registration into a 500 the client would retry
+        // against a phone number that's now already taken.
+        try
         {
-            return ServiceResult<AuthResponse>.Failure("Invalid email or password.");
+            await _loyaltyService.AwardWelcomeBonusAsync(user.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to award welcome bonus to new customer {UserId}.", user.Id);
         }
 
         return ServiceResult<AuthResponse>.Success(await BuildAuthResponseAsync(user));
     }
 
-    public async Task<ServiceResult<AuthResponse>> LoginByPhoneAsync(PhoneLoginRequest request)
+    // Single sign-in entry point for every account - customers and staff alike. Detects
+    // whether Identifier is an email (contains '@') or a phone number and looks the
+    // account up accordingly, so the client never needs to ask which kind it's sending.
+    public async Task<ServiceResult<AuthResponse>> LoginAsync(LoginRequest request)
     {
-        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == request.PhoneNumber);
+        var identifier = request.Identifier.Trim();
+        var isEmail = identifier.Contains('@');
+
+        var user = isEmail
+            ? await _userManager.FindByEmailAsync(identifier)
+            : await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == identifier);
 
         if (user is null || !await _userManager.CheckPasswordAsync(user, request.Password))
         {
-            return ServiceResult<AuthResponse>.Failure("Invalid phone number or password.");
+            return ServiceResult<AuthResponse>.Failure(
+                isEmail ? "Invalid email or password." : "Invalid phone number or password.");
         }
 
         return ServiceResult<AuthResponse>.Success(await BuildAuthResponseAsync(user));

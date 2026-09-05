@@ -37,13 +37,13 @@ export const routes: Routes = [
   {
     path: 'login',
     canActivate: [redirectCaptainGuard],
-    loadComponent: () => import('./features/auth/login/login.component').then((m) => m.LoginComponent)
+    loadComponent: () => import('./features/auth/auth/auth.component').then((m) => m.AuthComponent)
   },
   {
     path: 'register',
     canActivate: [redirectCaptainGuard],
-    loadComponent: () =>
-      import('./features/auth/register/register.component').then((m) => m.RegisterComponent)
+    data: { initialTab: 'register' },
+    loadComponent: () => import('./features/auth/auth/auth.component').then((m) => m.AuthComponent)
   },
   {
     path: 'email-login',

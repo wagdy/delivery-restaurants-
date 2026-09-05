@@ -56,7 +56,8 @@ export class EmailLoginComponent {
     this.loading.set(true);
     this.errorMessage.set(null);
 
-    this.authService.login(this.form.getRawValue()).subscribe({
+    const raw = this.form.getRawValue();
+    this.authService.login({ identifier: raw.email, password: raw.password }).subscribe({
       next: () => {
         this.loading.set(false);
         const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');

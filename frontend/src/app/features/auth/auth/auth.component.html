@@ -1,0 +1,103 @@
+<div class="auth-page">
+  <mat-card class="auth-card">
+    <mat-tab-group [(selectedIndex)]="activeTabIndex" mat-stretch-tabs="true" animationDuration="150ms">
+      <mat-tab label="Login">
+        <form [formGroup]="loginForm" (ngSubmit)="submitLogin()">
+          <mat-card-content>
+            <p class="tab-subtitle">Log in with your email or phone number</p>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Email or Phone Number</mat-label>
+              <input matInput formControlName="identifier" autocomplete="username" />
+              @if (loginForm.controls.identifier.hasError('required') && loginForm.controls.identifier.touched) {
+                <mat-error>Email or phone number is required</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Password</mat-label>
+              <input matInput type="password" formControlName="password" autocomplete="current-password" />
+              @if (loginForm.controls.password.hasError('required') && loginForm.controls.password.touched) {
+                <mat-error>Password is required</mat-error>
+              }
+            </mat-form-field>
+
+            @if (loginError()) {
+              <p class="error-text">{{ loginError() }}</p>
+            }
+          </mat-card-content>
+
+          <mat-card-actions class="actions">
+            <button mat-flat-button color="primary" type="submit" [disabled]="loginLoading() || loginForm.invalid">
+              @if (loginLoading()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                Sign in
+              }
+            </button>
+          </mat-card-actions>
+        </form>
+      </mat-tab>
+
+      <mat-tab label="Register">
+        <form [formGroup]="registerForm" (ngSubmit)="submitRegister()">
+          <mat-card-content>
+            <p class="tab-subtitle">Save your details for faster checkout and order tracking</p>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Full name</mat-label>
+              <input matInput formControlName="fullName" autocomplete="name" />
+              @if (registerForm.controls.fullName.hasError('required') && registerForm.controls.fullName.touched) {
+                <mat-error>Full name is required</mat-error>
+              }
+              @if (registerForm.controls.fullName.hasError('pattern') && registerForm.controls.fullName.touched) {
+                <mat-error>Name can only contain letters</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Phone number</mat-label>
+              <input matInput formControlName="phoneNumber" autocomplete="tel" />
+              @if (registerForm.controls.phoneNumber.hasError('required') && registerForm.controls.phoneNumber.touched) {
+                <mat-error>Phone number is required</mat-error>
+              }
+              @if (registerForm.controls.phoneNumber.hasError('pattern') && registerForm.controls.phoneNumber.touched) {
+                <mat-error>Phone number must contain only numbers</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Password</mat-label>
+              <input matInput type="password" formControlName="password" autocomplete="new-password" />
+              @if (registerForm.controls.password.hasError('required') && registerForm.controls.password.touched) {
+                <mat-error>Password is required</mat-error>
+              }
+              @if (registerForm.controls.password.hasError('minlength') && registerForm.controls.password.touched) {
+                <mat-error>Password must be at least 8 characters</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Delivery address (optional)</mat-label>
+              <input matInput formControlName="address" autocomplete="street-address" />
+            </mat-form-field>
+
+            @if (registerError()) {
+              <p class="error-text">{{ registerError() }}</p>
+            }
+          </mat-card-content>
+
+          <mat-card-actions class="actions">
+            <button mat-flat-button color="primary" type="submit" [disabled]="registerLoading() || registerForm.invalid">
+              @if (registerLoading()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                Create account
+              }
+            </button>
+          </mat-card-actions>
+        </form>
+      </mat-tab>
+    </mat-tab-group>
+  </mat-card>
+</div>

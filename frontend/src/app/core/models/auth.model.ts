@@ -6,11 +6,10 @@ export interface AuthResponse {
   user: UserProfile;
 }
 
-// Email-based login, kept for the two pre-existing seeded staff accounts and any legacy
-// account that predates the switch to phone-based login — see PhoneLoginRequest below,
-// which customers and newly-created staff use instead.
+// Single sign-in entry point for every account - customers and staff alike. identifier is
+// either an email address or a phone number; the backend detects which (AuthService.LoginAsync).
 export interface LoginRequest {
-  email: string;
+  identifier: string;
   password: string;
 }
 
@@ -23,7 +22,7 @@ export interface RegisterRequest {
 
 // Admin-only — creates an Admin or CaptainOrder account. Customer role is intentionally
 // not selectable here: customers always self-register via RegisterRequest. Staff log in
-// by phone number, not email — see PhoneLoginRequest.
+// by phone number, not email — see LoginRequest.
 export interface CreateStaffUserRequest {
   fullName: string;
   phoneNumber: string;
@@ -32,10 +31,4 @@ export interface CreateStaffUserRequest {
   // Required when role is 'Admin' (must reference an existing Role); omitted/null when
   // role is 'CaptainOrder'.
   roleId?: number | null;
-}
-
-// Phone + password login, used by customers and staff alike.
-export interface PhoneLoginRequest {
-  phoneNumber: string;
-  password: string;
 }

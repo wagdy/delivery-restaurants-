@@ -29,6 +29,8 @@ public class AuthController : ControllerBase
         return Ok(result.Data);
     }
 
+    // Single sign-in entry point for every account - customers and staff alike. See
+    // LoginRequest.Identifier and AuthService.LoginAsync for the email-vs-phone detection.
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request)
     {
@@ -52,21 +54,6 @@ public class AuthController : ControllerBase
         if (!result.Succeeded)
         {
             return BadRequest(new { errors = result.Errors });
-        }
-
-        return Ok(result.Data);
-    }
-
-    // Phone + password login, used by customers and staff alike - separate from the
-    // email-based Login above, which only the two pre-existing legacy staff accounts
-    // (and any legacy email-registered customer) still need.
-    [HttpPost("login-by-phone")]
-    public async Task<ActionResult<AuthResponse>> LoginByPhone(PhoneLoginRequest request)
-    {
-        var result = await _authService.LoginByPhoneAsync(request);
-        if (!result.Succeeded)
-        {
-            return Unauthorized(new { errors = result.Errors });
         }
 
         return Ok(result.Data);

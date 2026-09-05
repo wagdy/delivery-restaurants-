@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AuthResponse, CreateStaffUserRequest, LoginRequest, PhoneLoginRequest, RegisterRequest } from '../models/auth.model';
+import { AuthResponse, CreateStaffUserRequest, LoginRequest, RegisterRequest } from '../models/auth.model';
 import { AdminModuleName } from '../models/role.model';
 import { UserProfile } from '../models/user.model';
 
@@ -31,8 +31,8 @@ export class AuthService {
     this.restoreSession();
   }
 
-  // Email-based login, kept for the two pre-existing seeded staff accounts and any legacy
-  // account that predates the switch to phone-based login.
+  // Single sign-in entry point for every account - customers and staff alike. See
+  // LoginRequest.identifier.
   login(request: LoginRequest): Observable<AuthResponse> {
     return this.http
       .post<AuthResponse>(`${environment.apiUrl}/auth/login`, request)
@@ -42,13 +42,6 @@ export class AuthService {
   register(request: RegisterRequest): Observable<AuthResponse> {
     return this.http
       .post<AuthResponse>(`${environment.apiUrl}/auth/register`, request)
-      .pipe(tap((res) => this.setSession(res)));
-  }
-
-  // Phone + password login, used by customers and staff alike.
-  loginByPhone(request: PhoneLoginRequest): Observable<AuthResponse> {
-    return this.http
-      .post<AuthResponse>(`${environment.apiUrl}/auth/login-by-phone`, request)
       .pipe(tap((res) => this.setSession(res)));
   }
 

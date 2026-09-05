@@ -4,8 +4,9 @@ namespace RestaurantDelivery.Core.DTOs.Auth;
 
 public class RegisterRequest
 {
-    // Customers log in with phone number, not email - see AuthService.LoginByPhoneAsync.
-    // Required and must be unique across all accounts (checked in AuthService.RegisterAsync).
+    // Customers log in with phone number, not email - see AuthService.LoginAsync's
+    // Identifier detection. Required and must be unique across all accounts (checked in
+    // AuthService.RegisterAsync).
     [Required]
     [RegularExpression(@"^[0-9]+$", ErrorMessage = "Phone number must contain only numbers.")]
     public string PhoneNumber { get; set; } = string.Empty;

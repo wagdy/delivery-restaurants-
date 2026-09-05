@@ -7,5 +7,9 @@ public enum LoyaltyTransactionType
     AdminAdjustment = 2,
 
     // Auto-awarded when an order transitions to Delivered - see LoyaltyService.ProcessOrderDeliveredAsync.
-    OrderEarned = 3
+    OrderEarned = 3,
+
+    // Auto-awarded once, immediately after a new customer registers - see
+    // LoyaltyService.AwardWelcomeBonusAsync and AuthService.RegisterAsync.
+    WelcomeBonus = 4
 }

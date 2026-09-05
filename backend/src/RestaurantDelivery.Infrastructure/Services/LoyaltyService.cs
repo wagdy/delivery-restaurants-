@@ -10,6 +10,11 @@ namespace RestaurantDelivery.Infrastructure.Services;
 
 public class LoyaltyService : ILoyaltyService
 {
+    // Flat signup bonus - see AwardWelcomeBonusAsync. Not part of LoyaltySettings (the
+    // admin-editable earn/redeem ratios) since this is a one-time fixed amount, not a
+    // rate applied to a currency figure.
+    private const int WelcomeBonusPoints = 100;
+
     private readonly ApplicationDbContext _context;
     private readonly ILoyaltyRealtimeNotifier _realtimeNotifier;
 
@@ -82,6 +87,29 @@ public class LoyaltyService : ILoyaltyService
             TierUpgraded = tierUpgraded,
             DiscountAmount = 0m
         });
+    }
+
+    public async Task AwardWelcomeBonusAsync(string customerId, CancellationToken ct = default)
+    {
+        // GetOrCreateProfileEntityAsync always returns a brand-new, just-inserted profile
+        // here in practice (called once from AuthService.RegisterAsync right after the
+        // account itself is created) but reuses the race-safe helper anyway rather than
+        // assuming that invariant.
+        var profile = await GetOrCreateProfileEntityAsync(customerId, ct);
+
+        profile.CurrentPoints += WelcomeBonusPoints;
+        profile.TotalLifetimePoints += WelcomeBonusPoints;
+        profile.LastActivityDate = DateTime.UtcNow;
+        profile.MembershipTier = MembershipTierCalculator.CalculateTier(profile.TotalLifetimePoints, profile.MembershipTier);
+
+        _context.LoyaltyPointTransactions.Add(new LoyaltyPointTransaction
+        {
+            CustomerId = profile.AppUserId,
+            PointsTransacted = WelcomeBonusPoints,
+            TransactionType = LoyaltyTransactionType.WelcomeBonus
+        });
+
+        await _context.SaveChangesAsync(ct);
     }
 
     public async Task<ServiceResult<LoyaltyTransactionResponse>> RedeemPointsAsync(string actorId, RedeemPointsRequest request, CancellationToken ct = default)
