@@ -16,17 +16,46 @@
   max-width: 960px;
 }
 
-// Equivalent to Tailwind's `grid grid-cols-1 md:grid-cols-2` - this project doesn't
-// include Tailwind, so the same single-column-then-two-column responsive behavior is
-// done with plain CSS Grid instead, matching every other component's plain-SCSS styling.
-.panels-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
+// Equivalent to Tailwind's `flex border-b border-gray-200` - this project doesn't
+// include Tailwind, so the same tab-strip look is done with plain CSS instead,
+// matching every other component's plain-SCSS substitution pattern.
+.tab-nav {
+  display: flex;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  overflow-x: auto;
+}
 
-  @media (min-width: 768px) {
-    grid-template-columns: 1fr 1fr;
+// Equivalent to Tailwind's inactive `text-gray-500 hover:text-gray-700` / active
+// `border-b-2 border-primary text-primary` tab treatment.
+.tab-button {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 12px 18px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    color: rgba(0, 0, 0, 0.75);
   }
+
+  &.active {
+    color: var(--app-primary-color, #3f51b5);
+    border-bottom-color: var(--app-primary-color, #3f51b5);
+  }
+}
+
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 20px;
 }
 
 .create-card,
@@ -124,11 +153,6 @@
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-
-  h2 {
-    margin: 0 0 4px;
-    font-size: 1.05rem;
-  }
 }
 
 .section-hint {

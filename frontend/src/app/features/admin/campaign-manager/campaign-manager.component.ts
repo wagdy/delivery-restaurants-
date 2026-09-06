@@ -46,6 +46,8 @@ export class CampaignManagerComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
+  readonly activeTab = signal<'punch-card' | 'points' | 'tiers'>('punch-card');
+
   readonly loading = signal(true);
   readonly campaigns = signal<Campaign[]>([]);
   readonly categories = signal<Category[]>([]);
@@ -111,6 +113,10 @@ export class CampaignManagerComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadSettings();
+  }
+
+  setActiveTab(tab: 'punch-card' | 'points' | 'tiers'): void {
+    this.activeTab.set(tab);
   }
 
   loadSettings(): void {

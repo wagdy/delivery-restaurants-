@@ -3,237 +3,258 @@
 </mat-toolbar>
 
 <div class="page-content">
-  <div class="panels-grid">
-    <div class="create-card">
-      <h2>New punch-card campaign</h2>
+  <nav class="tab-nav">
+    <button type="button" class="tab-button" [class.active]="activeTab() === 'punch-card'" (click)="setActiveTab('punch-card')">
+      Punch-card Campaigns
+    </button>
+    <button type="button" class="tab-button" [class.active]="activeTab() === 'points'" (click)="setActiveTab('points')">
+      Points Configuration
+    </button>
+    <button type="button" class="tab-button" [class.active]="activeTab() === 'tiers'" (click)="setActiveTab('tiers')">
+      Loyalty Card Tiers
+    </button>
+  </nav>
 
-      <div class="create-form">
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-label>Title</mat-label>
-          <input matInput [ngModel]="newTitle()" (ngModelChange)="newTitle.set($event)" placeholder="e.g. Buy 5 Coffees, Get 1 Free" />
-        </mat-form-field>
+  @switch (activeTab()) {
+    @case ('punch-card') {
+      <div class="tab-panel">
+        <div class="create-card">
+          <h2>New punch-card campaign</h2>
 
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-label>Description</mat-label>
-          <input matInput [ngModel]="newDescription()" (ngModelChange)="newDescription.set($event)" placeholder="Shown to customers on their card" />
-        </mat-form-field>
+          <div class="create-form">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Title</mat-label>
+              <input matInput [ngModel]="newTitle()" (ngModelChange)="newTitle.set($event)" placeholder="e.g. Buy 5 Coffees, Get 1 Free" />
+            </mat-form-field>
 
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-label>Category (optional)</mat-label>
-          <mat-select [ngModel]="newCategoryName()" (ngModelChange)="newCategoryName.set($event)">
-            <mat-option [value]="null">Any item</mat-option>
-            @for (category of categories(); track category.id) {
-              <mat-option [value]="category.name">{{ category.name }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Description</mat-label>
+              <input matInput [ngModel]="newDescription()" (ngModelChange)="newDescription.set($event)" placeholder="Shown to customers on their card" />
+            </mat-form-field>
 
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-label>Target punches</mat-label>
-          <input matInput type="number" min="1" max="100" [ngModel]="newTargetPunches()" (ngModelChange)="newTargetPunches.set($event)" />
-        </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Category (optional)</mat-label>
+              <mat-select [ngModel]="newCategoryName()" (ngModelChange)="newCategoryName.set($event)">
+                <mat-option [value]="null">Any item</mat-option>
+                @for (category of categories(); track category.id) {
+                  <mat-option [value]="category.name">{{ category.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
 
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-label>Expiration date</mat-label>
-          <input matInput type="date" required [ngModel]="newEndDate()" (ngModelChange)="newEndDate.set($event)" />
-          <mat-error>Expiration date is required.</mat-error>
-        </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Target punches</mat-label>
+              <input matInput type="number" min="1" max="100" [ngModel]="newTargetPunches()" (ngModelChange)="newTargetPunches.set($event)" />
+            </mat-form-field>
 
-        <button
-          mat-flat-button
-          color="primary"
-          class="create-button"
-          [disabled]="creating() || !newTitle().trim() || !newDescription().trim() || !newEndDate()"
-          (click)="create()"
-        >
-          @if (creating()) {
-            <mat-spinner diameter="18"></mat-spinner>
-          } @else {
-            <ng-container>
-              <mat-icon>add</mat-icon>
-              Create campaign
-            </ng-container>
-          }
-        </button>
-      </div>
-    </div>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Expiration date</mat-label>
+              <input matInput type="date" required [ngModel]="newEndDate()" (ngModelChange)="newEndDate.set($event)" />
+              <mat-error>Expiration date is required.</mat-error>
+            </mat-form-field>
 
-    <div class="settings-card">
-      <h2>Points Configuration</h2>
-
-      @if (loadingSettings()) {
-        <div class="settings-loading">
-          <mat-spinner diameter="32"></mat-spinner>
-        </div>
-      } @else {
-        <div class="create-form">
-          <mat-form-field appearance="outline" subscriptSizing="dynamic">
-            <mat-label>Earning Ratio</mat-label>
-            <input
-              matInput
-              type="number"
-              min="0"
-              step="0.01"
-              [ngModel]="pointsPerCurrencyUnit()"
-              (ngModelChange)="pointsPerCurrencyUnit.set($event)"
-            />
-            <mat-hint>Points earned per 1 L.E spent</mat-hint>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" subscriptSizing="dynamic">
-            <mat-label>Redemption Value</mat-label>
-            <input
-              matInput
-              type="number"
-              min="0"
-              step="0.01"
-              [ngModel]="redemptionValuePer100Points()"
-              (ngModelChange)="redemptionValuePer100Points.set($event)"
-            />
-            <mat-hint>L.E discount value per 100 Points redeemed</mat-hint>
-          </mat-form-field>
-
-          <button
-            mat-flat-button
-            color="primary"
-            class="create-button"
-            [disabled]="savingSettings()"
-            (click)="saveSettings()"
-          >
-            @if (savingSettings()) {
-              <mat-spinner diameter="18"></mat-spinner>
-            } @else {
-              <ng-container>
-                <mat-icon>save</mat-icon>
-                Save Settings
-              </ng-container>
-            }
-          </button>
-        </div>
-      }
-    </div>
-  </div>
-
-  @if (loading()) {
-    <div class="loading-state">
-      <mat-spinner diameter="40"></mat-spinner>
-    </div>
-  } @else if (campaigns().length === 0) {
-    <p class="empty-state">No campaigns yet. Create one above.</p>
-  } @else {
-    <div class="campaigns-list">
-      @for (campaign of campaigns(); track campaign.id) {
-        <div class="campaign-row" [class.inactive]="!campaign.isActive">
-          <div class="campaign-info">
-            <p class="campaign-title">{{ campaign.title }}</p>
-            <p class="campaign-description">{{ campaign.description }}</p>
-            <p class="campaign-meta">
-              {{ campaign.categoryName ?? 'Any item' }} · Target: {{ campaign.targetPunches }}
-              @if (campaign.endDate) {
-                · Valid until {{ campaign.endDate | date: 'mediumDate' }}
+            <button
+              mat-flat-button
+              color="primary"
+              class="create-button"
+              [disabled]="creating() || !newTitle().trim() || !newDescription().trim() || !newEndDate()"
+              (click)="create()"
+            >
+              @if (creating()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <ng-container>
+                  <mat-icon>add</mat-icon>
+                  Create campaign
+                </ng-container>
               }
-            </p>
-          </div>
-
-          <div class="campaign-actions">
-            <mat-slide-toggle [checked]="campaign.isActive" (change)="toggleStatus(campaign)">
-              {{ campaign.isActive ? 'Active' : 'Inactive' }}
-            </mat-slide-toggle>
-            <button mat-icon-button color="warn" (click)="delete(campaign)" aria-label="Delete">
-              <mat-icon>delete</mat-icon>
             </button>
           </div>
         </div>
-      }
-    </div>
-  }
 
-  <div class="tiers-section">
-    <h2>Loyalty Card Tiers</h2>
-    <p class="section-hint">Define custom membership tiers and the lifetime-point ranges that place a customer into each one.</p>
+        @if (loading()) {
+          <div class="loading-state">
+            <mat-spinner diameter="40"></mat-spinner>
+          </div>
+        } @else if (campaigns().length === 0) {
+          <p class="empty-state">No campaigns yet. Create one above.</p>
+        } @else {
+          <div class="campaigns-list">
+            @for (campaign of campaigns(); track campaign.id) {
+              <div class="campaign-row" [class.inactive]="!campaign.isActive">
+                <div class="campaign-info">
+                  <p class="campaign-title">{{ campaign.title }}</p>
+                  <p class="campaign-description">{{ campaign.description }}</p>
+                  <p class="campaign-meta">
+                    {{ campaign.categoryName ?? 'Any item' }} · Target: {{ campaign.targetPunches }}
+                    @if (campaign.endDate) {
+                      · Valid until {{ campaign.endDate | date: 'mediumDate' }}
+                    }
+                  </p>
+                </div>
 
-    <div class="tier-form">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Tier Name</mat-label>
-        <input matInput [ngModel]="tierName()" (ngModelChange)="tierName.set($event)" placeholder="e.g. VIP, Gold, Otantik Special" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Minimum Points</mat-label>
-        <input matInput type="number" min="0" [ngModel]="tierMinPoints()" (ngModelChange)="tierMinPoints.set($event ?? 0)" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Maximum Points</mat-label>
-        <input
-          matInput
-          type="number"
-          min="0"
-          [ngModel]="tierMaxPoints()"
-          (ngModelChange)="tierMaxPoints.set($event)"
-          placeholder="Leave blank for no ceiling"
-        />
-      </mat-form-field>
-
-      @if (tierFormError() || tierOverlapWarning(); as message) {
-        <p class="tier-warning">
-          <mat-icon>warning</mat-icon>
-          {{ message }}
-        </p>
-      }
-
-      <div class="tier-form-actions">
-        <button mat-flat-button color="primary" [disabled]="savingTier() || !canSaveTier()" (click)="saveTier()">
-          @if (savingTier()) {
-            <mat-spinner diameter="18"></mat-spinner>
-          } @else {
-            <ng-container>
-              <mat-icon>{{ editingTierId() !== null ? 'save' : 'add' }}</mat-icon>
-              {{ editingTierId() !== null ? 'Update tier' : 'Add tier' }}
-            </ng-container>
-          }
-        </button>
-
-        @if (editingTierId() !== null) {
-          <button mat-stroked-button (click)="resetTierForm()">Cancel</button>
-        }
-      </div>
-    </div>
-
-    @if (loadingTiers()) {
-      <div class="loading-state">
-        <mat-spinner diameter="32"></mat-spinner>
-      </div>
-    } @else if (sortedTiers().length === 0) {
-      <p class="empty-state">No tiers configured yet. Add one above.</p>
-    } @else {
-      <div class="tiers-table-wrapper">
-        <table class="tiers-table">
-          <thead>
-            <tr>
-              <th>Tier Name</th>
-              <th>Point Range</th>
-              <th class="actions-col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (tier of sortedTiers(); track tier.id) {
-              <tr [class.editing]="editingTierId() === tier.id">
-                <td>{{ tier.name }}</td>
-                <td>{{ formatTierRange(tier) }}</td>
-                <td class="actions-col">
-                  <button mat-icon-button (click)="editTier(tier)" aria-label="Edit">
-                    <mat-icon>edit</mat-icon>
-                  </button>
-                  <button mat-icon-button color="warn" (click)="deleteTier(tier)" aria-label="Delete">
+                <div class="campaign-actions">
+                  <mat-slide-toggle [checked]="campaign.isActive" (change)="toggleStatus(campaign)">
+                    {{ campaign.isActive ? 'Active' : 'Inactive' }}
+                  </mat-slide-toggle>
+                  <button mat-icon-button color="warn" (click)="delete(campaign)" aria-label="Delete">
                     <mat-icon>delete</mat-icon>
                   </button>
-                </td>
-              </tr>
+                </div>
+              </div>
             }
-          </tbody>
-        </table>
+          </div>
+        }
       </div>
     }
-  </div>
+
+    @case ('points') {
+      <div class="tab-panel">
+        <div class="settings-card">
+          @if (loadingSettings()) {
+            <div class="settings-loading">
+              <mat-spinner diameter="32"></mat-spinner>
+            </div>
+          } @else {
+            <div class="create-form">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Earning Ratio</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  [ngModel]="pointsPerCurrencyUnit()"
+                  (ngModelChange)="pointsPerCurrencyUnit.set($event)"
+                />
+                <mat-hint>Points earned per 1 L.E spent</mat-hint>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Redemption Value</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  [ngModel]="redemptionValuePer100Points()"
+                  (ngModelChange)="redemptionValuePer100Points.set($event)"
+                />
+                <mat-hint>L.E discount value per 100 Points redeemed</mat-hint>
+              </mat-form-field>
+
+              <button
+                mat-flat-button
+                color="primary"
+                class="create-button"
+                [disabled]="savingSettings()"
+                (click)="saveSettings()"
+              >
+                @if (savingSettings()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>
+                    <mat-icon>save</mat-icon>
+                    Save Settings
+                  </ng-container>
+                }
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @case ('tiers') {
+      <div class="tab-panel">
+        <div class="tiers-section">
+          <p class="section-hint">Define custom membership tiers and the lifetime-point ranges that place a customer into each one.</p>
+
+          <div class="tier-form">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Tier Name</mat-label>
+              <input matInput [ngModel]="tierName()" (ngModelChange)="tierName.set($event)" placeholder="e.g. VIP, Gold, Otantik Special" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Minimum Points</mat-label>
+              <input matInput type="number" min="0" [ngModel]="tierMinPoints()" (ngModelChange)="tierMinPoints.set($event ?? 0)" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Maximum Points</mat-label>
+              <input
+                matInput
+                type="number"
+                min="0"
+                [ngModel]="tierMaxPoints()"
+                (ngModelChange)="tierMaxPoints.set($event)"
+                placeholder="Leave blank for no ceiling"
+              />
+            </mat-form-field>
+
+            @if (tierFormError() || tierOverlapWarning(); as message) {
+              <p class="tier-warning">
+                <mat-icon>warning</mat-icon>
+                {{ message }}
+              </p>
+            }
+
+            <div class="tier-form-actions">
+              <button mat-flat-button color="primary" [disabled]="savingTier() || !canSaveTier()" (click)="saveTier()">
+                @if (savingTier()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>
+                    <mat-icon>{{ editingTierId() !== null ? 'save' : 'add' }}</mat-icon>
+                    {{ editingTierId() !== null ? 'Update tier' : 'Add tier' }}
+                  </ng-container>
+                }
+              </button>
+
+              @if (editingTierId() !== null) {
+                <button mat-stroked-button (click)="resetTierForm()">Cancel</button>
+              }
+            </div>
+          </div>
+
+          @if (loadingTiers()) {
+            <div class="loading-state">
+              <mat-spinner diameter="32"></mat-spinner>
+            </div>
+          } @else if (sortedTiers().length === 0) {
+            <p class="empty-state">No tiers configured yet. Add one above.</p>
+          } @else {
+            <div class="tiers-table-wrapper">
+              <table class="tiers-table">
+                <thead>
+                  <tr>
+                    <th>Tier Name</th>
+                    <th>Point Range</th>
+                    <th class="actions-col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (tier of sortedTiers(); track tier.id) {
+                    <tr [class.editing]="editingTierId() === tier.id">
+                      <td>{{ tier.name }}</td>
+                      <td>{{ formatTierRange(tier) }}</td>
+                      <td class="actions-col">
+                        <button mat-icon-button (click)="editTier(tier)" aria-label="Edit">
+                          <mat-icon>edit</mat-icon>
+                        </button>
+                        <button mat-icon-button color="warn" (click)="deleteTier(tier)" aria-label="Delete">
+                          <mat-icon>delete</mat-icon>
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
 </div>
