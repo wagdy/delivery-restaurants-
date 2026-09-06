@@ -35,7 +35,7 @@ public class CustomerService : ICustomerService
                 AverageOrderValue = u.Orders.Any() ? u.Orders.Average(o => o.TotalAmount) : 0m,
                 CurrentPoints = profile != null ? profile.CurrentPoints : 0,
                 TotalLifetimePoints = profile != null ? profile.TotalLifetimePoints : 0,
-                MembershipTier = profile != null ? profile.MembershipTier.ToString() : "Bronze"
+                MembershipTier = profile != null ? (profile.MembershipTier ?? "Unranked") : "Unranked"
             };
 
         return query.ToListAsync();

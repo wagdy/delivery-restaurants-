@@ -4,19 +4,44 @@ using Passbook.Generator;
 using Passbook.Generator.Fields;
 using RestaurantDelivery.Api.Configuration;
 using RestaurantDelivery.Core.Entities;
-using RestaurantDelivery.Core.Enums;
 
 namespace RestaurantDelivery.Api.Services.Loyalty;
 
 public class ApplePassBuilder : IApplePassBuilder
 {
-    private static readonly Dictionary<MembershipTier, (string Background, string Foreground, string Label)> TierColors = new()
+    // Tier names are now admin-defined free text (see LoyaltyTier), not a fixed enum, so
+    // this can no longer be a straight dictionary keyed on a closed set of values.
+    // Case-insensitive substring matching keeps the 4 original looks for anyone who
+    // names their tiers the conventional way (including the pre-existing
+    // Bronze/Silver/Gold/VIP names carried over by the migration that introduced
+    // LoyaltyTier), while any other custom name (e.g. "Otantik Special") still gets a
+    // sensible, deliberately neutral default rather than an exception.
+    private static readonly (string Keyword, string Background, string Foreground, string Label)[] TierColorsByKeyword =
     {
-        [MembershipTier.Bronze] = ("rgb(107,74,47)", "rgb(255,255,255)", "rgb(230,214,200)"),
-        [MembershipTier.Silver] = ("rgb(117,117,117)", "rgb(255,255,255)", "rgb(230,230,230)"),
-        [MembershipTier.Gold] = ("rgb(150,120,20)", "rgb(255,255,255)", "rgb(250,235,190)"),
-        [MembershipTier.VIP] = ("rgb(28,18,16)", "rgb(212,175,55)", "rgb(212,175,55)")
+        ("vip", "rgb(28,18,16)", "rgb(212,175,55)", "rgb(212,175,55)"),
+        ("gold", "rgb(150,120,20)", "rgb(255,255,255)", "rgb(250,235,190)"),
+        ("silver", "rgb(117,117,117)", "rgb(255,255,255)", "rgb(230,230,230)"),
+        ("bronze", "rgb(107,74,47)", "rgb(255,255,255)", "rgb(230,214,200)")
     };
+
+    private static readonly (string Background, string Foreground, string Label) DefaultTierColors =
+        ("rgb(63,81,181)", "rgb(255,255,255)", "rgb(220,224,246)");
+
+    private static (string Background, string Foreground, string Label) ResolveTierColors(string? tierName)
+    {
+        if (tierName is not null)
+        {
+            foreach (var (keyword, background, foreground, label) in TierColorsByKeyword)
+            {
+                if (tierName.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                {
+                    return (background, foreground, label);
+                }
+            }
+        }
+
+        return DefaultTierColors;
+    }
 
     private readonly AppleWalletSettings _settings;
     private readonly IWalletAuthTokenService _authTokenService;
@@ -35,7 +60,7 @@ public class ApplePassBuilder : IApplePassBuilder
                 "Apple Wallet is not configured: missing certificates, identifiers, or pass artwork.");
         }
 
-        var (background, foreground, label) = TierColors[profile.MembershipTier];
+        var (background, foreground, label) = ResolveTierColors(profile.MembershipTier);
 
         var request = new PassGeneratorRequest
         {
@@ -64,7 +89,7 @@ public class ApplePassBuilder : IApplePassBuilder
 
         request.HeaderFields.Add(new NumberField("points", "Points", profile.CurrentPoints, FieldNumberStyle.PKNumberStyleDecimal));
         request.PrimaryFields.Add(new StandardField("name", "Member", appUser.FullName));
-        request.SecondaryFields.Add(new StandardField("tier", "Tier", profile.MembershipTier.ToString()));
+        request.SecondaryFields.Add(new StandardField("tier", "Tier", profile.MembershipTier ?? "Unranked"));
         request.SecondaryFields.Add(new StandardField("referral", "Referral Code", profile.ReferralCode));
         request.AuxiliaryFields.Add(new NumberField("lifetime", "Lifetime Points", profile.TotalLifetimePoints, FieldNumberStyle.PKNumberStyleDecimal));
 

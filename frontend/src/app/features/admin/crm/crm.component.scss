@@ -71,4 +71,11 @@ table {
     background: #2b1a10;
     color: #d4af37;
   }
+
+  // Any tier name that doesn't match the vip/gold/silver/bronze keyword fallback (see
+  // tierStyleClass in shared/utils/tier-style.util.ts) - e.g. an admin-created custom tier.
+  &.tier-default {
+    background: #dde1f7;
+    color: #3f51b5;
+  }
 }

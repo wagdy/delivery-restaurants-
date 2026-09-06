@@ -7,7 +7,7 @@
 } @else {
   @if (me(); as loyalty) {
   <div class="rewards">
-    <div class="loyalty-card" [class]="'tier-' + loyalty.membershipTier.toLowerCase()">
+    <div class="loyalty-card" [class]="tierClass(loyalty.membershipTier)">
       <div class="card-glow"></div>
 
       <div class="card-top">
@@ -36,7 +36,7 @@
         <div class="tier-progress-bar">
           <div class="tier-progress-fill" [style.width.%]="tierProgressPercent()"></div>
         </div>
-        <p class="tier-progress-text">{{ pointsToNextTier() }} lifetime points to {{ next }}</p>
+        <p class="tier-progress-text">{{ pointsToNextTier() }} lifetime points to {{ next.name }}</p>
       </div>
     } @else {
       <p class="tier-progress-text max-tier">You've reached our top tier - thank you for your loyalty!</p>

@@ -11,6 +11,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatChipsModule } from '@angular/material/chips';
 import { CrmService } from '../../../core/services/crm.service';
 import { CustomerCrm } from '../../../core/models/customer-crm.model';
+import { tierStyleClass } from '../../../shared/utils/tier-style.util';
 
 @Component({
   selector: 'app-crm',
@@ -52,6 +53,10 @@ export class CrmComponent {
 
   constructor() {
     this.load();
+  }
+
+  tierClass(tierName: string): string {
+    return tierStyleClass(tierName);
   }
 
   load(): void {

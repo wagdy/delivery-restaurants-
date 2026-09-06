@@ -46,7 +46,7 @@
       <ng-container matColumnDef="membershipTier">
         <th mat-header-cell *matHeaderCellDef>Tier</th>
         <td mat-cell *matCellDef="let c">
-          <mat-chip class="tier-chip" [class]="'tier-' + c.membershipTier.toLowerCase()">{{ c.membershipTier }}</mat-chip>
+          <mat-chip class="tier-chip" [class]="tierClass(c.membershipTier)">{{ c.membershipTier }}</mat-chip>
         </td>
       </ng-container>
 

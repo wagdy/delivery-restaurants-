@@ -10,9 +10,10 @@ public class LoyaltyProfileConfiguration : IEntityTypeConfiguration<LoyaltyProfi
     {
         builder.HasKey(p => p.AppUserId);
 
-        builder.Property(p => p.MembershipTier)
-            .HasConversion<string>()
-            .HasMaxLength(20);
+        // Plain string now (was an enum with HasConversion<string>()) - see
+        // LoyaltyProfile.MembershipTier's own comment for why this is a snapshot, not a
+        // foreign key. 100 matches LoyaltyTier.Name's own max length.
+        builder.Property(p => p.MembershipTier).HasMaxLength(100);
 
         builder.Property(p => p.ReferralCode).HasMaxLength(8).IsRequired();
         builder.HasIndex(p => p.ReferralCode).IsUnique();

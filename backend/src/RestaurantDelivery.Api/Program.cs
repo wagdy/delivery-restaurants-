@@ -160,6 +160,9 @@ builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.Configure<AppleWalletSettings>(builder.Configuration.GetSection(AppleWalletSettings.SectionName));
 builder.Services.Configure<GoogleWalletSettings>(builder.Configuration.GetSection(GoogleWalletSettings.SectionName));
 builder.Services.AddScoped<ILoyaltyService, LoyaltyService>();
+
+builder.Services.AddScoped<ITierRepository, TierRepository>();
+builder.Services.AddScoped<ITierService, TierService>();
 builder.Services.AddScoped<IApplePassBuilder, ApplePassBuilder>();
 builder.Services.AddScoped<IApplePassKitService, ApplePassKitService>();
 builder.Services.AddSingleton<IWalletAuthTokenService, WalletAuthTokenService>();

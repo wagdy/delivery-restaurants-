@@ -10,6 +10,8 @@ $tier-gold-end: #8a6d1f;
 $tier-vip-start: #3a2f2b;
 $tier-vip-end: #0d0a09;
 $tier-vip-accent: #d4af37;
+$tier-default-start: #5a6bd8;
+$tier-default-end: #3f51b5;
 
 .loading-state {
   display: flex;
@@ -59,6 +61,13 @@ $tier-vip-accent: #d4af37;
     .card-points {
       color: $tier-vip-accent;
     }
+  }
+
+  // Any tier name that doesn't match the vip/gold/silver/bronze keyword fallback (see
+  // tierStyleClass in shared/utils/tier-style.util.ts) - e.g. an admin-created "Otantik
+  // Special" tier - renders with this neutral default instead of being unstyled.
+  &.tier-default {
+    background: linear-gradient(135deg, $tier-default-start, $tier-default-end);
   }
 }
 

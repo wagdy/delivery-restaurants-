@@ -114,3 +114,94 @@
   gap: 12px;
   flex-shrink: 0;
 }
+
+// Loyalty Card Tiers - full-width section below the campaigns list. Equivalent to
+// Tailwind's `rounded-lg bg-white p-5 shadow-sm` for the container and a
+// `min-w-full divide-y divide-gray-200` table - plain SCSS instead, matching every
+// other component's substitution pattern (this project has no Tailwind installed).
+.tiers-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+  h2 {
+    margin: 0 0 4px;
+    font-size: 1.05rem;
+  }
+}
+
+.section-hint {
+  margin: 0 0 16px;
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 0.85rem;
+}
+
+.tier-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px 16px;
+  margin-bottom: 20px;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(3, 1fr);
+    align-items: start;
+  }
+}
+
+.tier-warning {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  color: #b3261e;
+  font-size: 0.8rem;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.tier-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+// Equivalent to Tailwind's `overflow-x-auto` wrapper around a responsive table.
+.tiers-table-wrapper {
+  overflow-x: auto;
+}
+
+.tiers-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    white-space: nowrap;
+  }
+
+  th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgba(0, 0, 0, 0.5);
+  }
+
+  tr.editing {
+    background: rgba(63, 81, 181, 0.06);
+  }
+
+  .actions-col {
+    text-align: right;
+    white-space: nowrap;
+  }
+}

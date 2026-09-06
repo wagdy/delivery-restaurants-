@@ -1,5 +1,3 @@
-using RestaurantDelivery.Core.Enums;
-
 namespace RestaurantDelivery.Core.Entities;
 
 // 1:1 with AppUser via AppUserId as both PK and FK (see LoyaltyProfileConfiguration) -
@@ -28,7 +26,12 @@ public class LoyaltyProfile
         set => field = value < 0 ? 0 : value;
     }
 
-    public MembershipTier MembershipTier { get; set; } = MembershipTier.Bronze;
+    // A snapshot of the matching LoyaltyTier's Name at the time it was last resolved (see
+    // LoyaltyService.ResolveTierNameAsync) - not a foreign key, so renaming or deleting a
+    // tier later never invalidates a customer's already-recorded value. Null means their
+    // points don't fall into any currently-configured tier (including "no tiers exist
+    // yet" for a brand-new install before an admin sets any up).
+    public string? MembershipTier { get; set; }
 
     public string ReferralCode { get; set; } = GenerateReferralCode();
 

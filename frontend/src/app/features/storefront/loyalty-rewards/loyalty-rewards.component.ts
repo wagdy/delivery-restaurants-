@@ -6,23 +6,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { QRCodeComponent } from 'angularx-qrcode';
 import { LoyaltyService } from '../../../core/services/loyalty.service';
 import { CampaignService } from '../../../core/services/campaign.service';
+import { TierService } from '../../../core/services/tier.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { MembershipTier } from '../../../core/models/loyalty.model';
 import { CustomerCampaignProgress } from '../../../core/models/campaign.model';
-
-const TIER_THRESHOLDS: Record<MembershipTier, number | null> = {
-  Bronze: 500,
-  Silver: 1000,
-  Gold: 2500,
-  VIP: null
-};
-
-const NEXT_TIER: Record<MembershipTier, MembershipTier | null> = {
-  Bronze: 'Silver',
-  Silver: 'Gold',
-  Gold: 'VIP',
-  VIP: null
-};
+import { Tier } from '../../../core/models/tier.model';
+import { tierStyleClass } from '../../../shared/utils/tier-style.util';
 
 @Component({
   selector: 'app-loyalty-rewards',
@@ -34,6 +22,7 @@ const NEXT_TIER: Record<MembershipTier, MembershipTier | null> = {
 export class LoyaltyRewardsComponent {
   private readonly loyaltyService = inject(LoyaltyService);
   private readonly campaignService = inject(CampaignService);
+  private readonly tierService = inject(TierService);
   protected readonly authService = inject(AuthService);
 
   readonly loading = signal(true);
@@ -48,34 +37,58 @@ export class LoyaltyRewardsComponent {
   readonly me = this.loyaltyService.me;
   readonly campaigns = this.campaignService.myProgress;
 
-  readonly nextTier = computed(() => {
-    const me = this.me();
-    return me ? NEXT_TIER[me.membershipTier] : null;
+  // Admin-configurable now (see Campaign Manager's "Loyalty Card Tiers" panel) instead
+  // of the old fixed Bronze/Silver/Gold/VIP thresholds - fetched once here rather than
+  // through a shared service signal, since (unlike points) nothing else in the app needs
+  // to react to a tier list edited by an admin elsewhere while this page is open.
+  private readonly tiers = signal<Tier[]>([]);
+  private readonly sortedTiers = computed(() => [...this.tiers()].sort((a, b) => a.minPoints - b.minPoints));
+
+  // Resolved the same way the backend does (range lookup against totalLifetimePoints),
+  // not by matching membershipTier's name string - stays correct even if that snapshot
+  // string is momentarily stale, and needs no special-casing for "no tier yet".
+  private readonly currentTierIndex = computed(() => {
+    const points = this.me()?.totalLifetimePoints ?? 0;
+    const tiers = this.sortedTiers();
+    let index = -1;
+    for (let i = 0; i < tiers.length; i++) {
+      const tier = tiers[i];
+      if (tier.minPoints <= points && (tier.maxPoints === null || points <= tier.maxPoints)) {
+        index = i;
+      }
+    }
+    return index;
   });
 
-  // Progress toward the next tier, 0-100. VIP (no next tier) always reads as complete.
+  readonly nextTier = computed<Tier | null>(() => {
+    const tiers = this.sortedTiers();
+    const index = this.currentTierIndex();
+    return index >= 0 && index + 1 < tiers.length ? tiers[index + 1] : null;
+  });
+
+  // Progress toward the next tier, 0-100. No next tier (top tier, or no tiers configured
+  // above the current one) always reads as complete.
   readonly tierProgressPercent = computed(() => {
     const me = this.me();
-    if (!me) {
-      return 0;
-    }
-
-    const threshold = TIER_THRESHOLDS[me.membershipTier];
-    if (threshold === null) {
+    const next = this.nextTier();
+    if (!me || !next) {
       return 100;
     }
 
-    return Math.min(100, Math.round((me.totalLifetimePoints / threshold) * 100));
+    const index = this.currentTierIndex();
+    const rangeStart = index >= 0 ? this.sortedTiers()[index].minPoints : 0;
+    const span = next.minPoints - rangeStart;
+    if (span <= 0) {
+      return 100;
+    }
+
+    return Math.min(100, Math.max(0, Math.round(((me.totalLifetimePoints - rangeStart) / span) * 100)));
   });
 
   readonly pointsToNextTier = computed(() => {
     const me = this.me();
-    if (!me) {
-      return 0;
-    }
-
-    const threshold = TIER_THRESHOLDS[me.membershipTier];
-    return threshold === null ? 0 : Math.max(0, threshold - me.totalLifetimePoints);
+    const next = this.nextTier();
+    return me && next ? Math.max(0, next.minPoints - me.totalLifetimePoints) : 0;
   });
 
   constructor() {
@@ -91,6 +104,16 @@ export class LoyaltyRewardsComponent {
     });
 
     this.campaignService.getMyProgress().subscribe();
+
+    // Best-effort: if this fails, nextTier()/tierProgressPercent() just read as "top
+    // tier reached" rather than the whole page erroring out.
+    this.tierService.getAll().subscribe({
+      next: (tiers) => this.tiers.set(tiers)
+    });
+  }
+
+  tierClass(tierName: string): string {
+    return tierStyleClass(tierName);
   }
 
   // A boolean per stamp slot - filled for slots already punched, empty for the rest.

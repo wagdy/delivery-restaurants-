@@ -27,6 +27,7 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<LoyaltyCampaignProgress> LoyaltyCampaignProgress => Set<LoyaltyCampaignProgress>();
     public DbSet<LoyaltyPunchTransaction> LoyaltyPunchTransactions => Set<LoyaltyPunchTransaction>();
     public DbSet<LoyaltySettings> LoyaltySettings => Set<LoyaltySettings>();
+    public DbSet<LoyaltyTier> LoyaltyTiers => Set<LoyaltyTier>();
 
     // Named CustomRoles, not Roles - IdentityDbContext<AppUser> already inherits
     // DbSet<IdentityRole> Roles (mapped to the unused AspNetRoles table); reusing that

@@ -1,6 +1,10 @@
 import { CustomerCampaignProgress } from './campaign.model';
 
-export type MembershipTier = 'Bronze' | 'Silver' | 'Gold' | 'VIP';
+// Admin-defined free text now (see Tier/TierRequest in tier.model.ts) - was a fixed
+// 'Bronze' | 'Silver' | 'Gold' | 'VIP' union before tiers became dynamically
+// configurable. Kept as a named alias (rather than inlining `string` at every call site)
+// so it's still self-documenting which string properties mean "a tier name".
+export type MembershipTier = string;
 
 /** Mirrors RestaurantDelivery.Core.DTOs.Loyalty.LoyaltyMeResponse. */
 export interface LoyaltyMe {

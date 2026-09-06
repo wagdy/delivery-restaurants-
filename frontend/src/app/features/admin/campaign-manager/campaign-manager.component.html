@@ -147,4 +147,93 @@
       }
     </div>
   }
+
+  <div class="tiers-section">
+    <h2>Loyalty Card Tiers</h2>
+    <p class="section-hint">Define custom membership tiers and the lifetime-point ranges that place a customer into each one.</p>
+
+    <div class="tier-form">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Tier Name</mat-label>
+        <input matInput [ngModel]="tierName()" (ngModelChange)="tierName.set($event)" placeholder="e.g. VIP, Gold, Otantik Special" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Minimum Points</mat-label>
+        <input matInput type="number" min="0" [ngModel]="tierMinPoints()" (ngModelChange)="tierMinPoints.set($event ?? 0)" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Maximum Points</mat-label>
+        <input
+          matInput
+          type="number"
+          min="0"
+          [ngModel]="tierMaxPoints()"
+          (ngModelChange)="tierMaxPoints.set($event)"
+          placeholder="Leave blank for no ceiling"
+        />
+      </mat-form-field>
+
+      @if (tierFormError() || tierOverlapWarning(); as message) {
+        <p class="tier-warning">
+          <mat-icon>warning</mat-icon>
+          {{ message }}
+        </p>
+      }
+
+      <div class="tier-form-actions">
+        <button mat-flat-button color="primary" [disabled]="savingTier() || !canSaveTier()" (click)="saveTier()">
+          @if (savingTier()) {
+            <mat-spinner diameter="18"></mat-spinner>
+          } @else {
+            <ng-container>
+              <mat-icon>{{ editingTierId() !== null ? 'save' : 'add' }}</mat-icon>
+              {{ editingTierId() !== null ? 'Update tier' : 'Add tier' }}
+            </ng-container>
+          }
+        </button>
+
+        @if (editingTierId() !== null) {
+          <button mat-stroked-button (click)="resetTierForm()">Cancel</button>
+        }
+      </div>
+    </div>
+
+    @if (loadingTiers()) {
+      <div class="loading-state">
+        <mat-spinner diameter="32"></mat-spinner>
+      </div>
+    } @else if (sortedTiers().length === 0) {
+      <p class="empty-state">No tiers configured yet. Add one above.</p>
+    } @else {
+      <div class="tiers-table-wrapper">
+        <table class="tiers-table">
+          <thead>
+            <tr>
+              <th>Tier Name</th>
+              <th>Point Range</th>
+              <th class="actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (tier of sortedTiers(); track tier.id) {
+              <tr [class.editing]="editingTierId() === tier.id">
+                <td>{{ tier.name }}</td>
+                <td>{{ formatTierRange(tier) }}</td>
+                <td class="actions-col">
+                  <button mat-icon-button (click)="editTier(tier)" aria-label="Edit">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button mat-icon-button color="warn" (click)="deleteTier(tier)" aria-label="Delete">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
 </div>

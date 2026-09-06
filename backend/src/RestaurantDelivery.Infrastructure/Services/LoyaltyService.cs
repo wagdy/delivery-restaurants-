@@ -17,11 +17,13 @@ public class LoyaltyService : ILoyaltyService
 
     private readonly ApplicationDbContext _context;
     private readonly ILoyaltyRealtimeNotifier _realtimeNotifier;
+    private readonly ITierRepository _tierRepository;
 
-    public LoyaltyService(ApplicationDbContext context, ILoyaltyRealtimeNotifier realtimeNotifier)
+    public LoyaltyService(ApplicationDbContext context, ILoyaltyRealtimeNotifier realtimeNotifier, ITierRepository tierRepository)
     {
         _context = context;
         _realtimeNotifier = realtimeNotifier;
+        _tierRepository = tierRepository;
     }
 
     public async Task<LoyaltyMeResponse> GetOrCreateProfileAsync(string appUserId, CancellationToken ct = default)
@@ -53,7 +55,7 @@ public class LoyaltyService : ILoyaltyService
         profile.CurrentPoints += pointsEarned;
         profile.TotalLifetimePoints += pointsEarned;
         profile.LastActivityDate = DateTime.UtcNow;
-        profile.MembershipTier = MembershipTierCalculator.CalculateTier(profile.TotalLifetimePoints, profile.MembershipTier);
+        profile.MembershipTier = await ResolveTierNameAsync(profile.TotalLifetimePoints, ct);
 
         _context.LoyaltyPointTransactions.Add(new LoyaltyPointTransaction
         {
@@ -73,7 +75,7 @@ public class LoyaltyService : ILoyaltyService
         {
             CurrentPoints = profile.CurrentPoints,
             TotalLifetimePoints = profile.TotalLifetimePoints,
-            MembershipTier = profile.MembershipTier.ToString(),
+            MembershipTier = profile.MembershipTier ?? "Unranked",
             TierUpgraded = tierUpgraded
         }, ct);
 
@@ -83,7 +85,7 @@ public class LoyaltyService : ILoyaltyService
             PointsTransacted = pointsEarned,
             CurrentPoints = profile.CurrentPoints,
             TotalLifetimePoints = profile.TotalLifetimePoints,
-            MembershipTier = profile.MembershipTier.ToString(),
+            MembershipTier = profile.MembershipTier ?? "Unranked",
             TierUpgraded = tierUpgraded,
             DiscountAmount = 0m
         });
@@ -100,7 +102,7 @@ public class LoyaltyService : ILoyaltyService
         profile.CurrentPoints += WelcomeBonusPoints;
         profile.TotalLifetimePoints += WelcomeBonusPoints;
         profile.LastActivityDate = DateTime.UtcNow;
-        profile.MembershipTier = MembershipTierCalculator.CalculateTier(profile.TotalLifetimePoints, profile.MembershipTier);
+        profile.MembershipTier = await ResolveTierNameAsync(profile.TotalLifetimePoints, ct);
 
         _context.LoyaltyPointTransactions.Add(new LoyaltyPointTransaction
         {
@@ -148,7 +150,7 @@ public class LoyaltyService : ILoyaltyService
         {
             CurrentPoints = profile.CurrentPoints,
             TotalLifetimePoints = profile.TotalLifetimePoints,
-            MembershipTier = profile.MembershipTier.ToString(),
+            MembershipTier = profile.MembershipTier ?? "Unranked",
             TierUpgraded = false
         }, ct);
 
@@ -158,7 +160,7 @@ public class LoyaltyService : ILoyaltyService
             PointsTransacted = -request.PointsToRedeem,
             CurrentPoints = profile.CurrentPoints,
             TotalLifetimePoints = profile.TotalLifetimePoints,
-            MembershipTier = profile.MembershipTier.ToString(),
+            MembershipTier = profile.MembershipTier ?? "Unranked",
             TierUpgraded = false,
             DiscountAmount = discountAmount
         });
@@ -203,7 +205,7 @@ public class LoyaltyService : ILoyaltyService
             profile.CurrentPoints += pointsEarned;
             profile.TotalLifetimePoints += pointsEarned;
             profile.LastActivityDate = DateTime.UtcNow;
-            profile.MembershipTier = MembershipTierCalculator.CalculateTier(profile.TotalLifetimePoints, profile.MembershipTier);
+            profile.MembershipTier = await ResolveTierNameAsync(profile.TotalLifetimePoints, ct);
 
             _context.LoyaltyPointTransactions.Add(new LoyaltyPointTransaction
             {
@@ -294,7 +296,7 @@ public class LoyaltyService : ILoyaltyService
             {
                 CurrentPoints = profile.CurrentPoints,
                 TotalLifetimePoints = profile.TotalLifetimePoints,
-                MembershipTier = profile.MembershipTier.ToString(),
+                MembershipTier = profile.MembershipTier ?? "Unranked",
                 TierUpgraded = result.TierUpgraded
             }, ct);
         }
@@ -323,6 +325,20 @@ public class LoyaltyService : ILoyaltyService
         await _context.SaveChangesAsync(ct);
 
         return ServiceResult<LoyaltySettingsResponse>.Success(MapSettingsResponse(settings));
+    }
+
+    // Replaces the old hardcoded MembershipTierCalculator.CalculateTier - dynamically
+    // queries the admin-configurable LoyaltyTiers table instead of a fixed enum. Callers
+    // never need to pass (or compare against) the customer's *current* tier the way the
+    // old calculator's "never downgrade" logic did: TotalLifetimePoints only ever
+    // increases (RedeemPointsAsync deducts CurrentPoints, never TotalLifetimePoints), so
+    // recomputing fresh from TotalLifetimePoints on every call is already monotonically
+    // upgrade-only by construction. Returns null if no configured tier's range covers
+    // this point total (including "no tiers configured yet").
+    private async Task<string?> ResolveTierNameAsync(int totalLifetimePoints, CancellationToken ct)
+    {
+        var tier = await _tierRepository.FindByPointsAsync(totalLifetimePoints);
+        return tier?.Name;
     }
 
     // Same race-safe get-or-create pattern as GetOrCreateProfileEntityAsync below.
@@ -397,7 +413,7 @@ public class LoyaltyService : ILoyaltyService
         AppUserId = profile.AppUserId,
         CurrentPoints = profile.CurrentPoints,
         TotalLifetimePoints = profile.TotalLifetimePoints,
-        MembershipTier = profile.MembershipTier.ToString(),
+        MembershipTier = profile.MembershipTier ?? "Unranked",
         ReferralCode = profile.ReferralCode
         // AppleWalletAvailable / GoogleWalletAvailable are filled in by the controller,
         // which has access to the wallet settings (an Api-project concern).
