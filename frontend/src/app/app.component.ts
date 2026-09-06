@@ -59,7 +59,13 @@ export class AppComponent {
   }
 
   openCart(): void {
-    this.dialog.open(CartDialogComponent, { width: '520px' });
+    this.dialog.open(CartDialogComponent, {
+      width: '448px',
+      // Panel-level backstop alongside the dialog's own internal max-width: 28rem (see
+      // cart-dialog.component.scss's .cart-body) - without this, the 448px target width
+      // alone would still overflow any viewport narrower than that.
+      maxWidth: '95vw'
+    });
   }
 
   // Closing the drawer before navigating avoids it staying open over the storefront

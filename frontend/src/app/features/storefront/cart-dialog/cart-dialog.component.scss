@@ -1,3 +1,20 @@
+// Equivalent to Tailwind's `w-full max-w-md mx-auto overflow-x-hidden box-border` (this
+// project has no Tailwind installed - see storefront.component.ts's imageFor() comment
+// for the standing note on why - so the same result is done in plain SCSS). No extra
+// padding added here (Tailwind's own `p-4`, i.e. 16px) - mat-dialog-content already
+// carries its own padding, and stacking a second 16px on top would just look oddly
+// over-spaced rather than fixing anything. The old `.cart-lines { min-width: 420px; }`
+// was the actual bug: on any dialog narrower than that (any phone), it forced this
+// content wider than the panel around it, pushing the trash icon and total price off
+// to the right instead of ever letting the row wrap or shrink.
+.cart-body {
+  width: 100%;
+  max-width: 28rem; // max-w-md
+  margin: 0 auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
 .empty-cart {
   color: rgba(0, 0, 0, 0.5);
   padding: 16px 0;
@@ -7,22 +24,39 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-width: 420px;
+  width: 100%;
 }
 
+// Equivalent to Tailwind's `flex flex-col sm:flex-row justify-between items-start
+// sm:items-center gap-3 w-full border-b pb-4` - stacking info above actions on mobile
+// (flex-col) is what actually prevents the horizontal squeeze; from 640px up there's
+// enough width to go back to a single row.
 .cart-line {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 8px;
+  width: 100%;
+  padding-bottom: 16px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+
+  @media (min-width: 640px) {
+    flex-direction: row;
+    align-items: center;
+  }
 }
 
+// Equivalent to Tailwind's `w-full sm:flex-1`.
 .line-info {
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
+  width: 100%;
+
+  @media (min-width: 640px) {
+    width: auto;
+    flex: 1 1 auto;
+  }
 }
 
 .line-name {
@@ -39,15 +73,43 @@
   color: rgba(0, 0, 0, 0.55);
 }
 
-.line-controls {
+// Equivalent to Tailwind's `flex items-center justify-between w-full sm:w-auto gap-3` -
+// groups the quantity stepper and the price/delete pair as the row's only two children,
+// so justify-between puts quantity on the left and price+trash on the right, using the
+// full row width on mobile instead of everything huddling on one side.
+.line-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  flex-shrink: 0;
+
+  @media (min-width: 640px) {
+    width: auto;
+  }
+}
+
+.qty-stepper {
   display: flex;
   align-items: center;
   gap: 2px;
+  flex-shrink: 0;
 }
 
 .qty-value {
   min-width: 20px;
   text-align: center;
+}
+
+// Keeps the total price and the trash icon together as one unit (the "price/trash"
+// half of line-actions' justify-between split above) so deleting an item is always
+// right next to its own total, never separated by the row's own internal spacing.
+.price-delete-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .line-total {
