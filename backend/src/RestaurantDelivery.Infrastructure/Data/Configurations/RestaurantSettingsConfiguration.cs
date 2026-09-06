@@ -23,5 +23,7 @@ public class RestaurantSettingsConfiguration : IEntityTypeConfiguration<Restaura
         builder.Property(s => s.Phone).HasMaxLength(30);
         builder.Property(s => s.Email).HasMaxLength(256);
         builder.Property(s => s.FooterAbout).HasMaxLength(1000);
+        builder.Property(s => s.FaviconUrl).HasMaxLength(2048);
+        builder.Property(s => s.TabTitle).HasMaxLength(100);
     }
 }

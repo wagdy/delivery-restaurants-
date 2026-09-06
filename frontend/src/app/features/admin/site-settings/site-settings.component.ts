@@ -11,6 +11,10 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { SettingsService } from '../../../core/services/settings.service';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+// Deliberately narrower than ALLOWED_IMAGE_TYPES above (no WEBP/GIF/SVG) - a favicon
+// needs to be a format every browser's tab bar renders reliably at 16-32px, which is
+// exactly .ico/.png/.jpg, matching this input's own [accept] attribute in the template.
+const ALLOWED_FAVICON_TYPES = ['image/png', 'image/x-icon', 'image/jpeg'];
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 
@@ -44,6 +48,7 @@ export class SiteSettingsComponent {
   readonly uploadingLogo = signal(false);
   readonly uploadingBackgroundImage = signal(false);
   readonly uploadingCenterLogo = signal(false);
+  readonly uploadingFavicon = signal(false);
   readonly uploadError = signal<string | null>(null);
 
   readonly form = this.fb.nonNullable.group({
@@ -58,7 +63,9 @@ export class SiteSettingsComponent {
     address: [''],
     phone: [''],
     email: ['', [Validators.email]],
-    footerAbout: ['']
+    footerAbout: [''],
+    faviconUrl: [''],
+    tabTitle: ['', [Validators.maxLength(100)]]
   });
 
   constructor() {
@@ -76,7 +83,9 @@ export class SiteSettingsComponent {
           address: settings.address ?? '',
           phone: settings.phone ?? '',
           email: settings.email ?? '',
-          footerAbout: settings.footerAbout ?? ''
+          footerAbout: settings.footerAbout ?? '',
+          faviconUrl: settings.faviconUrl ?? '',
+          tabTitle: settings.tabTitle ?? ''
         });
         this.loading.set(false);
       },
@@ -88,10 +97,13 @@ export class SiteSettingsComponent {
   }
 
   // Shared by every image upload below - returns an error message, or null if the file
-  // is acceptable to send to the server.
-  private validateImageFile(file: File): string | null {
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      return 'Only JPG, PNG, WEBP, GIF, and SVG images are allowed.';
+  // is acceptable to send to the server. allowedTypes defaults to the general branding
+  // image set; the favicon upload passes its own narrower list (see onFaviconSelected).
+  private validateImageFile(file: File, allowedTypes: string[] = ALLOWED_IMAGE_TYPES): string | null {
+    if (!allowedTypes.includes(file.type)) {
+      return allowedTypes === ALLOWED_FAVICON_TYPES
+        ? 'Only PNG, ICO, and JPG images are allowed for the favicon.'
+        : 'Only JPG, PNG, WEBP, GIF, and SVG images are allowed.';
     }
 
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
@@ -200,6 +212,39 @@ export class SiteSettingsComponent {
     this.form.controls.centerLogoUrl.setValue('');
   }
 
+  onFaviconSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    this.uploadError.set(null);
+    const validationError = this.validateImageFile(file, ALLOWED_FAVICON_TYPES);
+    if (validationError) {
+      this.uploadError.set(validationError);
+      return;
+    }
+
+    this.uploadingFavicon.set(true);
+    this.settingsService.uploadFavicon(file).subscribe({
+      next: (res) => {
+        this.uploadingFavicon.set(false);
+        this.form.controls.faviconUrl.setValue(res.url);
+      },
+      error: (err) => {
+        this.uploadingFavicon.set(false);
+        this.uploadError.set(err.error?.errors?.[0] ?? 'Failed to upload favicon.');
+      }
+    });
+  }
+
+  removeFavicon(): void {
+    this.form.controls.faviconUrl.setValue('');
+  }
+
   save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -222,7 +267,9 @@ export class SiteSettingsComponent {
         address: raw.address || null,
         phone: raw.phone || null,
         email: raw.email || null,
-        footerAbout: raw.footerAbout || null
+        footerAbout: raw.footerAbout || null,
+        faviconUrl: raw.faviconUrl || null,
+        tabTitle: raw.tabTitle || null
       })
       .subscribe({
         next: () => {

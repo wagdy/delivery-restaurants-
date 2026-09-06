@@ -39,4 +39,10 @@ public class UpdateRestaurantSettingsRequest
 
     [MaxLength(1000)]
     public string? FooterAbout { get; set; }
+
+    [MaxLength(2048)]
+    public string? FaviconUrl { get; set; }
+
+    [MaxLength(100)]
+    public string? TabTitle { get; set; }
 }

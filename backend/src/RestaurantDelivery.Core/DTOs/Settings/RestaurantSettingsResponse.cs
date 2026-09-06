@@ -14,4 +14,6 @@ public class RestaurantSettingsResponse
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public string? FooterAbout { get; set; }
+    public string? FaviconUrl { get; set; }
+    public string? TabTitle { get; set; }
 }

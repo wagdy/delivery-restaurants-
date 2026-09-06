@@ -85,4 +85,23 @@ public class SettingsController : ControllerBase
         var url = $"{Request.Scheme}://{Request.Host}{result.RelativePath}";
         return Ok(new ImageUploadResponse { Url = url });
     }
+
+    // Saved the same way as the logo (no resize/webp conversion - see
+    // FileUploadService.SaveImageAsync's isSvg-style special case, which now also covers
+    // .ico for exactly this endpoint). The frontend applies the returned URL to the
+    // <link rel="icon"> tag itself; this endpoint only stores the file.
+    [Authorize(Policy = "Module.Settings")]
+    [HttpPost("upload-favicon")]
+    [RequestSizeLimit(MaxImageSizeBytes)]
+    public async Task<ActionResult<ImageUploadResponse>> UploadFavicon(IFormFile file)
+    {
+        var result = await _fileUploadService.SaveImageAsync(file, "branding");
+        if (!result.Succeeded)
+        {
+            return BadRequest(new { errors = new[] { result.Error } });
+        }
+
+        var url = $"{Request.Scheme}://{Request.Host}{result.RelativePath}";
+        return Ok(new ImageUploadResponse { Url = url });
+    }
 }

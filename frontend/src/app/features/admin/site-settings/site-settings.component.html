@@ -43,6 +43,15 @@
                   <input matInput formControlName="restaurantName" />
                 </mat-form-field>
 
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Browser tab title (optional)</mat-label>
+                  <input matInput formControlName="tabTitle" placeholder="e.g. Otantik | Order Online" />
+                  <mat-hint>Shown in the browser tab, separate from the restaurant name above.</mat-hint>
+                  @if (form.controls.tabTitle.hasError('maxlength') && form.controls.tabTitle.touched) {
+                    <mat-error>Must be 100 characters or fewer</mat-error>
+                  }
+                </mat-form-field>
+
                 <div class="upload-section">
                   <span class="field-label">Logo</span>
                   <p class="field-hint">Small brand mark shown next to the restaurant name.</p>
@@ -124,6 +133,45 @@
                       </button>
                       @if (form.controls.centerLogoUrl.value) {
                         <button mat-button type="button" color="warn" (click)="removeCenterLogo()">Remove</button>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <div class="upload-section">
+                  <span class="field-label">Browser tab icon (favicon)</span>
+                  <p class="field-hint">Shown in the browser tab and bookmarks. PNG, ICO, or JPG only.</p>
+                  <div class="upload-row">
+                    @if (form.controls.faviconUrl.value) {
+                      <div class="logo-preview-wrapper">
+                        <img class="logo-preview-img" [src]="form.controls.faviconUrl.value" alt="Favicon preview" />
+                      </div>
+                    } @else {
+                      <div class="image-placeholder">
+                        <mat-icon>tab</mat-icon>
+                      </div>
+                    }
+
+                    <div class="upload-actions">
+                      <input
+                        #faviconInput
+                        type="file"
+                        accept="image/png, image/x-icon, image/jpeg"
+                        hidden
+                        (change)="onFaviconSelected($event)"
+                      />
+                      <button mat-stroked-button type="button" [disabled]="uploadingFavicon()" (click)="faviconInput.click()">
+                        @if (uploadingFavicon()) {
+                          <mat-spinner diameter="18"></mat-spinner>
+                        } @else {
+                          <ng-container>
+                            <mat-icon>upload</mat-icon>
+                            {{ form.controls.faviconUrl.value ? 'Replace favicon' : 'Upload favicon' }}
+                          </ng-container>
+                        }
+                      </button>
+                      @if (form.controls.faviconUrl.value) {
+                        <button mat-button type="button" color="warn" (click)="removeFavicon()">Remove</button>
                       }
                     </div>
                   </div>

@@ -32,4 +32,15 @@ public class RestaurantSettings
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public string? FooterAbout { get; set; }
+
+    // Browser tab icon - distinct from LogoUrl/CenterLogoUrl (both shown in the storefront
+    // header itself). Null falls back to the build-time default in index.html
+    // (favicon.ico), never removed/overwritten on disk - see SettingsService.applyTheme's
+    // frontend counterpart, which only touches the <link rel="icon"> tag at runtime.
+    public string? FaviconUrl { get; set; }
+
+    // Browser tab text - distinct from RestaurantName (shown in-app, e.g. the storefront
+    // header and "Welcome to X" heading). Null falls back to the same default the tab
+    // title already had before this feature existed - see SettingsService.applyTheme.
+    public string? TabTitle { get; set; }
 }

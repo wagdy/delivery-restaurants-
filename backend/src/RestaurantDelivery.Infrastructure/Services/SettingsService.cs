@@ -38,6 +38,8 @@ public class SettingsService : ISettingsService
         settings.Phone = request.Phone;
         settings.Email = request.Email;
         settings.FooterAbout = request.FooterAbout;
+        settings.FaviconUrl = request.FaviconUrl;
+        settings.TabTitle = request.TabTitle;
 
         await _context.SaveChangesAsync();
 
@@ -71,6 +73,8 @@ public class SettingsService : ISettingsService
         Address = settings.Address,
         Phone = settings.Phone,
         Email = settings.Email,
-        FooterAbout = settings.FooterAbout
+        FooterAbout = settings.FooterAbout,
+        FaviconUrl = settings.FaviconUrl,
+        TabTitle = settings.TabTitle
     };
 }

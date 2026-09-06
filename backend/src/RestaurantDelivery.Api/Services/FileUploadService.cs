@@ -10,7 +10,7 @@ public class FileUploadService : IFileUploadService
 {
     private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"
+        ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".ico"
     };
 
     private const long MaxImageSizeBytes = 5 * 1024 * 1024; // 5 MB
@@ -38,17 +38,21 @@ public class FileUploadService : IFileUploadService
         var extension = Path.GetExtension(file.FileName);
         if (!AllowedExtensions.Contains(extension))
         {
-            return FileUploadResult.Failure("Only JPG, PNG, WEBP, GIF, and SVG images are allowed.");
+            return FileUploadResult.Failure("Only JPG, PNG, WEBP, GIF, SVG, and ICO images are allowed.");
         }
 
         var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", subfolder);
         Directory.CreateDirectory(uploadsFolder);
 
-        // SVG is a vector/XML format ImageSharp can't decode as a raster image - saved
-        // as-is regardless of convertToWebp, same as before this method could resize.
-        var isSvg = string.Equals(extension, ".svg", StringComparison.OrdinalIgnoreCase);
+        // SVG (vector/XML) and ICO (a Windows-icon container format) are both formats
+        // ImageSharp can't decode as a raster image - saved as-is regardless of
+        // convertToWebp, same as before this method could resize. ICO support exists
+        // specifically for SettingsController's favicon upload.
+        var isUnsupportedByImageSharp =
+            string.Equals(extension, ".svg", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(extension, ".ico", StringComparison.OrdinalIgnoreCase);
 
-        if (convertToWebp && !isSvg)
+        if (convertToWebp && !isUnsupportedByImageSharp)
         {
             return await SaveResizedWebpAsync(file, uploadsFolder, subfolder, maxDimension);
         }
