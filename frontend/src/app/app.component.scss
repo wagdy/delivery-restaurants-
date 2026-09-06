@@ -21,11 +21,14 @@
   padding: 16px;
 }
 
-// Equivalent to Tailwind's `sticky top-0 z-50 shadow-sm px-4 py-2 md:px-8 md:py-4`
-// (this project has no Tailwind installed - see storefront.component.ts's imageFor()
-// comment for the standing note on why - so the same result is done in plain SCSS).
-// Sticking works because mat-sidenav-content keeps `overflow: visible` (see below),
-// leaving the window itself as the only scroll container `position: sticky` needs.
+// Equivalent to Tailwind's `sticky top-0 z-50 shadow-sm px-4 py-2 md:px-8 md:py-4 h-16
+// md:h-20` (this project has no Tailwind installed - see storefront.component.ts's
+// imageFor() comment for the standing note on why - so the same result is done in plain
+// SCSS). Sticking works because mat-sidenav-content keeps `overflow: visible` (see
+// below), leaving the window itself as the only scroll container `position: sticky`
+// needs. The explicit height (Material's toolbar otherwise only sets a min-height) is
+// what gives `.brand`'s `height: 100%` below a real, fixed reference to fill - without
+// it, "make the logo match the header's full height" has no fixed height to match.
 .app-header {
   // Left/right groups stay in normal flex flow; .brand is taken out of flow and
   // centered against this toolbar regardless of how wide either side is.
@@ -33,15 +36,28 @@
   top: 0;
   z-index: 50;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  height: 64px;
+  min-height: 64px;
   padding: 8px 16px;
 
   @media (min-width: 1120px) {
+    height: 80px;
+    min-height: 80px;
     padding: 16px 32px;
   }
 }
 
 // Equivalent to Tailwind's `absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
-// h-10 md:h-14 w-auto`.
+// h-full w-auto`. Matches .app-header's own height in literal px (64px/80px), not a
+// percentage - a percentage here still visually equals 100%, but browsers can't reliably
+// resolve the prominent logo's aspect-ratio-driven width (height:100% -> width:auto)
+// against a height that is *itself* a percentage during .brand's own shrink-to-fit width
+// pass (confirmed empirically: it silently collapsed to a stray fixed width from an
+// unrelated rule and clipped almost the entire logo). A literal, non-percentage height
+// here breaks that circularity. Width stays auto/content-sized, with max-width +
+// overflow: hidden below as the anti-overlap safety net (unchanged, already empirically
+// tuned - see the max-width: 1119px block further down) rather than a dimension the logo
+// itself is stretched or squeezed to fit.
 .brand {
   position: absolute;
   left: 50%;
@@ -50,7 +66,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 40px;
+  height: 64px;
   width: auto;
   max-width: min(55%, 320px);
   overflow: hidden;
@@ -60,7 +76,7 @@
   white-space: nowrap;
 
   @media (min-width: 1120px) {
-    height: 56px;
+    height: 80px;
   }
 }
 
@@ -77,27 +93,46 @@
   justify-content: center;
   flex-shrink: 0;
 
-  // Equivalent to Tailwind's `h-12 w-32` (relative to the `.brand` link's own fixed
-  // height and anti-overlap max-width - see above and the max-width: 1119px override
-  // further down, both untouched and still the source of truth for the header's overall
-  // bounds) - the prominent center-header logo gets the full box `.brand` reserves
-  // instead of the small 28px brand-mark box above.
+  // Equivalent to Tailwind's `absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+  // h-full flex items-center py-1` - fills the `.brand` link's own full height (see
+  // above) with no width cap of its own, so the img's width: auto below is free to
+  // follow the logo's real aspect ratio; `.brand`'s max-width + overflow: hidden is the
+  // only width boundary, same anti-overlap safety net as before. box-sizing: border-box
+  // keeps the py-1 breathing room from pushing the total box past that 100% height.
   &.prominent {
     height: 100%;
-    width: 100%;
-    max-width: 120px;
-
-    @media (min-width: 1120px) {
-      max-width: none;
-    }
+    width: auto;
+    padding: 4px 0;
+    box-sizing: border-box;
   }
 }
 
-// Equivalent to Tailwind's `w-full h-full object-contain`.
+// Equivalent to Tailwind's `w-full h-full object-contain` for the small 28px brand-mark
+// case (unchanged - this one is forced to fill a fixed square, not scaled by aspect
+// ratio, since it sits next to text rather than being the header's sole centerpiece).
+// This is also the prominent center-header logo's own mobile/narrow fallback below
+// 1120px (see the override further down and .logo-wrapper.prominent's own mobile width):
+// letterboxed via object-fit: contain to fit that bounded box, so a wide logo shrinks
+// (shorter than the header) instead of being cropped by .brand's tightened 16%
+// anti-overlap cap at these sizes.
 .brand-logo {
   width: 100%;
   height: 100%;
   object-fit: contain;
+
+  // Equivalent to Tailwind's `h-full w-auto max-w-none object-contain` - only from
+  // 1120px up, where .brand's max-width (55%/320px) is generous enough that a logo
+  // scaled to the header's full height essentially never needs to shrink further to
+  // avoid overlapping the header's other content. The prominent center-header logo
+  // stretches to the wrapper's full height and lets the browser compute a proportional
+  // width from the image's natural aspect ratio, with no max-width of its own capping
+  // that computed width (see .logo-wrapper.prominent above for where that boundary lives).
+  @media (min-width: 1120px) {
+    .logo-wrapper.prominent & {
+      width: auto;
+      max-width: none;
+    }
+  }
 }
 
 // Equivalent to Tailwind's `text-sm md:text-xl font-bold whitespace-nowrap truncate
@@ -227,6 +262,20 @@
 @media (max-width: 1119px) {
   .brand {
     max-width: 16%;
+  }
+
+  // Gives the prominent center-header logo's wrapper a concrete, self-contained width
+  // (a real vw value, not a percentage of .brand - .brand's own width is itself "auto"/
+  // shrink-to-fit, so a percentage here would hit the same circular-sizing problem the
+  // literal px height fix above already worked around) so .brand-logo's width: 100%
+  // fallback just above has something definite to letterbox against below 1120px.
+  // Roughly matches .brand's own 16% cap - close enough that .brand's overflow: hidden
+  // rarely needs to trim more than a couple of stray pixels - and is itself capped at
+  // 120px (matching this project's own previous fixed-size implementation) so a tablet
+  // just under 1120px doesn't get an oversized logo.
+  .logo-wrapper.prominent {
+    width: 16vw;
+    max-width: 120px;
   }
 
   .header-actions {
