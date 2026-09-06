@@ -49,17 +49,50 @@
               }
             </mat-form-field>
 
+            <div class="payment-methods">
+              <span class="field-label">Payment method</span>
+
+              @if (enabledPaymentMethods().length === 0) {
+                <p class="error-text">No payment methods are currently available. Please contact us to place an order.</p>
+              } @else {
+                <mat-radio-group
+                  class="payment-radio-group"
+                  [ngModel]="paymentMethod()"
+                  (ngModelChange)="paymentMethod.set($event)"
+                  [ngModelOptions]="{ standalone: true }"
+                >
+                  @for (method of enabledPaymentMethods(); track method) {
+                    <mat-radio-button [value]="method">
+                      {{ method === 'Visa' ? 'Visa (Fawry)' : method }}
+                    </mat-radio-button>
+                  }
+                </mat-radio-group>
+
+                @if (paymentMethod() === 'Instapay') {
+                  <div class="instapay-details">
+                    <mat-icon>info</mat-icon>
+                    <span>Send payment to <strong>{{ settingsService.settings().instapayAccount }}</strong> and we'll confirm your order.</span>
+                  </div>
+                }
+              }
+            </div>
+
             @if (errorMessage()) {
               <p class="error-text">{{ errorMessage() }}</p>
             }
           </mat-card-content>
 
           <mat-card-actions>
-            <button mat-flat-button color="primary" type="submit" [disabled]="submitting() || form.invalid">
+            <button
+              mat-flat-button
+              color="primary"
+              type="submit"
+              [disabled]="submitting() || form.invalid || !paymentMethod()"
+            >
               @if (submitting()) {
                 <mat-spinner diameter="20"></mat-spinner>
               } @else {
-                Place order
+                {{ paymentMethod() === 'Visa' ? 'Continue to payment' : 'Place order' }}
               }
             </button>
           </mat-card-actions>
@@ -75,6 +108,9 @@
             <div class="summary-line">
               <span>
                 {{ line.quantity }} × {{ line.menuItem.name }}
+                @if (affectedMenuItemIds().has(line.menuItem.id)) {
+                  <mat-icon class="discount-tag" inline>local_offer</mat-icon>
+                }
                 @if (line.selectedAddOns.length > 0) {
                   <span class="summary-addons">+ {{ line.selectedAddOns | addOnNames }}</span>
                 }
@@ -82,18 +118,80 @@
               <span>L.E {{ (cart.lineUnitPrice(line) * line.quantity).toFixed(2) }}</span>
             </div>
           }
+
+          <div class="promo-section">
+            @if (promoResult(); as promo) {
+              <div class="promo-applied">
+                <mat-icon>local_offer</mat-icon>
+                <div class="promo-applied-text">
+                  <p class="promo-code-label">{{ promoCodeInput() | uppercase }} applied</p>
+                  <p class="promo-description">{{ promo.description }}</p>
+                </div>
+                <button mat-icon-button type="button" (click)="removePromoCode()" aria-label="Remove promo code">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            } @else {
+              <div class="promo-input-row">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="promo-input">
+                  <mat-label>Promo code</mat-label>
+                  <input
+                    matInput
+                    [ngModel]="promoCodeInput()"
+                    (ngModelChange)="promoCodeInput.set($event)"
+                    [ngModelOptions]="{ standalone: true }"
+                    placeholder="e.g. SAVE10"
+                  />
+                </mat-form-field>
+                <button
+                  mat-stroked-button
+                  type="button"
+                  [disabled]="applyingPromo() || !promoCodeInput().trim()"
+                  (click)="applyPromoCode()"
+                >
+                  @if (applyingPromo()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    Apply
+                  }
+                </button>
+              </div>
+              @if (promoError()) {
+                <p class="error-text promo-error">{{ promoError() }}</p>
+              }
+            }
+          </div>
+
           <div class="totals">
             <div class="totals-row">
               <span>Subtotal</span>
               <span>L.E {{ cart.subtotal().toFixed(2) }}</span>
             </div>
+            @if (discountAmount() > 0) {
+              <div class="totals-row discount-row">
+                <span>Discount</span>
+                <span>-L.E {{ discountAmount().toFixed(2) }}</span>
+              </div>
+            }
             <div class="totals-row">
               <span>Delivery fee</span>
               <span>L.E {{ cart.deliveryFee().toFixed(2) }}</span>
             </div>
+            @if (deliveryDiscountAmount() > 0) {
+              <div class="totals-row discount-row">
+                <span>Delivery discount</span>
+                <span>-L.E {{ deliveryDiscountAmount().toFixed(2) }}</span>
+              </div>
+            }
+            @if (taxAmount() > 0) {
+              <div class="totals-row">
+                <span>Tax</span>
+                <span>L.E {{ taxAmount().toFixed(2) }}</span>
+              </div>
+            }
             <div class="totals-row total">
-              <span>Estimated total</span>
-              <span>L.E {{ cart.estimatedTotal().toFixed(2) }}</span>
+              <span>Final total</span>
+              <span>L.E {{ finalTotal().toFixed(2) }}</span>
             </div>
           </div>
         </mat-card-content>

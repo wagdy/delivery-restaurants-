@@ -19,6 +19,7 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<SubCategory> SubCategories => Set<SubCategory>();
     public DbSet<AddOn> AddOns => Set<AddOn>();
     public DbSet<WebPushSubscription> WebPushSubscriptions => Set<WebPushSubscription>();
+    public DbSet<PromoCode> PromoCodes => Set<PromoCode>();
 
     public DbSet<LoyaltyProfile> LoyaltyProfiles => Set<LoyaltyProfile>();
     public DbSet<LoyaltyPointTransaction> LoyaltyPointTransactions => Set<LoyaltyPointTransaction>();

@@ -37,7 +37,13 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
   email: null,
   footerAbout: null,
   faviconUrl: null,
-  tabTitle: null
+  tabTitle: null,
+  taxPercentage: 0,
+  isCashEnabled: true,
+  isVisaEnabled: false,
+  visaFawryUrl: null,
+  isInstapayEnabled: false,
+  instapayAccount: null
 };
 
 @Injectable({ providedIn: 'root' })

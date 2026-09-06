@@ -39,6 +39,11 @@
       Scanner
     </a>
   }
+  @if (authService.hasModule('PromoCodes')) {
+    <a mat-tab-link routerLink="promo-codes" routerLinkActive #promoCodesLink="routerLinkActive" [active]="promoCodesLink.isActive">
+      Promo Codes
+    </a>
+  }
 </nav>
 
 <mat-tab-nav-panel #tabPanel>

@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RestaurantDelivery.Core.DTOs.Settings;
 
-public class UpdateRestaurantSettingsRequest
+public class UpdateRestaurantSettingsRequest : IValidatableObject
 {
     [MaxLength(200)]
     public string? RestaurantName { get; set; }
@@ -45,4 +45,38 @@ public class UpdateRestaurantSettingsRequest
 
     [MaxLength(100)]
     public string? TabTitle { get; set; }
+
+    [Range(0, 100, ErrorMessage = "Tax percentage must be between 0 and 100.")]
+    public decimal TaxPercentage { get; set; }
+
+    public bool IsCashEnabled { get; set; } = true;
+
+    public bool IsVisaEnabled { get; set; }
+
+    [MaxLength(2048)]
+    public string? VisaFawryUrl { get; set; }
+
+    public bool IsInstapayEnabled { get; set; }
+
+    [MaxLength(200)]
+    public string? InstapayAccount { get; set; }
+
+    // A single DataAnnotation attribute can't make VisaFawryUrl/InstapayAccount
+    // conditionally required based on their matching toggle, hence IValidatableObject.
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (IsVisaEnabled && string.IsNullOrWhiteSpace(VisaFawryUrl))
+        {
+            yield return new ValidationResult(
+                "A Fawry link is required while Visa payment is enabled.",
+                new[] { nameof(VisaFawryUrl) });
+        }
+
+        if (IsInstapayEnabled && string.IsNullOrWhiteSpace(InstapayAccount))
+        {
+            yield return new ValidationResult(
+                "An Instapay account is required while Instapay payment is enabled.",
+                new[] { nameof(InstapayAccount) });
+        }
+    }
 }

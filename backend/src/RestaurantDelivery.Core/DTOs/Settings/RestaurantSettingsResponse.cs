@@ -16,4 +16,11 @@ public class RestaurantSettingsResponse
     public string? FooterAbout { get; set; }
     public string? FaviconUrl { get; set; }
     public string? TabTitle { get; set; }
+
+    public decimal TaxPercentage { get; set; }
+    public bool IsCashEnabled { get; set; }
+    public bool IsVisaEnabled { get; set; }
+    public string? VisaFawryUrl { get; set; }
+    public bool IsInstapayEnabled { get; set; }
+    public string? InstapayAccount { get; set; }
 }

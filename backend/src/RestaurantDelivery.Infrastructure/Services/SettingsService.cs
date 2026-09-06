@@ -40,6 +40,12 @@ public class SettingsService : ISettingsService
         settings.FooterAbout = request.FooterAbout;
         settings.FaviconUrl = request.FaviconUrl;
         settings.TabTitle = request.TabTitle;
+        settings.TaxPercentage = request.TaxPercentage;
+        settings.IsCashEnabled = request.IsCashEnabled;
+        settings.IsVisaEnabled = request.IsVisaEnabled;
+        settings.VisaFawryUrl = request.VisaFawryUrl;
+        settings.IsInstapayEnabled = request.IsInstapayEnabled;
+        settings.InstapayAccount = request.InstapayAccount;
 
         await _context.SaveChangesAsync();
 
@@ -75,6 +81,12 @@ public class SettingsService : ISettingsService
         Email = settings.Email,
         FooterAbout = settings.FooterAbout,
         FaviconUrl = settings.FaviconUrl,
-        TabTitle = settings.TabTitle
+        TabTitle = settings.TabTitle,
+        TaxPercentage = settings.TaxPercentage,
+        IsCashEnabled = settings.IsCashEnabled,
+        IsVisaEnabled = settings.IsVisaEnabled,
+        VisaFawryUrl = settings.VisaFawryUrl,
+        IsInstapayEnabled = settings.IsInstapayEnabled,
+        InstapayAccount = settings.InstapayAccount
     };
 }

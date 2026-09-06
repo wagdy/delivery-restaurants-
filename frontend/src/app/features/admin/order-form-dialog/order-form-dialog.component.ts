@@ -11,7 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { OrderService } from '../../../core/services/order.service';
 import { MenuItemService } from '../../../core/services/menu-item.service';
 import { MenuItem } from '../../../core/models/menu-item.model';
-import { Order } from '../../../core/models/order.model';
+import { CreateOrderRequest, Order } from '../../../core/models/order.model';
 
 export interface OrderFormDialogData {
   mode: 'create' | 'edit';
@@ -127,11 +127,16 @@ export class OrderFormDialogComponent {
     this.errorMessage.set(null);
 
     const raw = this.form.getRawValue();
-    const request = {
+    // Manual staff-entered orders (phone-in, walk-in) skip the customer checkout flow
+    // entirely - Cash/no delivery fee matches this dialog's pre-existing behavior (it
+    // never captured a payment method or delivery fee before either).
+    const request: CreateOrderRequest = {
       customerName: raw.customerName,
       customerPhone: raw.customerPhone,
       deliveryAddress: raw.deliveryAddress,
-      items: raw.items.map((i) => ({ menuItemId: i.menuItemId!, quantity: i.quantity, addOnIds: [] }))
+      items: raw.items.map((i) => ({ menuItemId: i.menuItemId!, quantity: i.quantity, addOnIds: [] })),
+      paymentMethod: 'Cash',
+      deliveryFee: 0
     };
 
     const request$ =

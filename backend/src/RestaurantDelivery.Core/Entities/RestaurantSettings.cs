@@ -43,4 +43,29 @@ public class RestaurantSettings
     // header and "Welcome to X" heading). Null falls back to the same default the tab
     // title already had before this feature existed - see SettingsService.applyTheme.
     public string? TabTitle { get; set; }
+
+    // Applied to every order's subtotal (after any promo discount) at checkout - see
+    // OrderService.CreateAsync and CheckoutService.ValidatePromoAsync, which both read
+    // this same value so the preview and the actual order total never disagree.
+    public decimal TaxPercentage { get; set; }
+
+    // At least one payment method should normally be enabled, but this isn't enforced
+    // server-side - an admin mid-reconfiguration (e.g. swapping payment providers) may
+    // briefly have all three off, which just means checkout shows no payment options yet
+    // rather than the settings save failing outright.
+    public bool IsCashEnabled { get; set; } = true;
+
+    public bool IsVisaEnabled { get; set; }
+
+    // The external payment link (e.g. a Fawry pay-by-link URL) customers are redirected
+    // to via window.location.href when they choose Visa at checkout - see
+    // checkout.component.ts's placeOrder(). Only meaningful when IsVisaEnabled is true,
+    // but kept even when disabled so re-enabling Visa doesn't lose a previously entered link.
+    public string? VisaFawryUrl { get; set; }
+
+    public bool IsInstapayEnabled { get; set; }
+
+    // Free text by design (phone, email, or @username) - shown verbatim to the customer
+    // in the Instapay reveal block at checkout so they know where to send payment.
+    public string? InstapayAccount { get; set; }
 }

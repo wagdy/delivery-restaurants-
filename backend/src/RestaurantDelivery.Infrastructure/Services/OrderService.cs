@@ -14,19 +14,28 @@ public class OrderService : IOrderService
     private readonly ILoyaltyService _loyaltyService;
     private readonly IWhatsAppNotificationService _whatsAppNotificationService;
     private readonly IOrderRealtimeNotifier _orderRealtimeNotifier;
+    private readonly IPromoCodeRepository _promoCodeRepository;
+    private readonly ICategoryRepository _categoryRepository;
+    private readonly ISettingsService _settingsService;
 
     public OrderService(
         IOrderRepository repository,
         IPushNotificationService pushNotificationService,
         ILoyaltyService loyaltyService,
         IWhatsAppNotificationService whatsAppNotificationService,
-        IOrderRealtimeNotifier orderRealtimeNotifier)
+        IOrderRealtimeNotifier orderRealtimeNotifier,
+        IPromoCodeRepository promoCodeRepository,
+        ICategoryRepository categoryRepository,
+        ISettingsService settingsService)
     {
         _repository = repository;
         _pushNotificationService = pushNotificationService;
         _loyaltyService = loyaltyService;
         _whatsAppNotificationService = whatsAppNotificationService;
         _orderRealtimeNotifier = orderRealtimeNotifier;
+        _promoCodeRepository = promoCodeRepository;
+        _categoryRepository = categoryRepository;
+        _settingsService = settingsService;
     }
 
     public async Task<ServiceResult<OrderResponse>> CreateAsync(CreateOrderRequest request, string? userId)
@@ -38,6 +47,32 @@ public class OrderService : IOrderService
         }
 
         var orderItems = buildResult.Data!;
+        var subtotal = CalculateTotal(orderItems);
+
+        // Re-validated and recomputed from scratch here, exactly like
+        // CheckoutService.ValidatePromoAsync - never trust a client-supplied discount
+        // amount. A code that was valid moments ago at preview time but has since
+        // expired/been deactivated/deleted fails the whole order rather than silently
+        // charging full price for a discount the customer expected.
+        string? promoCodeText = null;
+        var discountAmount = 0m;
+        var deliveryDiscountAmount = 0m;
+
+        if (!string.IsNullOrWhiteSpace(request.PromoCodeText))
+        {
+            var promoResult = await ResolveAndApplyPromoAsync(request.PromoCodeText, orderItems, request.DeliveryFee);
+            if (!promoResult.Succeeded)
+            {
+                return ServiceResult<OrderResponse>.Failure(promoResult.Errors.ToArray());
+            }
+
+            (promoCodeText, discountAmount, deliveryDiscountAmount) = promoResult.Data;
+        }
+
+        var settings = await _settingsService.GetAsync();
+        var taxableAmount = subtotal - discountAmount;
+        var taxAmount = Math.Round(taxableAmount * (settings.TaxPercentage / 100m), 2);
+        var deliveryFeeAfterDiscount = request.DeliveryFee - deliveryDiscountAmount;
 
         var order = new Order
         {
@@ -46,7 +81,13 @@ public class OrderService : IOrderService
             CustomerPhone = request.CustomerPhone,
             DeliveryAddress = request.DeliveryAddress,
             Status = OrderStatus.Pending,
-            TotalAmount = CalculateTotal(orderItems),
+            TotalAmount = taxableAmount + taxAmount + deliveryFeeAfterDiscount,
+            PromoCodeText = promoCodeText,
+            DiscountAmount = discountAmount,
+            TaxAmount = taxAmount,
+            DeliveryFee = request.DeliveryFee,
+            PaymentMethod = request.PaymentMethod,
+            PaymentStatus = request.PaymentMethod == PaymentMethod.Visa ? PaymentStatus.Pending : PaymentStatus.Confirmed,
             OrderItems = orderItems
         };
 
@@ -138,7 +179,15 @@ public class OrderService : IOrderService
             order.OrderItems.Add(item);
         }
 
-        order.TotalAmount = CalculateTotal(newItems);
+        // DiscountAmount and DeliveryFee are left as originally applied at checkout - an
+        // admin correcting line items isn't re-running promo validation or re-quoting
+        // delivery. Only TaxAmount is recomputed (against the new subtotal), so the
+        // persisted breakdown (Subtotal - DiscountAmount + TaxAmount + DeliveryFee) still
+        // adds up to TotalAmount after the edit.
+        var newSubtotal = CalculateTotal(newItems);
+        var settings = await _settingsService.GetAsync();
+        order.TaxAmount = Math.Round((newSubtotal - order.DiscountAmount) * (settings.TaxPercentage / 100m), 2);
+        order.TotalAmount = newSubtotal - order.DiscountAmount + order.TaxAmount + order.DeliveryFee;
         order.UpdatedAt = DateTime.UtcNow;
 
         await _repository.SaveChangesAsync();
@@ -244,6 +293,50 @@ public class OrderService : IOrderService
     private static decimal CalculateTotal(List<OrderItem> items) =>
         items.Sum(i => i.Quantity * (i.UnitPrice + i.AddOns.Sum(a => a.Price)));
 
+    // Mirrors CheckoutService.ValidatePromoAsync's own resolve-then-calculate flow, but
+    // against the already-built, already-priced OrderItem list instead of a fresh
+    // MenuItem lookup - both ultimately feed the same PromoDiscountCalculator so the two
+    // can never disagree about what a given code is worth.
+    private async Task<ServiceResult<(string CodeText, decimal DiscountAmount, decimal DeliveryDiscountAmount)>> ResolveAndApplyPromoAsync(
+        string rawCodeText, List<OrderItem> orderItems, decimal deliveryFee)
+    {
+        var codeText = rawCodeText.Trim().ToUpperInvariant();
+        var promo = await _promoCodeRepository.GetByCodeAsync(codeText);
+
+        if (promo is null)
+        {
+            return ServiceResult<(string, decimal, decimal)>.Failure("This promo code was not found.");
+        }
+
+        if (!promo.IsActive)
+        {
+            return ServiceResult<(string, decimal, decimal)>.Failure("This promo code is no longer active.");
+        }
+
+        if (promo.ExpiryDate <= DateTime.UtcNow)
+        {
+            return ServiceResult<(string, decimal, decimal)>.Failure("This promo code has expired.");
+        }
+
+        var lines = orderItems
+            .Select(i => new PromoDiscountCalculator.CartLine(
+                i.MenuItemId, i.MenuItem.Category, i.Quantity, i.Quantity * (i.UnitPrice + i.AddOns.Sum(a => a.Price))))
+            .ToList();
+
+        var categoryNamesById = new Dictionary<int, string>();
+        if (promo.DiscountType == PromoDiscountType.SpecificCategory)
+        {
+            var targetIds = PromoDiscountCalculator.ParseTargetIds(promo.TargetIds);
+            var categories = await _categoryRepository.GetByIdsAsync(targetIds);
+            categoryNamesById = categories.ToDictionary(c => c.Id, c => c.Name);
+        }
+
+        var discount = PromoDiscountCalculator.Calculate(promo, lines, deliveryFee, categoryNamesById);
+
+        return ServiceResult<(string, decimal, decimal)>.Success(
+            (promo.CodeText, discount.ItemDiscountAmount, discount.DeliveryDiscountAmount));
+    }
+
     private static OrderResponse MapResponse(Order order) => new()
     {
         Id = order.Id,
@@ -256,6 +349,12 @@ public class OrderService : IOrderService
         Notes = order.Notes,
         CreatedAt = order.CreatedAt,
         UpdatedAt = order.UpdatedAt,
+        PromoCodeText = order.PromoCodeText,
+        DiscountAmount = order.DiscountAmount,
+        TaxAmount = order.TaxAmount,
+        DeliveryFee = order.DeliveryFee,
+        PaymentMethod = order.PaymentMethod,
+        PaymentStatus = order.PaymentStatus,
         Items = order.OrderItems.Select(oi => new OrderItemResponse
         {
             Id = oi.Id,

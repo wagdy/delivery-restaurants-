@@ -194,7 +194,7 @@ public class AuthService : IAuthService
         {
             return AdminModulesMapper.ToNames(
                 AdminModules.Orders | AdminModules.MenuItems | AdminModules.Settings | AdminModules.Staff | AdminModules.Customers |
-                AdminModules.Crm | AdminModules.Campaigns | AdminModules.Scanner);
+                AdminModules.Crm | AdminModules.Campaigns | AdminModules.Scanner | AdminModules.PromoCodes);
         }
 
         var role = await _roleRepository.GetByIdAsync(user.CustomRoleId.Value);

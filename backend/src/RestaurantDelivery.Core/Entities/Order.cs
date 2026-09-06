@@ -14,9 +14,29 @@ public class Order
     public string CustomerPhone { get; set; } = string.Empty;
     public string DeliveryAddress { get; set; } = string.Empty;
 
+    // Grand total actually charged: (item subtotal - DiscountAmount) + TaxAmount + DeliveryFee.
     public decimal TotalAmount { get; set; }
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
     public string? Notes { get; set; }
+
+    // Snapshot of the promo code applied at checkout (if any) - a plain string, not a
+    // foreign key, so deleting/editing that PromoCode later never invalidates this
+    // order's own historical record of what was actually applied.
+    public string? PromoCodeText { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public decimal TaxAmount { get; set; }
+
+    // No backend-side delivery-fee configuration exists (CartService.DELIVERY_FEE is a
+    // frontend constant) - snapshotted here purely so TotalAmount's breakdown always
+    // adds up on a receipt, not because delivery pricing itself is now server-driven.
+    public decimal DeliveryFee { get; set; }
+
+    public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
+
+    // Only Visa starts Pending (see PaymentStatus's own doc comment) - there's no
+    // dedicated "mark as paid" admin action yet, since one wasn't requested; an admin
+    // can still see this value on the order to know a Visa payment needs confirming.
+    public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Confirmed;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

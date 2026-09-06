@@ -6,7 +6,8 @@ export type AdminModuleName =
   | 'Customers'
   | 'Crm'
   | 'Campaigns'
-  | 'Scanner';
+  | 'Scanner'
+  | 'PromoCodes';
 
 export interface Role {
   id: number;

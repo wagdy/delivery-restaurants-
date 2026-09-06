@@ -21,7 +21,8 @@ const MODULE_OPTIONS: { value: AdminModuleName; label: string }[] = [
   { value: 'Customers', label: 'Customers' },
   { value: 'Crm', label: 'CRM' },
   { value: 'Campaigns', label: 'Campaigns' },
-  { value: 'Scanner', label: 'Scanner' }
+  { value: 'Scanner', label: 'Scanner' },
+  { value: 'PromoCodes', label: 'Promo Codes' }
 ];
 
 @Component({

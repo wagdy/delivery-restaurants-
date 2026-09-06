@@ -125,6 +125,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("Module.Crm", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.Crm)));
     options.AddPolicy("Module.Campaigns", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.Campaigns)));
     options.AddPolicy("Module.Scanner", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.Scanner)));
+    options.AddPolicy("Module.PromoCodes", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.PromoCodes)));
 });
 
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
@@ -169,6 +170,10 @@ builder.Services.AddSingleton<IWalletAuthTokenService, WalletAuthTokenService>()
 builder.Services.AddSingleton<IGoogleWalletClientProvider, GoogleWalletClientProvider>();
 builder.Services.AddScoped<IGoogleWalletService, GoogleWalletService>();
 builder.Services.AddScoped<ICampaignService, CampaignService>();
+
+builder.Services.AddScoped<IPromoCodeRepository, PromoCodeRepository>();
+builder.Services.AddScoped<IPromoCodeService, PromoCodeService>();
+builder.Services.AddScoped<ICheckoutService, CheckoutService>();
 
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<ILoyaltyRealtimeNotifier, LoyaltyRealtimeNotifier>();

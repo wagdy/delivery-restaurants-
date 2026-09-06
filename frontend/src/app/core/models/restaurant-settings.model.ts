@@ -22,6 +22,16 @@ export interface RestaurantSettings {
   // Browser tab text - distinct from restaurantName (shown in-app). Null falls back to
   // the same default the tab title already had before this feature existed.
   tabTitle?: string | null;
+
+  // Applied to every order's subtotal (after any promo discount) at checkout.
+  taxPercentage: number;
+  isCashEnabled: boolean;
+  isVisaEnabled: boolean;
+  // The Fawry pay-by-link URL customers are redirected to when they choose Visa.
+  visaFawryUrl?: string | null;
+  isInstapayEnabled: boolean;
+  // Free text (phone, email, or @username) shown to the customer at checkout.
+  instapayAccount?: string | null;
 }
 
 export type UpdateRestaurantSettingsRequest = RestaurantSettings;

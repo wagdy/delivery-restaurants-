@@ -1,0 +1,122 @@
+.promo-codes-toolbar {
+  background: white;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+
+  h1 {
+    font-size: 1.25rem;
+    margin: 0;
+  }
+}
+
+.page-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 960px;
+}
+
+.form-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+  h2 {
+    margin: 0 0 16px;
+    font-size: 1.05rem;
+  }
+}
+
+// Equivalent to Tailwind's `grid grid-cols-1 sm:grid-cols-3 gap-4` - this project has
+// no Tailwind installed, so the same responsive grid is done with plain CSS instead.
+.promo-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px 16px;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(3, 1fr);
+    align-items: start;
+  }
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.active-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 4px;
+
+  .field-label {
+    font-size: 0.85rem;
+    color: rgba(0, 0, 0, 0.7);
+  }
+}
+
+.form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.empty-state {
+  color: rgba(0, 0, 0, 0.5);
+  padding: 24px;
+}
+
+.promo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.promo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: white;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+  &.inactive {
+    opacity: 0.6;
+  }
+}
+
+.promo-code {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.promo-summary {
+  margin: 4px 0 0;
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 0.875rem;
+}
+
+.promo-meta {
+  margin: 6px 0 0;
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 0.8rem;
+}
+
+.promo-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}

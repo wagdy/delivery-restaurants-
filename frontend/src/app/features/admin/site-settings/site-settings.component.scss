@@ -216,3 +216,32 @@
   font-size: 0.875rem;
   margin: 4px 0 0;
 }
+
+.payment-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+}
+
+.payment-toggle-label {
+  .field-label {
+    font-size: 0.9rem;
+    color: rgba(0, 0, 0, 0.87);
+    margin-bottom: 2px;
+  }
+
+  .field-hint {
+    margin: 0;
+  }
+}
+
+.conditional-field {
+  margin: 4px 0 12px;
+}

@@ -1,3 +1,5 @@
+import { PaymentMethod, PaymentStatus } from './checkout.model';
+
 export type OrderStatus = 'Pending' | 'Preparing' | 'OutForDelivery' | 'Delivered' | 'Cancelled';
 
 export const ORDER_STATUSES: OrderStatus[] = [
@@ -35,6 +37,13 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
+  promoCodeText?: string | null;
+  discountAmount: number;
+  taxAmount: number;
+  deliveryFee: number;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  subtotal: number;
 }
 
 export interface BulkOrderImportResult {
@@ -55,6 +64,11 @@ export interface CreateOrderRequest {
   customerPhone: string;
   deliveryAddress: string;
   items: OrderItemRequest[];
+  paymentMethod: PaymentMethod;
+  // Re-validated server-side against the live PromoCodes table - never trusted at face
+  // value for the discount amount.
+  promoCodeText?: string | null;
+  deliveryFee: number;
 }
 
 export type UpdateOrderRequest = CreateOrderRequest;

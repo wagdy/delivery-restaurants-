@@ -25,5 +25,12 @@ public class RestaurantSettingsConfiguration : IEntityTypeConfiguration<Restaura
         builder.Property(s => s.FooterAbout).HasMaxLength(1000);
         builder.Property(s => s.FaviconUrl).HasMaxLength(2048);
         builder.Property(s => s.TabTitle).HasMaxLength(100);
+
+        builder.Property(s => s.TaxPercentage).HasPrecision(5, 2).HasDefaultValue(0m);
+        builder.Property(s => s.IsCashEnabled).HasDefaultValue(true);
+        builder.Property(s => s.IsVisaEnabled).HasDefaultValue(false);
+        builder.Property(s => s.VisaFawryUrl).HasMaxLength(2048);
+        builder.Property(s => s.IsInstapayEnabled).HasDefaultValue(false);
+        builder.Property(s => s.InstapayAccount).HasMaxLength(200);
     }
 }

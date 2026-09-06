@@ -29,10 +29,29 @@
             <mat-icon>contact_mail</mat-icon>
             Contact &amp; Footer
           </button>
+          <button
+            type="button"
+            class="nav-item"
+            [class.active]="activeCategory() === 'checkout'"
+            (click)="activeCategory.set('checkout')"
+          >
+            <mat-icon>receipt_long</mat-icon>
+            Checkout &amp; Taxes
+          </button>
+          <button
+            type="button"
+            class="nav-item"
+            [class.active]="activeCategory() === 'payment'"
+            (click)="activeCategory.set('payment')"
+          >
+            <mat-icon>payments</mat-icon>
+            Payment Systems
+          </button>
         </nav>
 
         <div class="settings-content">
-          @if (activeCategory() === 'branding') {
+          @switch (activeCategory()) {
+          @case ('branding') {
             <mat-card class="settings-card">
               <mat-card-header>
                 <mat-card-title>Branding</mat-card-title>
@@ -294,7 +313,8 @@
                 }
               </mat-card-content>
             </mat-card>
-          } @else {
+          }
+          @case ('contact') {
             <mat-card class="settings-card">
               <mat-card-header>
                 <mat-card-title>Contact &amp; Footer</mat-card-title>
@@ -324,6 +344,79 @@
                 </mat-form-field>
               </mat-card-content>
             </mat-card>
+          }
+          @case ('checkout') {
+            <mat-card class="settings-card">
+              <mat-card-header>
+                <mat-card-title>Checkout &amp; Taxes</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Tax percentage</mat-label>
+                  <input matInput type="number" min="0" max="100" step="0.01" formControlName="taxPercentage" />
+                  <span matTextSuffix>%</span>
+                  <mat-hint>Applied to every order's subtotal (after any promo discount) at checkout.</mat-hint>
+                  @if (form.controls.taxPercentage.hasError('max') && form.controls.taxPercentage.touched) {
+                    <mat-error>Must be 100 or less</mat-error>
+                  }
+                </mat-form-field>
+              </mat-card-content>
+            </mat-card>
+          }
+          @case ('payment') {
+            <mat-card class="settings-card">
+              <mat-card-header>
+                <mat-card-title>Payment Systems</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <p class="field-hint">Only the payment methods enabled here are offered to customers at checkout.</p>
+
+                <div class="payment-toggle-row">
+                  <div class="payment-toggle-label">
+                    <span class="field-label">Cash on delivery</span>
+                    <p class="field-hint">Customer pays the courier when the order arrives.</p>
+                  </div>
+                  <mat-slide-toggle formControlName="isCashEnabled"></mat-slide-toggle>
+                </div>
+
+                <div class="payment-toggle-row">
+                  <div class="payment-toggle-label">
+                    <span class="field-label">Visa (Fawry)</span>
+                    <p class="field-hint">Redirects the customer to a Fawry pay-by-link page.</p>
+                  </div>
+                  <mat-slide-toggle formControlName="isVisaEnabled"></mat-slide-toggle>
+                </div>
+
+                @if (form.controls.isVisaEnabled.value) {
+                  <mat-form-field appearance="outline" class="full-width conditional-field">
+                    <mat-label>Fawry link</mat-label>
+                    <input matInput formControlName="visaFawryUrl" placeholder="https://payments.fawry.com/..." />
+                    @if (form.controls.visaFawryUrl.hasError('required') && form.controls.visaFawryUrl.touched) {
+                      <mat-error>A Fawry link is required while Visa is enabled</mat-error>
+                    }
+                  </mat-form-field>
+                }
+
+                <div class="payment-toggle-row">
+                  <div class="payment-toggle-label">
+                    <span class="field-label">Instapay</span>
+                    <p class="field-hint">Shows the customer where to send an Instapay transfer.</p>
+                  </div>
+                  <mat-slide-toggle formControlName="isInstapayEnabled"></mat-slide-toggle>
+                </div>
+
+                @if (form.controls.isInstapayEnabled.value) {
+                  <mat-form-field appearance="outline" class="full-width conditional-field">
+                    <mat-label>Instapay account</mat-label>
+                    <input matInput formControlName="instapayAccount" placeholder="Phone, email, or @username" />
+                    @if (form.controls.instapayAccount.hasError('required') && form.controls.instapayAccount.touched) {
+                      <mat-error>An Instapay account is required while Instapay is enabled</mat-error>
+                    }
+                  </mat-form-field>
+                }
+              </mat-card-content>
+            </mat-card>
+          }
           }
         </div>
       </div>

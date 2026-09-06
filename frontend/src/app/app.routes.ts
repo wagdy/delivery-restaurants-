@@ -122,6 +122,12 @@ export const routes: Routes = [
         canActivate: [moduleGuard('Scanner')],
         loadComponent: () =>
           import('./features/admin/qr-scanner/qr-scanner.component').then((m) => m.QrScannerComponent)
+      },
+      {
+        path: 'promo-codes',
+        canActivate: [moduleGuard('PromoCodes')],
+        loadComponent: () =>
+          import('./features/admin/promo-codes/promo-codes.component').then((m) => m.PromoCodesComponent)
       }
     ]
   },

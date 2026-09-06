@@ -1,0 +1,125 @@
+<mat-toolbar class="promo-codes-toolbar">
+  <h1>Promo Codes</h1>
+</mat-toolbar>
+
+<div class="page-content">
+  <div class="form-card">
+    <h2>{{ editingId() !== null ? 'Edit promo code' : 'New promo code' }}</h2>
+
+    <div class="promo-form">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Code</mat-label>
+        <input matInput [ngModel]="codeText()" (ngModelChange)="codeText.set($event)" placeholder="e.g. SAVE10" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Discount type</mat-label>
+        <mat-select [ngModel]="discountType()" (ngModelChange)="discountType.set($event)">
+          @for (option of discountTypeOptions; track option.value) {
+            <mat-option [value]="option.value">{{ option.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Discount value</mat-label>
+        <input
+          matInput
+          type="number"
+          min="0.01"
+          max="100"
+          step="0.01"
+          [ngModel]="discountValue()"
+          (ngModelChange)="discountValue.set($event)"
+        />
+        <span matTextSuffix>%</span>
+      </mat-form-field>
+
+      @if (needsCategoryTargets()) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+          <mat-label>Categories</mat-label>
+          <mat-select multiple [ngModel]="targetIds()" (ngModelChange)="targetIds.set($event)">
+            @for (category of categories(); track category.id) {
+              <mat-option [value]="category.id">{{ category.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+
+      @if (needsItemTargets()) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+          <mat-label>Menu items</mat-label>
+          <mat-select multiple [ngModel]="targetIds()" (ngModelChange)="targetIds.set($event)">
+            @for (item of menuItems(); track item.id) {
+              <mat-option [value]="item.id">{{ item.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Expiry date</mat-label>
+        <input matInput type="date" [ngModel]="expiryDate()" (ngModelChange)="expiryDate.set($event)" />
+      </mat-form-field>
+
+      <div class="active-toggle">
+        <span class="field-label">Active</span>
+        <mat-slide-toggle [ngModel]="isActive()" (ngModelChange)="isActive.set($event)"></mat-slide-toggle>
+      </div>
+
+      <div class="form-actions">
+        <button mat-flat-button color="primary" [disabled]="saving() || !canSave()" (click)="savePromoCode()">
+          @if (saving()) {
+            <mat-spinner diameter="18"></mat-spinner>
+          } @else {
+            <ng-container>
+              <mat-icon>{{ editingId() !== null ? 'save' : 'add' }}</mat-icon>
+              {{ editingId() !== null ? 'Update code' : 'Create code' }}
+            </ng-container>
+          }
+        </button>
+
+        @if (editingId() !== null) {
+          <button mat-stroked-button (click)="resetForm()">Cancel</button>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (promoCodes().length === 0) {
+    <p class="empty-state">No promo codes yet. Create one above.</p>
+  } @else {
+    <div class="promo-list">
+      @for (promo of promoCodes(); track promo.id) {
+        <div class="promo-row" [class.inactive]="!promo.isActive || promo.isExpired">
+          <div class="promo-info">
+            <p class="promo-code">{{ promo.codeText }}</p>
+            <p class="promo-summary">{{ discountSummary(promo) }}</p>
+            <p class="promo-meta">
+              Expires {{ promo.expiryDate | date: 'mediumDate' }}
+              @if (promo.isExpired) {
+                · Expired
+              }
+              @if (!promo.isActive) {
+                · Inactive
+              }
+            </p>
+          </div>
+
+          <div class="promo-actions">
+            <button mat-icon-button (click)="editPromoCode(promo)" aria-label="Edit">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="deletePromoCode(promo)" aria-label="Delete">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

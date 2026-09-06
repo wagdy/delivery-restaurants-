@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SettingsService } from '../../../core/services/settings.service';
@@ -18,7 +19,7 @@ const ALLOWED_FAVICON_TYPES = ['image/png', 'image/x-icon', 'image/jpeg'];
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 
-type SettingsCategory = 'branding' | 'contact';
+type SettingsCategory = 'branding' | 'contact' | 'checkout' | 'payment';
 
 @Component({
   selector: 'app-site-settings',
@@ -31,6 +32,7 @@ type SettingsCategory = 'branding' | 'contact';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
+    MatSlideToggleModule,
     MatProgressSpinnerModule
   ],
   templateUrl: './site-settings.component.html',
@@ -65,10 +67,22 @@ export class SiteSettingsComponent {
     email: ['', [Validators.email]],
     footerAbout: [''],
     faviconUrl: [''],
-    tabTitle: ['', [Validators.maxLength(100)]]
+    tabTitle: ['', [Validators.maxLength(100)]],
+    taxPercentage: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
+    isCashEnabled: [true],
+    isVisaEnabled: [false],
+    visaFawryUrl: [''],
+    isInstapayEnabled: [false],
+    instapayAccount: ['']
   });
 
   constructor() {
+    // isVisaEnabled/isInstapayEnabled toggling on or off flips whether their paired
+    // text field is required - re-evaluated live rather than only at submit time, so
+    // the mat-error appears/disappears the instant an admin flips the switch.
+    this.form.controls.isVisaEnabled.valueChanges.subscribe(() => this.updateConditionalValidators());
+    this.form.controls.isInstapayEnabled.valueChanges.subscribe(() => this.updateConditionalValidators());
+
     this.settingsService.load().subscribe({
       next: (settings) => {
         this.form.patchValue({
@@ -85,8 +99,15 @@ export class SiteSettingsComponent {
           email: settings.email ?? '',
           footerAbout: settings.footerAbout ?? '',
           faviconUrl: settings.faviconUrl ?? '',
-          tabTitle: settings.tabTitle ?? ''
+          tabTitle: settings.tabTitle ?? '',
+          taxPercentage: settings.taxPercentage,
+          isCashEnabled: settings.isCashEnabled,
+          isVisaEnabled: settings.isVisaEnabled,
+          visaFawryUrl: settings.visaFawryUrl ?? '',
+          isInstapayEnabled: settings.isInstapayEnabled,
+          instapayAccount: settings.instapayAccount ?? ''
         });
+        this.updateConditionalValidators();
         this.loading.set(false);
       },
       error: () => {
@@ -94,6 +115,28 @@ export class SiteSettingsComponent {
         this.snackBar.open('Failed to load settings.', 'Dismiss', { duration: 4000 });
       }
     });
+  }
+
+  // A single [Required] attribute can't express "required only while the matching
+  // toggle is on" the way TierRequest/PromoCodeRequest's IValidatableObject does
+  // server-side - toggled here client-side instead, kept as the single source of truth
+  // for both fields rather than duplicating the condition at every call site.
+  private updateConditionalValidators(): void {
+    const visaUrl = this.form.controls.visaFawryUrl;
+    if (this.form.controls.isVisaEnabled.value) {
+      visaUrl.setValidators([Validators.required]);
+    } else {
+      visaUrl.clearValidators();
+    }
+    visaUrl.updateValueAndValidity({ emitEvent: false });
+
+    const instapayAccount = this.form.controls.instapayAccount;
+    if (this.form.controls.isInstapayEnabled.value) {
+      instapayAccount.setValidators([Validators.required]);
+    } else {
+      instapayAccount.clearValidators();
+    }
+    instapayAccount.updateValueAndValidity({ emitEvent: false });
   }
 
   // Shared by every image upload below - returns an error message, or null if the file
@@ -269,7 +312,13 @@ export class SiteSettingsComponent {
         email: raw.email || null,
         footerAbout: raw.footerAbout || null,
         faviconUrl: raw.faviconUrl || null,
-        tabTitle: raw.tabTitle || null
+        tabTitle: raw.tabTitle || null,
+        taxPercentage: raw.taxPercentage,
+        isCashEnabled: raw.isCashEnabled,
+        isVisaEnabled: raw.isVisaEnabled,
+        visaFawryUrl: raw.visaFawryUrl || null,
+        isInstapayEnabled: raw.isInstapayEnabled,
+        instapayAccount: raw.instapayAccount || null
       })
       .subscribe({
         next: () => {
