@@ -44,10 +44,12 @@
   </div>
 </div>
 
-<mat-dialog-actions align="end">
-  <button mat-button type="button" (click)="close()">Cancel</button>
-  <button mat-flat-button color="primary" (click)="addToCart()">
-    <mat-icon>add_shopping_cart</mat-icon>
-    Add to cart · L.E {{ lineTotal().toFixed(2) }}
-  </button>
+<mat-dialog-actions>
+  <div class="footer-actions">
+    <button mat-button type="button" class="footer-btn" (click)="close()">Cancel</button>
+    <button mat-flat-button color="primary" class="footer-btn add-to-cart-btn" (click)="addToCart()">
+      <mat-icon>add_shopping_cart</mat-icon>
+      <span>Add to cart · L.E {{ lineTotal().toFixed(2) }}</span>
+    </button>
+  </div>
 </mat-dialog-actions>

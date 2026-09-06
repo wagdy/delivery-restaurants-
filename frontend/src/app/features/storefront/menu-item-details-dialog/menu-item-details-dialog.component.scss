@@ -1,6 +1,22 @@
+// Equivalent to Tailwind's `w-[95%] sm:w-full max-w-sm mx-auto p-4 box-border` (this
+// project has no Tailwind installed - see storefront.component.ts's imageFor() comment
+// for the standing note on why - so the same result is done in plain SCSS). The old
+// `min-width: 360px` here was the actual bug: on any viewport narrower than that
+// (most phones), it forced this content wider than the dialog panel around it,
+// pushing the quantity stepper's buttons past the edge instead of ever letting the
+// card shrink. width: 95% (with mx-auto centering the leftover 5%) replaces that fixed
+// floor, so the card always fits within whatever panel width the dialog config below
+// gives it - see openDetails() in storefront.component.ts, which now also caps that
+// outer panel at 95vw as a second, panel-level backstop against the same overflow.
 .dialog-content {
-  min-width: 360px;
-  max-width: 440px;
+  width: 95%;
+  margin: 0 auto;
+  max-width: 24rem; // max-w-sm
+  box-sizing: border-box;
+
+  @media (min-width: 640px) {
+    width: 100%;
+  }
 }
 
 .item-image {
@@ -63,10 +79,13 @@
   color: rgba(0, 0, 0, 0.6);
 }
 
+// Equivalent to Tailwind's `flex justify-between items-center w-full gap-2`.
 .quantity-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
+  gap: 8px;
   margin-top: 20px;
   padding-top: 12px;
   border-top: 1px solid rgba(0, 0, 0, 0.1);
@@ -76,10 +95,61 @@
   font-weight: 500;
 }
 
+// Equivalent to Tailwind's `flex items-center gap-3 shrink-0` - flex-shrink: 0 is the
+// actual fix for "quantity selector gets pushed to the edge": without it, this group
+// was a normal shrinkable flex item that the row above could squeeze when space got
+// tight, splitting the -/value/+ apart instead of keeping them together as one unit.
 .qty-stepper {
   display: flex;
   align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+// Equivalent to Tailwind's `flex flex-col-reverse sm:flex-row items-center gap-2 w-full
+// mt-4` - column-reverse below 640px puts "Add to cart" (declared second in the markup)
+// visually on top, so the primary action is the one nearest the thumb on a narrow phone
+// instead of the buttons being squeezed side by side.
+.footer-actions {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 16px;
+
+  @media (min-width: 640px) {
+    flex-direction: row;
+  }
+}
+
+// Full width while stacked (column-reverse above) so both buttons are equally easy to
+// tap; back to content-sized once they're side by side at sm: and up.
+.footer-btn {
+  width: 100%;
+
+  @media (min-width: 640px) {
+    width: auto;
+  }
+}
+
+// Equivalent to Tailwind's `flex items-center justify-center w-full gap-1 flex-wrap
+// sm:flex-nowrap` - lets "Add to cart" and "· L.E X.XX" wrap onto their own line as a
+// pair, instead of breaking mid-price, if the button is ever narrower than its content.
+.add-to-cart-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 4px;
+  flex-wrap: wrap;
+
+  @media (min-width: 640px) {
+    flex-wrap: nowrap;
+  }
+
+  mat-icon {
+    flex-shrink: 0;
+  }
 }
 
 .qty-value {

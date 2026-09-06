@@ -272,7 +272,11 @@ export class StorefrontComponent {
 
   openDetails(item: MenuItem): void {
     this.dialog.open(MenuItemDetailsDialogComponent, {
-      width: '480px',
+      width: '400px',
+      // Panel-level backstop alongside the dialog's own internal width: 95% (see
+      // menu-item-details-dialog.component.scss's .dialog-content) - without this, the
+      // 400px target width alone would still overflow any viewport narrower than that.
+      maxWidth: '95vw',
       data: { menuItem: item }
     });
   }
