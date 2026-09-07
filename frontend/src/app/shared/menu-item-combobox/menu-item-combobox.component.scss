@@ -1,0 +1,114 @@
+// A custom element defaults to display:inline, which wouldn't size to its flex-item width
+// (e.g. the Create Order item row's `.item-select { flex: 1 1 auto; }`) as reliably as a
+// real block element does.
+:host {
+  display: block;
+  width: 100%;
+}
+
+// Equivalent to Tailwind's `relative` wrapper - this project has no Tailwind installed,
+// so the same positioning context for the absolutely-positioned dropdown below is done
+// with plain CSS instead, matching every other component's substitution pattern.
+.combobox {
+  position: relative;
+  width: 100%;
+}
+
+// Styled to match the height/border/radius of the mat-form-field "outline" appearance
+// used by every other field in this same row (Qty), so a hand-built control doesn't look
+// out of place next to Material ones.
+.combobox-input-wrapper {
+  position: relative;
+}
+
+.combobox-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 40px;
+  padding: 0 32px 0 12px;
+  border: 1px solid rgba(0, 0, 0, 0.38);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.87);
+  background: white;
+
+  &:focus {
+    outline: none;
+    border-color: var(--app-primary-color, #3f51b5);
+    border-width: 2px;
+    padding-left: 11px;
+  }
+
+  &:disabled {
+    background: rgba(0, 0, 0, 0.04);
+    color: rgba(0, 0, 0, 0.38);
+  }
+
+  &::placeholder {
+    color: rgba(0, 0, 0, 0.5);
+  }
+}
+
+// Equivalent to Tailwind's `absolute right-2 top-1/2 -translate-y-1/2 text-gray-400
+// pointer-events-none transition-transform` - purely decorative, so clicks pass through
+// to the input beneath it.
+.combobox-chevron {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  transition: transform 0.15s ease;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+
+  &.open {
+    transform: translateY(-50%) rotate(180deg);
+  }
+}
+
+// Equivalent to Tailwind's `absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md
+// bg-white shadow-lg border border-gray-200` - this project has no Tailwind installed, so
+// the same floating searchable list is done with plain CSS instead, matching every other
+// component's substitution pattern.
+.combobox-dropdown {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+// Equivalent to Tailwind's `px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm`.
+.combobox-option {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+
+  &:hover {
+    background: #f5f5f5;
+  }
+}
+
+.combobox-option-price {
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.combobox-empty {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.5);
+  font-style: italic;
+}

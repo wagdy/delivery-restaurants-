@@ -1,0 +1,30 @@
+<div class="combobox">
+  <div class="combobox-input-wrapper">
+    <input
+      type="text"
+      class="combobox-input"
+      role="combobox"
+      aria-autocomplete="list"
+      [attr.aria-expanded]="isOpen()"
+      placeholder="Search item…"
+      autocomplete="off"
+      [value]="searchTerm()"
+      [disabled]="disabled()"
+      (input)="onInput($any($event.target).value)"
+      (focus)="onFocus()"
+    />
+    <mat-icon class="combobox-chevron" [class.open]="isOpen()">expand_more</mat-icon>
+  </div>
+
+  @if (isOpen()) {
+    <ul class="combobox-dropdown" role="listbox">
+      @for (item of filteredItems(); track item.id) {
+        <li class="combobox-option" role="option" (click)="selectItem(item)">
+          {{ item.name }} <span class="combobox-option-price">&middot; L.E {{ item.price.toFixed(2) }}</span>
+        </li>
+      } @empty {
+        <li class="combobox-empty">No items found</li>
+      }
+    </ul>
+  }
+</div>

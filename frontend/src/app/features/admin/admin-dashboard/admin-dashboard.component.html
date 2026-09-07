@@ -161,14 +161,7 @@
 
           @for (itemGroup of createItems.controls; track itemGroup; let i = $index) {
             <div class="item-row" [formGroupName]="i">
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="item-select">
-                <mat-label>Item</mat-label>
-                <mat-select formControlName="menuItemId">
-                  @for (menuItem of menuItems(); track menuItem.id) {
-                    <mat-option [value]="menuItem.id">{{ menuItem.name }} &middot; L.E {{ menuItem.price.toFixed(2) }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
+              <app-menu-item-combobox class="item-select" formControlName="menuItemId" [menuItems]="menuItems()" />
 
               <mat-form-field appearance="outline" subscriptSizing="dynamic" class="item-qty">
                 <mat-label>Qty</mat-label>

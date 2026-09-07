@@ -24,6 +24,7 @@ import { MenuItem } from '../../../core/models/menu-item.model';
 import { CreateOrderRequest, CustomerLookup, ORDER_STATUSES, Order, OrderStatus } from '../../../core/models/order.model';
 import { ValidatePromoResponse } from '../../../core/models/checkout.model';
 import { OrderDetailsDialogComponent } from '../order-details-dialog/order-details-dialog.component';
+import { MenuItemComboboxComponent } from '../../../shared/menu-item-combobox/menu-item-combobox.component';
 
 interface ReviewLine {
   menuItemId: number;
@@ -70,7 +71,8 @@ const TIME_ELAPSED_TICK_MS = 30_000;
     MatInputModule,
     MatSelectModule,
     MatProgressSpinnerModule,
-    MatToolbarModule
+    MatToolbarModule,
+    MenuItemComboboxComponent
   ],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss'
