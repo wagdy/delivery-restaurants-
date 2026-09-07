@@ -6,7 +6,20 @@
 <mat-dialog-content>
   <div class="meta-row">
     <span>Placed {{ order().createdAt | date: 'medium' }}</span>
-    <span>{{ order().userId ? 'Registered customer' : 'Guest checkout' }}</span>
+  </div>
+
+  <div class="badge-row">
+    <span class="badge" [class]="paymentMethodBadgeClass">
+      <mat-icon>{{ order().paymentMethod === 'Cash' ? 'payments' : 'credit_card' }}</mat-icon>
+      {{ order().paymentMethod === 'Visa' ? 'Visa (Fawry)' : order().paymentMethod }}
+    </span>
+    <span class="badge" [class.badge-pending]="order().paymentStatus === 'Pending'" [class.badge-confirmed]="order().paymentStatus !== 'Pending'">
+      {{ paymentStatusLabel }}
+    </span>
+    <span class="badge" [class.badge-guest]="order().customerStatus === 'Guest'" [class.badge-registered]="order().customerStatus === 'Registered'">
+      <mat-icon>{{ order().customerStatus === 'Guest' ? 'person_outline' : 'verified_user' }}</mat-icon>
+      {{ order().customerStatus }}
+    </span>
   </div>
 
   <div class="section">
@@ -46,7 +59,35 @@
         }
       </tbody>
     </table>
-    <p class="total">Total: L.E {{ order().totalAmount.toFixed(2) }}</p>
+    <div class="receipt">
+      <div class="receipt-row">
+        <span>Subtotal</span>
+        <span>L.E {{ order().subtotal.toFixed(2) }}</span>
+      </div>
+      <div class="receipt-row">
+        <span>Delivery fee</span>
+        <span>L.E {{ order().deliveryFee.toFixed(2) }}</span>
+      </div>
+      <div class="receipt-row">
+        <span>Tax</span>
+        <span>L.E {{ order().taxAmount.toFixed(2) }}</span>
+      </div>
+      @if (order().discountAmount > 0) {
+        <div class="receipt-row discount-row">
+          <span>
+            Discount
+            @if (order().promoCodeText) {
+              <span class="promo-chip">{{ order().promoCodeText }}</span>
+            }
+          </span>
+          <span>-L.E {{ order().discountAmount.toFixed(2) }}</span>
+        </div>
+      }
+      <div class="receipt-row receipt-total">
+        <span>Final total</span>
+        <span>L.E {{ order().totalAmount.toFixed(2) }}</span>
+      </div>
+    </div>
   </div>
 
   <div class="section">

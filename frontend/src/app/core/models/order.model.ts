@@ -25,9 +25,15 @@ export interface OrderItem {
   lineTotal: number;
 }
 
+export type CustomerStatus = 'Guest' | 'Registered';
+
 export interface Order {
   id: number;
   userId?: string | null;
+  // "Guest" or "Registered" - computed server-side from userId (see
+  // OrderService.MapResponse), kept as a real field rather than re-derived from userId
+  // at every call site so the cashier dashboard badge is a one-line binding.
+  customerStatus: CustomerStatus;
   customerName: string;
   customerPhone: string;
   deliveryAddress: string;

@@ -66,6 +66,22 @@ export class OrderDetailsDialogComponent {
     return this.order().status === 'OutForDelivery';
   }
 
+  // Green for Cash (money in hand, nothing further to reconcile), blue for the two
+  // externally-settled methods (Visa/Instapay) - a quick visual split matching the
+  // dialog's own request: "the cashier knows exactly how to process the order at a
+  // glance" without reading the text label first.
+  get paymentMethodBadgeClass(): string {
+    return this.order().paymentMethod === 'Cash' ? 'badge-cash' : 'badge-electronic';
+  }
+
+  // The backend's PaymentStatus enum value is "Confirmed" (already deployed and stored
+  // on live orders, so it can't be renamed without breaking existing data) - relabeled
+  // here purely for display to match the "Pending"/"Completed" wording the cashier UI
+  // was asked for.
+  get paymentStatusLabel(): string {
+    return this.order().paymentStatus === 'Pending' ? 'Payment pending' : 'Payment completed';
+  }
+
   onStatusChange(status: OrderStatus): void {
     if (status === this.order().status) {
       return;

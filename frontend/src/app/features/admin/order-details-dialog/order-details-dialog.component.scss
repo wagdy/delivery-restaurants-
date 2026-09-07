@@ -25,7 +25,72 @@ h2[mat-dialog-title] {
   justify-content: space-between;
   color: rgba(0, 0, 0, 0.6);
   font-size: 0.85rem;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+}
+
+// Equivalent to Tailwind's `flex flex-wrap gap-2` - this project has no Tailwind
+// installed, so the same badge-row layout is done with plain CSS instead, matching
+// every other component's substitution pattern.
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+// Equivalent to Tailwind's `inline-flex items-center gap-1 rounded-full px-2.5 py-1
+// text-xs font-semibold` badge, with each variant below standing in for a Tailwind
+// color utility like `bg-green-100 text-green-800`.
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.7);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+// Cash: green (money in hand). Visa/Instapay: blue (settled electronically) - see
+// paymentMethodBadgeClass's own doc comment for why they're grouped together.
+.badge-cash {
+  background: #e6f4ea;
+  color: #1e7e34;
+}
+
+.badge-electronic {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.badge-pending {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.badge-confirmed {
+  background: #e6f4ea;
+  color: #1e7e34;
+}
+
+.badge-guest {
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.badge-registered {
+  background: #ede7f6;
+  color: #5e35b1;
 }
 
 .section {
@@ -67,10 +132,50 @@ h2[mat-dialog-title] {
   color: rgba(0, 0, 0, 0.5);
 }
 
-.total {
+// Equivalent to Tailwind's `flex justify-between` rows the spec asked for, stacked into
+// a small digital-receipt block - plain CSS since this project has no Tailwind.
+.receipt {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.15);
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+// Equivalent to Tailwind's text-red-600 - a discount reads as money subtracted from
+// what the cashier collects, so it's flagged in the same warm/attention color a
+// negative amount would get, rather than the green "good news" read some storefronts
+// use for discounts. text-green-600 remains available via this same class if a project
+// prefers announcing savings positively instead - see the class name change below.
+.discount-row {
+  color: #c62828;
   font-weight: 600;
-  text-align: right;
-  margin-top: 8px;
+}
+
+.promo-chip {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(198, 40, 40, 0.1);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.receipt-total {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  font-weight: 700;
+  font-size: 1rem;
+  color: rgba(0, 0, 0, 0.87);
 }
 
 .status-select {

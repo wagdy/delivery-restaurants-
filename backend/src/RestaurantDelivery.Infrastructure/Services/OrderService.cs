@@ -341,6 +341,7 @@ public class OrderService : IOrderService
     {
         Id = order.Id,
         UserId = order.UserId,
+        CustomerStatus = order.UserId is null ? "Guest" : "Registered",
         CustomerName = order.CustomerName,
         CustomerPhone = order.CustomerPhone,
         DeliveryAddress = order.DeliveryAddress,

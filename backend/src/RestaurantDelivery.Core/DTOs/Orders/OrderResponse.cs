@@ -6,6 +6,13 @@ public class OrderResponse
 {
     public int Id { get; set; }
     public string? UserId { get; set; }
+
+    // "Guest" or "Registered" - a plain derived string (UserId is null ? "Guest" :
+    // "Registered", see OrderService.MapResponse) rather than a bool, so the cashier
+    // dashboard's badge can bind to it directly with no client-side branching, and so a
+    // future third customer status wouldn't require an API-breaking type change.
+    public string CustomerStatus { get; set; } = string.Empty;
+
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerPhone { get; set; } = string.Empty;
     public string DeliveryAddress { get; set; } = string.Empty;
