@@ -32,5 +32,10 @@ public class RestaurantSettingsConfiguration : IEntityTypeConfiguration<Restaura
         builder.Property(s => s.VisaFawryUrl).HasMaxLength(2048);
         builder.Property(s => s.IsInstapayEnabled).HasDefaultValue(false);
         builder.Property(s => s.InstapayAccount).HasMaxLength(200);
+
+        // Defaulted to the frontend's own previous hardcoded constant (CartService's old
+        // DELIVERY_FEE = 4.99) so the migration that adds this column doesn't silently
+        // make every delivery free until an admin notices and sets a real value.
+        builder.Property(s => s.BaseDeliveryFee).HasPrecision(10, 2).HasDefaultValue(4.99m);
     }
 }

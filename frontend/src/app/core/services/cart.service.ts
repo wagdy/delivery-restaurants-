@@ -1,10 +1,10 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { CartLine } from '../models/cart.model';
 import { MenuItem } from '../models/menu-item.model';
 import { AddOn } from '../models/add-on.model';
+import { SettingsService } from './settings.service';
 
 const STORAGE_KEY = 'rd_cart';
-export const DELIVERY_FEE = 4.99;
 
 // Two lines can share the same base menu item with different add-on selections
 // (e.g. one burger plain, one with extra cheese) — they must stay distinct lines,
@@ -19,6 +19,7 @@ function lineUnitPrice(line: CartLine): number {
 
 @Injectable({ providedIn: 'root' })
 export class CartService {
+  private readonly settingsService = inject(SettingsService);
   private readonly _lines = signal<CartLine[]>(this.restore());
 
   readonly lines = this._lines.asReadonly();
@@ -26,7 +27,13 @@ export class CartService {
   readonly subtotal = computed(() =>
     this._lines().reduce((sum, l) => sum + lineUnitPrice(l) * l.quantity, 0)
   );
-  readonly deliveryFee = computed(() => (this._lines().length > 0 ? DELIVERY_FEE : 0));
+  // Admin-configurable (Site Settings -> Checkout & Taxes) rather than a hardcoded
+  // constant - settings are already loaded app-wide before bootstrap (see
+  // CheckoutComponent's own doc comment on the same APP_INITIALIZER), so reading the
+  // signal directly here needs no separate load() call.
+  readonly deliveryFee = computed(() =>
+    this._lines().length > 0 ? this.settingsService.settings().baseDeliveryFee : 0
+  );
   readonly estimatedTotal = computed(() => this.subtotal() + this.deliveryFee());
 
   keyFor(line: CartLine): string {

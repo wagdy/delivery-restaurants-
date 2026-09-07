@@ -68,4 +68,11 @@ public class RestaurantSettings
     // Free text by design (phone, email, or @username) - shown verbatim to the customer
     // in the Instapay reveal block at checkout so they know where to send payment.
     public string? InstapayAccount { get; set; }
+
+    // The flat delivery fee applied to every order today - named "Base" rather than just
+    // "DeliveryFee" because the natural next step, if per-area pricing is ever needed, is a
+    // separate DeliveryZones table (AreaName, Fee) that checkout looks up by the customer's
+    // chosen area first and falls back to this value when no zone matches. Nothing about
+    // that extension requires changing this column - it just stops being the only fee.
+    public decimal BaseDeliveryFee { get; set; }
 }

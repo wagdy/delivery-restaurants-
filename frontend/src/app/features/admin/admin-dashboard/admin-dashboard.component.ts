@@ -152,10 +152,6 @@ export class AdminDashboardComponent implements OnInit {
   readonly savingOrder = signal(false);
   readonly createOrderError = signal<string | null>(null);
 
-  // Manual staff-entered orders (phone-in, walk-in) skip delivery entirely - a single
-  // shared constant instead of a magic literal wherever the fee is read or submitted.
-  private static readonly ADMIN_ORDER_DELIVERY_FEE = 0;
-
   // Recalculated from scratch on every FormArray change (add/remove/quantity/item-select
   // all funnel through this one valueChanges subscription - see the constructor) rather
   // than trusting the array's rendered DOM state, which is what let the two states drift
@@ -592,8 +588,10 @@ export class AdminDashboardComponent implements OnInit {
       }));
   }
 
+  // Admin-configurable (Site Settings -> Checkout & Taxes) - phone-in/walk-in orders now
+  // carry the same default delivery fee as customer checkout instead of a hardcoded 0.
   reviewDeliveryFee(): number {
-    return AdminDashboardComponent.ADMIN_ORDER_DELIVERY_FEE;
+    return this.settingsService.settings().baseDeliveryFee;
   }
 
   // Falls back to a plain client-side estimate (no discount) until a promo is applied -
@@ -709,7 +707,7 @@ export class AdminDashboardComponent implements OnInit {
       items: raw.items.map((i) => ({ menuItemId: i.menuItemId!, quantity: i.quantity, addOnIds: [] })),
       paymentMethod: 'Cash',
       promoCodeText: this.promoResult() ? this.promoCodeInput().trim() : null,
-      deliveryFee: AdminDashboardComponent.ADMIN_ORDER_DELIVERY_FEE,
+      deliveryFee: this.reviewDeliveryFee(),
       customerId: isNewCustomer ? null : (this.selectedCustomer()?.id ?? null),
       isNewCustomer
     };

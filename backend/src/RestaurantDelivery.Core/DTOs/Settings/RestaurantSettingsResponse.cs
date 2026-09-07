@@ -23,4 +23,5 @@ public class RestaurantSettingsResponse
     public string? VisaFawryUrl { get; set; }
     public bool IsInstapayEnabled { get; set; }
     public string? InstapayAccount { get; set; }
+    public decimal BaseDeliveryFee { get; set; }
 }

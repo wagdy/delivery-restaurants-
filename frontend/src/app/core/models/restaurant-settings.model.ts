@@ -32,6 +32,11 @@ export interface RestaurantSettings {
   isInstapayEnabled: boolean;
   // Free text (phone, email, or @username) shown to the customer at checkout.
   instapayAccount?: string | null;
+
+  // The flat delivery fee applied to every order - see CartService.deliveryFee and
+  // AdminDashboardComponent's Create Order tab, both of which read this instead of a
+  // hardcoded constant now.
+  baseDeliveryFee: number;
 }
 
 export type UpdateRestaurantSettingsRequest = RestaurantSettings;
