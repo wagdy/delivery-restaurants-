@@ -78,16 +78,33 @@
   padding: 24px;
 }
 
+// Equivalent to Tailwind's `grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4
+// overflow-x-auto min-h-screen p-4` - this project has no Tailwind installed, so the
+// same responsive grid is done with plain CSS Grid + media queries instead, matching
+// every other component's substitution pattern. min-height is 70vh rather than a literal
+// 100vh (min-h-screen) since this grid sits below a toolbar/tab bar that already
+// consumes real viewport height - a true 100vh here would push the page well past one
+// screen even with only a couple of orders.
 .board {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 16px;
   padding: 16px;
   overflow-x: auto;
-  align-items: flex-start;
+  align-items: start;
+  min-height: 70vh;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (min-width: 1280px) {
+    grid-template-columns: repeat(5, 1fr);
+  }
 }
 
 .column {
-  flex: 0 0 260px;
+  min-width: 0;
   background: #f1f1f1;
   border-radius: 8px;
   display: flex;
@@ -105,9 +122,11 @@
   border-radius: 8px 8px 0 0;
   color: white;
 }
+// Yellow / Blue / Orange / Green / Red - one distinct color per status, exactly as
+// specified, so an admin can tell columns apart at a glance without reading the label.
 .status-Pending { background: #f9a825; }
 .status-Preparing { background: #1e88e5; }
-.status-OutForDelivery { background: #8e24aa; }
+.status-OutForDelivery { background: #fb8c00; }
 .status-Delivered { background: #43a047; }
 .status-Cancelled { background: #e53935; }
 
@@ -182,6 +201,26 @@
   color: rgba(0, 0, 0, 0.55);
   font-size: 0.75rem;
   margin-top: 6px;
+}
+
+// The quick status-change dropdown on each Active Status card - deliberately compact
+// (dense field, no floating label chrome) since it's a secondary action sitting inside
+// an already-small card, not a primary form control.
+.quick-status-select {
+  width: 100%;
+  margin-top: 8px;
+  cursor: pointer;
+
+  ::ng-deep .mat-mdc-text-field-wrapper {
+    height: 32px;
+  }
+
+  ::ng-deep .mat-mdc-form-field-infix {
+    min-height: 0;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    font-size: 0.75rem;
+  }
 }
 
 .guest-badge {

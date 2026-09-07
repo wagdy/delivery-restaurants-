@@ -23,10 +23,10 @@ import { OrderDetailsDialogComponent } from '../order-details-dialog/order-detai
 type DashboardTab = 'create' | 'all' | 'active' | 'reports';
 type CustomerMode = 'new' | 'registered';
 
-// The Active Status tab is deliberately scoped to orders still "in flight" - Delivered
-// and Cancelled orders belong in the All Orders history table instead, not the live
-// operational tracker (see ORDER_STATUSES for the full set All Orders shows).
-const ACTIVE_STATUSES: OrderStatus[] = ['Pending', 'Preparing', 'OutForDelivery'];
+// How often the Active Status board's "time elapsed" labels refresh themselves without
+// any user interaction - short enough to feel live on an ops screen, long enough not to
+// force pointless change-detection churn on a page that's often just sitting open.
+const TIME_ELAPSED_TICK_MS = 30_000;
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -60,8 +60,14 @@ export class AdminDashboardComponent implements OnInit {
   @ViewChild('fileInput') private readonly fileInput?: ElementRef<HTMLInputElement>;
 
   readonly activeTab = signal<DashboardTab>('active');
-  readonly activeStatuses = ACTIVE_STATUSES;
+  // The Active Status board shows all 5 statuses side by side (Delivered/Cancelled
+  // included) so an admin can see an order's full lifecycle at a glance - the All Orders
+  // tab covers the same data as a searchable flat history table instead.
   readonly statuses = ORDER_STATUSES;
+
+  // Ticks forward on its own (see the constructor) purely to keep columnOrders' cards'
+  // "time elapsed" labels fresh - nothing else reads this signal.
+  readonly now = signal(Date.now());
 
   readonly loading = signal(true);
   readonly errorMessage = signal<string | null>(null);
@@ -136,6 +142,9 @@ export class AdminDashboardComponent implements OnInit {
         this.alarmAudio.play().catch(() => {});
       }
     });
+
+    const timeElapsedTick = setInterval(() => this.now.set(Date.now()), TIME_ELAPSED_TICK_MS);
+    this.destroyRef.onDestroy(() => clearInterval(timeElapsedTick));
   }
 
   ngOnInit(): void {
@@ -250,6 +259,47 @@ export class AdminDashboardComponent implements OnInit {
     return this.filteredOrders()
       .filter((o) => o.status === status)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  // Reads this.now() (see the constructor's tick interval) so this keeps advancing on
+  // its own while the board is left open, instead of freezing at whatever it read when
+  // the order first arrived.
+  timeElapsed(order: Order): string {
+    const elapsedMs = this.now() - new Date(order.createdAt).getTime();
+    const minutes = Math.floor(elapsedMs / 60_000);
+
+    if (minutes < 1) {
+      return 'Just now';
+    }
+    if (minutes < 60) {
+      return `${minutes}m ago`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+      return `${hours}h ${minutes % 60}m ago`;
+    }
+
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  }
+
+  // The Active Status board's quick-action dropdown - moves the card to its new column
+  // the instant the API confirms the change, without waiting on a full loadOrders().
+  updateOrderStatus(orderId: number, newStatus: OrderStatus): void {
+    const current = this.orders().find((o) => o.id === orderId);
+    if (!current || current.status === newStatus) {
+      return;
+    }
+
+    this.orderService.updateStatus(orderId, newStatus).subscribe({
+      next: (updated) => {
+        this.orders.update((all) => all.map((o) => (o.id === updated.id ? updated : o)));
+      },
+      error: () => {
+        this.snackBar.open('Failed to update order status.', 'Dismiss', { duration: 4000 });
+      }
+    });
   }
 
   loadOrders(): void {
