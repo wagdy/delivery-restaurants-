@@ -7,7 +7,10 @@ namespace RestaurantDelivery.Core.Interfaces;
 
 public interface IOrderService
 {
-    Task<ServiceResult<OrderResponse>> CreateAsync(CreateOrderRequest request, string? userId);
+    // isStaffCreated marks orders keyed in by an admin (Create Order screen) so the
+    // real-time notification tells every connected dashboard not to ring its alarm for
+    // something staff already knows about - see NewOrderNotification.IsStaffCreated.
+    Task<ServiceResult<OrderResponse>> CreateAsync(CreateOrderRequest request, string? userId, bool isStaffCreated = false);
     Task<ServiceResult<PagedResult<OrderResponse>>> GetAllAsync(OrderStatus? status, int page, int pageSize);
     Task<ServiceResult<OrderResponse>> GetByIdAsync(int id);
     Task<ServiceResult<List<OrderResponse>>> GetMyOrdersAsync(string userId);
@@ -19,4 +22,7 @@ public interface IOrderService
     Task<ServiceResult<OrderResponse>> AcknowledgeAsync(int id);
 
     Task<ServiceResult<bool>> DeleteAsync(int id);
+
+    // For the admin "Create Order" screen's registered-customer phone search.
+    Task<ServiceResult<CustomerLookupResponse>> LookupCustomerByPhoneAsync(string phoneNumber);
 }

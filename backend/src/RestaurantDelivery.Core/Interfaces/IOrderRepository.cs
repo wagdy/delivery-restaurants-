@@ -10,4 +10,8 @@ public interface IOrderRepository : IGenericRepository<Order>
     Task<(List<Order> Orders, int TotalCount)> GetPagedWithItemsAsync(OrderStatus? status, int page, int pageSize);
     Task<List<Order>> GetByUserIdAsync(string userId);
     Task<List<MenuItem>> GetMenuItemsByIdsAsync(IEnumerable<int> ids);
+
+    // For the admin "Create Order" POS screen's registered-customer phone search.
+    Task<AppUser?> GetCustomerByPhoneAsync(string phoneNumber);
+    Task<AppUser?> GetCustomerByIdAsync(string customerId);
 }

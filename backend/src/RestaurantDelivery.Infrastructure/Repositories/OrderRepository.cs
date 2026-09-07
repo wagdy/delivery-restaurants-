@@ -59,4 +59,10 @@ public class OrderRepository : GenericRepository<Order>, IOrderRepository
             .Include(m => m.MenuItemAddOns).ThenInclude(ma => ma.AddOn)
             .Where(m => ids.Contains(m.Id))
             .ToListAsync();
+
+    public Task<AppUser?> GetCustomerByPhoneAsync(string phoneNumber) =>
+        Context.Set<AppUser>().FirstOrDefaultAsync(u => u.Role == UserRole.Customer && u.PhoneNumber == phoneNumber);
+
+    public Task<AppUser?> GetCustomerByIdAsync(string customerId) =>
+        Context.Set<AppUser>().FirstOrDefaultAsync(u => u.Role == UserRole.Customer && u.Id == customerId);
 }

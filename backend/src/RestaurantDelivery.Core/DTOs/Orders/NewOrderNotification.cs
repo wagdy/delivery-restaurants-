@@ -12,4 +12,11 @@ public class NewOrderNotification
     public decimal TotalAmount { get; set; }
     public int ItemCount { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    // True when an admin entered this order themselves via the "Create Order" screen -
+    // every connected admin dashboard still gets this push (so the order appears
+    // instantly everywhere with no manual refresh), but none of them should ring the
+    // alarm or show "needs acknowledgment" for something staff already knows about,
+    // regardless of which cashier's tab actually typed it in.
+    public bool IsStaffCreated { get; set; }
 }

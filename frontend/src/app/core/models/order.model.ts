@@ -79,6 +79,17 @@ export interface CreateOrderRequest {
   // value for the discount amount.
   promoCodeText?: string | null;
   deliveryFee: number;
+  // Set only by the admin "Create Order" screen when a registered customer was picked
+  // via phone search - re-validated server-side, never trusted at face value either.
+  customerId?: string | null;
+}
+
+// For the admin "Create Order" screen's registered-customer phone search.
+export interface CustomerLookup {
+  id: string;
+  fullName: string;
+  phoneNumber: string;
+  address: string | null;
 }
 
 export type UpdateOrderRequest = CreateOrderRequest;
@@ -99,4 +110,8 @@ export interface NewOrderNotification {
   totalAmount: number;
   itemCount: number;
   createdAt: string;
+  // True when an admin entered this order themselves via the Create Order screen - the
+  // cashier dashboard still unshifts it into the list on every connected tab, but must
+  // not ring the alarm or show "needs acknowledgment" for it anywhere.
+  isStaffCreated: boolean;
 }

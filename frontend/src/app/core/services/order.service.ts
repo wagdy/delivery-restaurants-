@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import {
   BulkOrderImportResult,
   CreateOrderRequest,
+  CustomerLookup,
   Order,
   OrderStatus,
   PagedResult,
@@ -62,5 +63,11 @@ export class OrderService {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post<BulkOrderImportResult>(`${this.baseUrl}/bulk-upload`, formData);
+  }
+
+  // For the admin "Create Order" screen's registered-customer phone search.
+  lookupCustomerByPhone(phone: string): Observable<CustomerLookup> {
+    const params = new HttpParams().set('phone', phone);
+    return this.http.get<CustomerLookup>(`${this.baseUrl}/customers/lookup`, { params });
   }
 }

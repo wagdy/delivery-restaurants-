@@ -2,10 +2,12 @@
   <h1>Order Management</h1>
   <span class="spacer"></span>
 
-  <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
-    <mat-label>Search orders</mat-label>
-    <input matInput [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" placeholder="Name, phone, or #" />
-  </mat-form-field>
+  @if (activeTab() === 'all' || activeTab() === 'active') {
+    <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+      <mat-label>Search orders</mat-label>
+      <input matInput [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" placeholder="Name, phone, or #" />
+    </mat-form-field>
+  }
 
   <button mat-icon-button (click)="loadOrders()" aria-label="Refresh">
     <mat-icon>refresh</mat-icon>
@@ -44,12 +46,22 @@
     hidden
     (change)="onFileSelected($event)"
   />
-
-  <button mat-flat-button color="primary" (click)="openNewOrder()">
-    <mat-icon>add</mat-icon>
-    New Order
-  </button>
 </mat-toolbar>
+
+<nav class="tabs-nav">
+  <button type="button" class="tab-button" [class.active]="activeTab() === 'create'" (click)="activeTab.set('create')">
+    Create Order
+  </button>
+  <button type="button" class="tab-button" [class.active]="activeTab() === 'all'" (click)="activeTab.set('all')">
+    All Orders
+  </button>
+  <button type="button" class="tab-button" [class.active]="activeTab() === 'active'" (click)="activeTab.set('active')">
+    Active Status
+  </button>
+  <button type="button" class="tab-button" [class.active]="activeTab() === 'reports'" (click)="activeTab.set('reports')">
+    Reports
+  </button>
+</nav>
 
 @if (!audioUnlocked()) {
   <div class="audio-unlock-banner">
@@ -58,56 +70,239 @@
   </div>
 }
 
-@if (loading()) {
-  <div class="loading-state">
-    <mat-spinner diameter="40"></mat-spinner>
-  </div>
-} @else if (errorMessage()) {
-  <p class="error-text">{{ errorMessage() }}</p>
-} @else {
-  <div class="board">
-    @for (status of statuses; track status) {
-      <div class="column">
-        <div class="column-header" [class]="'status-' + status">
-          <span>{{ status }}</span>
-          <span class="count">{{ columnOrders(status).length }}</span>
+@switch (activeTab()) {
+  @case ('create') {
+    <div class="tab-panel create-order-panel">
+      <div class="customer-mode-toggle">
+        <button type="button" [class.active]="customerMode() === 'new'" (click)="setCustomerMode('new')">
+          <mat-icon>person_add</mat-icon>
+          New Customer
+        </button>
+        <button type="button" [class.active]="customerMode() === 'registered'" (click)="setCustomerMode('registered')">
+          <mat-icon>verified_user</mat-icon>
+          Registered Customer
+        </button>
+      </div>
+
+      @if (customerMode() === 'registered') {
+        <div class="customer-search-row">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="customer-search-field">
+            <mat-label>Search by phone number</mat-label>
+            <input
+              matInput
+              [ngModel]="customerSearchPhone()"
+              (ngModelChange)="customerSearchPhone.set($event)"
+              placeholder="e.g. 01012345678"
+              (keydown.enter)="searchCustomerByPhone()"
+            />
+          </mat-form-field>
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="searchingCustomer() || !customerSearchPhone().trim()"
+            (click)="searchCustomerByPhone()"
+          >
+            @if (searchingCustomer()) {
+              <mat-spinner diameter="18"></mat-spinner>
+            } @else {
+              <mat-icon>search</mat-icon>
+            }
+            Search
+          </button>
         </div>
 
-        <div class="column-body">
-          @for (order of columnOrders(status); track order.id) {
-            <div class="order-card" [class.unacknowledged]="isUnacknowledged(order)" (click)="openDetails(order)">
-              <div class="card-top">
-                <span class="order-id">
-                  #{{ order.id }}
+        @if (customerSearchError()) {
+          <p class="error-text">{{ customerSearchError() }}</p>
+        }
+
+        @if (selectedCustomer(); as customer) {
+          <div class="customer-found-card">
+            <mat-icon>verified_user</mat-icon>
+            <div>
+              <p class="customer-found-name">{{ customer.fullName }}</p>
+              <p class="customer-found-meta">
+                {{ customer.phoneNumber }}
+                @if (customer.address) {
+                  &middot; {{ customer.address }}
+                }
+              </p>
+            </div>
+          </div>
+        }
+      }
+
+      <form [formGroup]="createForm" (ngSubmit)="submitCreateOrder()" class="create-order-form">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Customer name</mat-label>
+          <input matInput formControlName="customerName" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Phone</mat-label>
+          <input matInput formControlName="customerPhone" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Delivery address</mat-label>
+          <input matInput formControlName="deliveryAddress" />
+        </mat-form-field>
+
+        <div class="items-section" formArrayName="items">
+          <h3>Items</h3>
+
+          @for (itemGroup of createItems.controls; track $index; let i = $index) {
+            <div class="item-row" [formGroupName]="i">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="item-select">
+                <mat-label>Item</mat-label>
+                <mat-select formControlName="menuItemId">
+                  @for (menuItem of menuItems(); track menuItem.id) {
+                    <mat-option [value]="menuItem.id">{{ menuItem.name }} &middot; L.E {{ menuItem.price.toFixed(2) }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="item-qty">
+                <mat-label>Qty</mat-label>
+                <input matInput type="number" min="1" max="100" formControlName="quantity" />
+              </mat-form-field>
+
+              <button mat-icon-button type="button" color="warn" (click)="removeCreateItem(i)" aria-label="Remove item">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          }
+
+          <button mat-stroked-button type="button" (click)="addCreateItem()">
+            <mat-icon>add</mat-icon>
+            Add item
+          </button>
+        </div>
+
+        <p class="estimated-total">Estimated total: L.E {{ createOrderTotal().toFixed(2) }}</p>
+
+        @if (createOrderError()) {
+          <p class="error-text">{{ createOrderError() }}</p>
+        }
+
+        <button mat-flat-button color="primary" type="submit" class="place-order-button" [disabled]="savingOrder()">
+          @if (savingOrder()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            <ng-container>
+              <mat-icon>point_of_sale</mat-icon>
+              Place Order
+            </ng-container>
+          }
+        </button>
+      </form>
+    </div>
+  }
+
+  @case ('all') {
+    @if (loading()) {
+      <div class="loading-state">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+    } @else if (errorMessage()) {
+      <p class="error-text">{{ errorMessage() }}</p>
+    } @else {
+      <div class="table-wrapper">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Order #</th>
+              <th>Customer</th>
+              <th>Total Check</th>
+              <th>Status</th>
+              <th>Placed</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (order of filteredOrders(); track order.id) {
+              <tr (click)="openDetails(order)">
+                <td>#{{ order.id }}</td>
+                <td>
+                  {{ order.customerName }}
                   @if (!order.userId) {
                     <span class="guest-badge">Guest</span>
                   }
-                </span>
-                <span class="order-total">L.E {{ order.totalAmount.toFixed(2) }}</span>
-              </div>
-              <div class="customer-name">{{ order.customerName }}</div>
-              <div class="card-meta">
-                <span>{{ order.items.length }} item{{ order.items.length === 1 ? '' : 's' }}</span>
-                <span>{{ order.createdAt | date: 'short' }}</span>
-              </div>
-
-              @if (isUnacknowledged(order)) {
-                <button
-                  type="button"
-                  class="acknowledge-button"
-                  aria-label="Acknowledge order"
-                  (click)="acknowledgeOrder(order); $event.stopPropagation()"
-                >
-                  <mat-icon>notifications_active</mat-icon>
-                  استلام الطلب
-                </button>
-              }
-            </div>
-          } @empty {
-            <p class="empty-column">No orders</p>
-          }
-        </div>
+                </td>
+                <td>L.E {{ order.totalAmount.toFixed(2) }}</td>
+                <td><span class="status-chip" [class]="'status-' + order.status">{{ order.status }}</span></td>
+                <td>{{ order.createdAt | date: 'short' }}</td>
+              </tr>
+            } @empty {
+              <tr class="empty-row">
+                <td colspan="5">No orders found.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
       </div>
     }
-  </div>
+  }
+
+  @case ('active') {
+    @if (loading()) {
+      <div class="loading-state">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+    } @else if (errorMessage()) {
+      <p class="error-text">{{ errorMessage() }}</p>
+    } @else {
+      <div class="board">
+        @for (status of activeStatuses; track status) {
+          <div class="column">
+            <div class="column-header" [class]="'status-' + status">
+              <span>{{ status }}</span>
+              <span class="count">{{ columnOrders(status).length }}</span>
+            </div>
+
+            <div class="column-body">
+              @for (order of columnOrders(status); track order.id) {
+                <div class="order-card" [class.unacknowledged]="isUnacknowledged(order)" (click)="openDetails(order)">
+                  <div class="card-top">
+                    <span class="order-id">
+                      #{{ order.id }}
+                      @if (!order.userId) {
+                        <span class="guest-badge">Guest</span>
+                      }
+                    </span>
+                    <span class="order-total">L.E {{ order.totalAmount.toFixed(2) }}</span>
+                  </div>
+                  <div class="customer-name">{{ order.customerName }}</div>
+                  <div class="card-meta">
+                    <span>{{ order.items.length }} item{{ order.items.length === 1 ? '' : 's' }}</span>
+                    <span>{{ order.createdAt | date: 'short' }}</span>
+                  </div>
+
+                  @if (isUnacknowledged(order)) {
+                    <button
+                      type="button"
+                      class="acknowledge-button"
+                      aria-label="Acknowledge order"
+                      (click)="acknowledgeOrder(order); $event.stopPropagation()"
+                    >
+                      <mat-icon>notifications_active</mat-icon>
+                      استلام الطلب
+                    </button>
+                  }
+                </div>
+              } @empty {
+                <p class="empty-column">No orders</p>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  @case ('reports') {
+    <div class="tab-panel reports-panel">
+      <mat-icon>insights</mat-icon>
+      <p>Reports are coming soon.</p>
+    </div>
+  }
 }

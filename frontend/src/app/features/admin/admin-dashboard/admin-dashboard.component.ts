@@ -1,22 +1,32 @@
 import { Component, DestroyRef, ElementRef, HostListener, OnInit, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormArray, FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { saveAs } from 'file-saver';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { OrderService } from '../../../core/services/order.service';
+import { MenuItemService } from '../../../core/services/menu-item.service';
 import { DgteraSyncService } from '../../../core/services/dgtera-sync.service';
 import { OrderRealtimeService } from '../../../core/services/order-realtime.service';
-import { ORDER_STATUSES, Order, OrderStatus } from '../../../core/models/order.model';
+import { MenuItem } from '../../../core/models/menu-item.model';
+import { CreateOrderRequest, CustomerLookup, ORDER_STATUSES, Order, OrderStatus } from '../../../core/models/order.model';
 import { OrderDetailsDialogComponent } from '../order-details-dialog/order-details-dialog.component';
-import { OrderFormDialogComponent } from '../order-form-dialog/order-form-dialog.component';
+
+type DashboardTab = 'create' | 'all' | 'active' | 'reports';
+type CustomerMode = 'new' | 'registered';
+
+// The Active Status tab is deliberately scoped to orders still "in flight" - Delivered
+// and Cancelled orders belong in the All Orders history table instead, not the live
+// operational tracker (see ORDER_STATUSES for the full set All Orders shows).
+const ACTIVE_STATUSES: OrderStatus[] = ['Pending', 'Preparing', 'OutForDelivery'];
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -24,11 +34,13 @@ import { OrderFormDialogComponent } from '../order-form-dialog/order-form-dialog
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     MatProgressSpinnerModule,
     MatToolbarModule
   ],
@@ -37,15 +49,20 @@ import { OrderFormDialogComponent } from '../order-form-dialog/order-form-dialog
 })
 export class AdminDashboardComponent implements OnInit {
   private readonly orderService = inject(OrderService);
+  private readonly menuItemService = inject(MenuItemService);
   private readonly dgteraSyncService = inject(DgteraSyncService);
   private readonly orderRealtimeService = inject(OrderRealtimeService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly fb = inject(FormBuilder);
 
   @ViewChild('fileInput') private readonly fileInput?: ElementRef<HTMLInputElement>;
 
+  readonly activeTab = signal<DashboardTab>('active');
+  readonly activeStatuses = ACTIVE_STATUSES;
   readonly statuses = ORDER_STATUSES;
+
   readonly loading = signal(true);
   readonly errorMessage = signal<string | null>(null);
   readonly orders = signal<Order[]>([]);
@@ -85,8 +102,32 @@ export class AdminDashboardComponent implements OnInit {
     );
   });
 
+  // --- Tab 1: Create Order (admin POS) ---
+
+  readonly menuItems = signal<MenuItem[]>([]);
+  readonly customerMode = signal<CustomerMode>('new');
+  readonly customerSearchPhone = signal('');
+  readonly searchingCustomer = signal(false);
+  readonly customerSearchError = signal<string | null>(null);
+  readonly selectedCustomer = signal<CustomerLookup | null>(null);
+  readonly savingOrder = signal(false);
+  readonly createOrderError = signal<string | null>(null);
+
+  readonly createForm = this.fb.nonNullable.group({
+    customerName: ['', [Validators.required, Validators.maxLength(200)]],
+    customerPhone: ['', [Validators.required, Validators.maxLength(30)]],
+    deliveryAddress: ['', [Validators.required, Validators.maxLength(500)]],
+    items: this.fb.array<ReturnType<typeof this.buildCreateItemGroup>>([])
+  });
+
+  get createItems(): FormArray {
+    return this.createForm.controls.items;
+  }
+
   constructor() {
     this.loadOrders();
+    this.menuItemService.getAll().subscribe({ next: (items) => this.menuItems.set(items) });
+    this.createItems.push(this.buildCreateItemGroup());
 
     // Resumes the alarm the instant audio unlocks, if orders were already waiting -
     // covers the case where a new order arrives before the cashier's first click.
@@ -116,6 +157,14 @@ export class AdminDashboardComponent implements OnInit {
           }
         }
       });
+
+      // An order an admin entered themselves via Create Order never rings the alarm or
+      // needs acknowledgment, on ANY connected dashboard (not just the one that created
+      // it) - see NewOrderNotification.isStaffCreated's own doc comment. It still gets
+      // the instant list update above, everywhere.
+      if (notification.isStaffCreated) {
+        return;
+      }
 
       this.unacknowledgedOrderIds.update((ids) => new Set(ids).add(notification.orderId));
       this.startAlarmIfNeeded();
@@ -334,16 +383,123 @@ export class AdminDashboardComponent implements OnInit {
     });
   }
 
-  openNewOrder(): void {
-    const dialogRef = this.dialog.open(OrderFormDialogComponent, {
-      width: '560px',
-      data: { mode: 'create' }
-    });
+  // --- Tab 1: Create Order methods ---
 
-    dialogRef.afterClosed().subscribe((created: Order | undefined) => {
-      if (created) {
-        this.loadOrders();
+  setCustomerMode(mode: CustomerMode): void {
+    this.customerMode.set(mode);
+    this.selectedCustomer.set(null);
+    this.customerSearchError.set(null);
+    this.customerSearchPhone.set('');
+    this.createForm.patchValue({ customerName: '', customerPhone: '', deliveryAddress: '' });
+  }
+
+  searchCustomerByPhone(): void {
+    const phone = this.customerSearchPhone().trim();
+    if (!phone) {
+      return;
+    }
+
+    this.searchingCustomer.set(true);
+    this.customerSearchError.set(null);
+    this.selectedCustomer.set(null);
+
+    this.orderService.lookupCustomerByPhone(phone).subscribe({
+      next: (customer) => {
+        this.searchingCustomer.set(false);
+        this.selectedCustomer.set(customer);
+        this.createForm.patchValue({
+          customerName: customer.fullName,
+          customerPhone: customer.phoneNumber,
+          deliveryAddress: customer.address ?? ''
+        });
+      },
+      error: (err) => {
+        this.searchingCustomer.set(false);
+        this.customerSearchError.set(
+          err.status === 404 ? 'No registered customer found with that phone number.' : 'Failed to search for customer.'
+        );
       }
     });
+  }
+
+  private buildCreateItemGroup(menuItemId: number | null = null, quantity = 1) {
+    return this.fb.nonNullable.group({
+      menuItemId: [menuItemId, [Validators.required]],
+      quantity: [quantity, [Validators.required, Validators.min(1), Validators.max(100)]]
+    });
+  }
+
+  addCreateItem(): void {
+    this.createItems.push(this.buildCreateItemGroup());
+  }
+
+  removeCreateItem(index: number): void {
+    this.createItems.removeAt(index);
+  }
+
+  createItemPrice(menuItemId: number | null): number {
+    return this.menuItems().find((m) => m.id === menuItemId)?.price ?? 0;
+  }
+
+  // A plain method, not a computed signal - the create form is a ReactiveForm (not
+  // signal-backed), so this is re-evaluated on Angular's normal change-detection cycle
+  // (any input/click in the template), matching the pattern already established in
+  // OrderFormDialogComponent's own estimatedTotal getter.
+  createOrderTotal(): number {
+    return this.createItems.controls.reduce((sum, group) => {
+      const value = group.getRawValue() as { menuItemId: number | null; quantity: number };
+      return sum + this.createItemPrice(value.menuItemId) * (value.quantity || 0);
+    }, 0);
+  }
+
+  submitCreateOrder(): void {
+    if (this.createForm.invalid || this.createItems.length === 0) {
+      this.createForm.markAllAsTouched();
+      if (this.createItems.length === 0) {
+        this.createOrderError.set('Add at least one item.');
+      }
+      return;
+    }
+
+    this.savingOrder.set(true);
+    this.createOrderError.set(null);
+
+    const raw = this.createForm.getRawValue();
+    // Manual staff-entered orders (phone-in, walk-in) skip the customer checkout flow
+    // entirely - Cash/no delivery fee, matching this dashboard's pre-existing manual
+    // order-creation behavior (see the now-retired OrderFormDialogComponent create mode).
+    const request: CreateOrderRequest = {
+      customerName: raw.customerName,
+      customerPhone: raw.customerPhone,
+      deliveryAddress: raw.deliveryAddress,
+      items: raw.items.map((i) => ({ menuItemId: i.menuItemId!, quantity: i.quantity, addOnIds: [] })),
+      paymentMethod: 'Cash',
+      deliveryFee: 0,
+      customerId: this.customerMode() === 'registered' ? (this.selectedCustomer()?.id ?? null) : null
+    };
+
+    this.orderService.create(request).subscribe({
+      next: (order) => {
+        this.savingOrder.set(false);
+        this.snackBar.open(`Order #${order.id} created.`, 'Dismiss', { duration: 4000 });
+        this.resetCreateForm();
+        this.loadOrders();
+        this.activeTab.set('all');
+      },
+      error: (err) => {
+        this.savingOrder.set(false);
+        this.createOrderError.set(err.error?.errors?.[0] ?? 'Failed to create order.');
+      }
+    });
+  }
+
+  private resetCreateForm(): void {
+    this.createForm.reset({ customerName: '', customerPhone: '', deliveryAddress: '' });
+    this.createItems.clear();
+    this.createItems.push(this.buildCreateItemGroup());
+    this.selectedCustomer.set(null);
+    this.customerSearchPhone.set('');
+    this.customerSearchError.set(null);
+    this.customerMode.set('new');
   }
 }

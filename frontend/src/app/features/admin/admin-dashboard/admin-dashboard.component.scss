@@ -24,6 +24,49 @@
   width: 260px;
 }
 
+// Equivalent to Tailwind's `flex border-b border-gray-200` - this project has no
+// Tailwind installed, so the same tab-strip look is done with plain CSS instead,
+// matching every other component's substitution pattern.
+.tabs-nav {
+  display: flex;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  background: white;
+  overflow-x: auto;
+}
+
+.tab-button {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 12px 18px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    color: rgba(0, 0, 0, 0.75);
+  }
+
+  &.active {
+    color: var(--app-primary-color, #3f51b5);
+    border-bottom-color: var(--app-primary-color, #3f51b5);
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
 .loading-state {
   display: flex;
   justify-content: center;
@@ -170,6 +213,207 @@
     font-size: 18px;
     width: 18px;
     height: 18px;
+  }
+}
+
+.tab-panel {
+  padding: 16px;
+}
+
+// --- Tab 1: Create Order ---
+
+.create-order-panel {
+  max-width: 720px;
+}
+
+.customer-mode-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 0;
+    justify-content: center;
+    padding: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    background: white;
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: rgba(0, 0, 0, 0.6);
+    cursor: pointer;
+
+    &.active {
+      border-color: var(--app-primary-color, #3f51b5);
+      background: rgba(63, 81, 181, 0.08);
+      color: var(--app-primary-color, #3f51b5);
+    }
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+.customer-search-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.customer-search-field {
+  flex: 1 1 auto;
+}
+
+.customer-found-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(46, 125, 50, 0.08);
+  margin-bottom: 16px;
+
+  mat-icon {
+    color: #2e7d32;
+    flex-shrink: 0;
+  }
+}
+
+.customer-found-name {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.customer-found-meta {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.create-order-form {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.items-section {
+  margin: 8px 0 16px;
+
+  h3 {
+    margin: 0 0 8px;
+    font-size: 0.9rem;
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.item-select {
+  flex: 1 1 auto;
+}
+
+.item-qty {
+  width: 90px;
+}
+
+.estimated-total {
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.place-order-button {
+  align-self: flex-start;
+}
+
+// --- Tab 2: All Orders ---
+
+.table-wrapper {
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+
+  th,
+  td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    font-size: 0.875rem;
+  }
+
+  th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgba(0, 0, 0, 0.5);
+  }
+
+  tbody tr {
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.03);
+    }
+  }
+
+  .empty-row td {
+    text-align: center;
+    color: rgba(0, 0, 0, 0.4);
+    cursor: default;
+
+    &:hover {
+      background: none;
+    }
+  }
+}
+
+.status-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: white;
+}
+
+// --- Tab 4: Reports (placeholder) ---
+
+.reports-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 64px 16px;
+  color: rgba(0, 0, 0, 0.4);
+
+  mat-icon {
+    font-size: 40px;
+    width: 40px;
+    height: 40px;
   }
 }
 

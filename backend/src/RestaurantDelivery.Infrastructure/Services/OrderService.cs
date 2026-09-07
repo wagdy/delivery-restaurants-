@@ -38,8 +38,18 @@ public class OrderService : IOrderService
         _settingsService = settingsService;
     }
 
-    public async Task<ServiceResult<OrderResponse>> CreateAsync(CreateOrderRequest request, string? userId)
+    public async Task<ServiceResult<OrderResponse>> CreateAsync(CreateOrderRequest request, string? userId, bool isStaffCreated = false)
     {
+        // Covers both a normal customer's own (already-trustworthy) JWT-derived id and
+        // an admin-supplied CreateOrderRequest.CustomerId from the "Create Order" POS
+        // screen's phone search - the latter is exactly the case that needs this check,
+        // since it's a client-supplied value; validating both paths uniformly is one
+        // extra indexed lookup on the common path and closes the gap on the new one.
+        if (userId is not null && await _repository.GetCustomerByIdAsync(userId) is null)
+        {
+            return ServiceResult<OrderResponse>.Failure("The selected customer account could not be found.");
+        }
+
         var buildResult = await BuildOrderItemsAsync(request.Items);
         if (!buildResult.Succeeded)
         {
@@ -107,7 +117,8 @@ public class OrderService : IOrderService
             CustomerName = order.CustomerName,
             TotalAmount = order.TotalAmount,
             ItemCount = orderItems.Sum(i => i.Quantity),
-            CreatedAt = order.CreatedAt
+            CreatedAt = order.CreatedAt,
+            IsStaffCreated = isStaffCreated
         });
 
         return ServiceResult<OrderResponse>.Success(MapResponse(order));
@@ -263,6 +274,23 @@ public class OrderService : IOrderService
         await _repository.SaveChangesAsync();
 
         return ServiceResult<bool>.Success(true);
+    }
+
+    public async Task<ServiceResult<CustomerLookupResponse>> LookupCustomerByPhoneAsync(string phoneNumber)
+    {
+        var customer = await _repository.GetCustomerByPhoneAsync(phoneNumber);
+        if (customer is null)
+        {
+            return ServiceResult<CustomerLookupResponse>.Failure("No registered customer found with that phone number.");
+        }
+
+        return ServiceResult<CustomerLookupResponse>.Success(new CustomerLookupResponse
+        {
+            Id = customer.Id,
+            FullName = customer.FullName,
+            PhoneNumber = customer.PhoneNumber ?? string.Empty,
+            Address = customer.Address
+        });
     }
 
     private async Task<ServiceResult<List<OrderItem>>> BuildOrderItemsAsync(List<OrderItemRequest> lines)

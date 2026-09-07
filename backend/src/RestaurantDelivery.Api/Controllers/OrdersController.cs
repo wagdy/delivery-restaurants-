@@ -26,6 +26,8 @@ public class OrdersController : ControllerBase
     // If the caller has a valid JWT, the order is linked to their account; otherwise it's a guest order.
     // Admins and captains are exempt from auto-linking: a manually entered phone-in order belongs
     // to the customer on the form, and a captain has no business placing personal orders here.
+    // request.CustomerId only takes effect in that admin/captain/guest branch - a real customer's
+    // own checkout always uses their own JWT identity, never a client-supplied id.
     [HttpPost]
     public async Task<ActionResult<OrderResponse>> Create(CreateOrderRequest request)
     {
@@ -33,15 +35,29 @@ public class OrdersController : ControllerBase
             && !User.IsInRole("Admin")
             && !User.IsInRole("CaptainOrder")
             ? User.FindFirstValue(ClaimTypes.NameIdentifier)
-            : null;
+            : request.CustomerId;
 
-        var result = await _service.CreateAsync(request, userId);
+        var result = await _service.CreateAsync(request, userId, isStaffCreated: User.IsInRole("Admin"));
         if (!result.Succeeded)
         {
             return BadRequest(new { errors = result.Errors });
         }
 
         return StatusCode(StatusCodes.Status201Created, result.Data);
+    }
+
+    // Admin "Create Order" POS screen's registered-customer phone search.
+    [Authorize(Policy = "Module.Orders")]
+    [HttpGet("customers/lookup")]
+    public async Task<ActionResult<CustomerLookupResponse>> LookupCustomerByPhone([FromQuery] string phone)
+    {
+        var result = await _service.LookupCustomerByPhoneAsync(phone);
+        if (!result.Succeeded)
+        {
+            return NotFound(new { errors = result.Errors });
+        }
+
+        return Ok(result.Data);
     }
 
     // Admins get full order management; captains (delivery drivers) get read + status-update only.

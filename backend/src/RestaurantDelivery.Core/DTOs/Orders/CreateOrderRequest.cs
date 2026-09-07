@@ -30,4 +30,11 @@ public class CreateOrderRequest
     // passed through so the persisted total's breakdown is internally consistent.
     [Range(0, double.MaxValue)]
     public decimal DeliveryFee { get; set; }
+
+    // Set only by the admin "Create Order" screen when the admin picked an existing
+    // registered customer via phone search - re-validated server-side against a real
+    // Customer-role AppUser (see OrderService.CreateAsync), never trusted at face value.
+    // A normal customer's own checkout never sends this (OrdersController.Create derives
+    // their id from their own JWT instead, ignoring this field entirely).
+    public string? CustomerId { get; set; }
 }
