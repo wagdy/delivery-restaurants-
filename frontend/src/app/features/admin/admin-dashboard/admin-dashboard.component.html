@@ -95,10 +95,11 @@
                 <button
                   type="button"
                   class="acknowledge-button"
+                  aria-label="Acknowledge order"
                   (click)="acknowledgeOrder(order); $event.stopPropagation()"
                 >
                   <mat-icon>notifications_active</mat-icon>
-                  Order Received &middot; تم استلام الطلب
+                  استلام الطلب
                 </button>
               }
             </div>

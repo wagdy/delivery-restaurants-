@@ -64,7 +64,12 @@ export class AdminDashboardComponent implements OnInit {
   // whether that gesture has happened yet, so the "click anywhere to enable alerts"
   // banner knows when to hide itself.
   readonly audioUnlocked = signal(false);
-  private readonly alarmAudio = this.buildAlarmAudio();
+
+  // A real bundled asset (public/assets/sounds/alarm.wav - .wav rather than .mp3 since
+  // that's what's actually encoded; browsers play it identically either way), not a
+  // runtime-synthesized tone - loop = true means it keeps ringing until every pending
+  // order is acknowledged, not just once.
+  private readonly alarmAudio = new Audio('assets/sounds/alarm.wav');
 
   readonly filteredOrders = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
@@ -93,6 +98,8 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.alarmAudio.loop = true;
+
     this.orderRealtimeService.newOrderReceived.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((notification) => {
       // Duplicate guard: this same order could also arrive via a background
       // loadOrders() refresh (e.g. from syncDgteraOrders()) racing the socket push.
@@ -188,68 +195,6 @@ export class AdminDashboardComponent implements OnInit {
 
   isUnacknowledged(order: Order): boolean {
     return this.unacknowledgedOrderIds().has(order.id);
-  }
-
-  // Synthesizes a short repeating beep-beep-silence pattern as a real WAV file (no
-  // external sound asset to host/bundle) and wraps it in a genuine HTMLAudioElement with
-  // loop = true, so play()/pause()/currentTime behave exactly like a normal <audio> tag.
-  private buildAlarmAudio(): HTMLAudioElement {
-    const sampleRate = 8000;
-    const segments: { frequency: number; duration: number }[] = [
-      { frequency: 1000, duration: 0.22 },
-      { frequency: 0, duration: 0.12 },
-      { frequency: 1300, duration: 0.22 },
-      { frequency: 0, duration: 0.6 }
-    ];
-
-    const totalSamples = segments.reduce((sum, s) => sum + Math.round(s.duration * sampleRate), 0);
-    const samples = new Int16Array(totalSamples);
-
-    let offset = 0;
-    for (const segment of segments) {
-      const segmentSamples = Math.round(segment.duration * sampleRate);
-      for (let i = 0; i < segmentSamples; i++) {
-        const value = segment.frequency > 0 ? Math.sin((2 * Math.PI * segment.frequency * i) / sampleRate) * 0.5 : 0;
-        samples[offset + i] = Math.round(value * 32767);
-      }
-      offset += segmentSamples;
-    }
-
-    const audio = new Audio(URL.createObjectURL(this.encodeWav(samples, sampleRate)));
-    audio.loop = true;
-    return audio;
-  }
-
-  private encodeWav(samples: Int16Array, sampleRate: number): Blob {
-    const buffer = new ArrayBuffer(44 + samples.length * 2);
-    const view = new DataView(buffer);
-
-    const writeString = (offset: number, text: string) => {
-      for (let i = 0; i < text.length; i++) {
-        view.setUint8(offset + i, text.charCodeAt(i));
-      }
-    };
-
-    writeString(0, 'RIFF');
-    view.setUint32(4, 36 + samples.length * 2, true);
-    writeString(8, 'WAVE');
-    writeString(12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true); // PCM
-    view.setUint16(22, 1, true); // mono
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true); // byte rate
-    view.setUint16(32, 2, true); // block align
-    view.setUint16(34, 16, true); // bits per sample
-    writeString(36, 'data');
-    view.setUint32(40, samples.length * 2, true);
-
-    let offset = 44;
-    for (let i = 0; i < samples.length; i++, offset += 2) {
-      view.setInt16(offset, samples[i], true);
-    }
-
-    return new Blob([buffer], { type: 'audio/wav' });
   }
 
   columnOrders(status: OrderStatus): Order[] {
