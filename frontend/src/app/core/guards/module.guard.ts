@@ -44,3 +44,22 @@ export function moduleGuard(module: AdminModuleName | AdminModuleName[]): CanAct
     return router.parseUrl(resolveFirstAccessibleAdminPath(authService));
   };
 }
+
+// For any future route that maps onto exactly one granular sub-permission (e.g.
+// "Orders.Reports"). Today's Order Management tabs and Site Settings categories are
+// signal-state switched inside one component, not separate routes, so this guard has no
+// route to attach to yet within this app - those are gated via @if + a defensive
+// tab-switch check instead (see admin-dashboard.component.ts / site-settings.component.ts).
+// Kept ready for the day a sub-permission gets its own real route.
+export function permissionGuard(permission: string): CanActivateFn {
+  return () => {
+    const authService = inject(AuthService);
+    const router = inject(Router);
+
+    if (authService.hasPermission(permission)) {
+      return true;
+    }
+
+    return router.parseUrl(resolveFirstAccessibleAdminPath(authService));
+  };
+}

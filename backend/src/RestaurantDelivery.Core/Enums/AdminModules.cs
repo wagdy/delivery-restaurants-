@@ -22,3 +22,12 @@ public static class AdminModuleClaims
 {
     public const string ClaimType = "modules";
 }
+
+// Same idea as AdminModuleClaims but for granular sub-permission strings (e.g.
+// "Orders.Create") - a separate claim type so a reader can tell "no modules claims"
+// (legacy token) apart from "no granular-permission claims" (a role with modules but no
+// recorded sub-permission restrictions) without ambiguity.
+public static class GranularPermissionClaims
+{
+    public const string ClaimType = "permissions";
+}

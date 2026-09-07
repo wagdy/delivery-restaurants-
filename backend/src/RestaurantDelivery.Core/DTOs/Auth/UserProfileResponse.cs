@@ -15,4 +15,10 @@ public class UserProfileResponse
     // and for Admin means "resolved at login" (all 5 modules if CustomRoleId is null, else
     // the assigned Role's modules). See AuthService.ResolveAdminModuleNamesAsync.
     public List<string>? Modules { get; set; }
+
+    // Granular sub-permissions (e.g. "Orders.Create") within the granted Modules above -
+    // null for Customer/CaptainOrder; for Admin, empty/absent for a module means "no
+    // restriction recorded", full access to everything under it. See
+    // AuthService.ResolveGranularPermissionNamesAsync.
+    public List<string>? GranularPermissions { get; set; }
 }

@@ -16,10 +16,23 @@
       @for (module of moduleOptions; track module.value) {
         <mat-checkbox
           [checked]="isModuleChecked(newRoleModules, module.value)"
-          (change)="toggleModule(newRoleModules, module.value)"
+          (change)="toggleModule(newRoleModules, newRolePermissions, module.value)"
         >
           {{ module.label }}
         </mat-checkbox>
+
+        @if (isModuleChecked(newRoleModules, module.value) && subPermissionsFor(module.value).length > 0) {
+          <div class="sub-permission-checkboxes">
+            @for (permission of subPermissionsFor(module.value); track permission.value) {
+              <mat-checkbox
+                [checked]="isPermissionChecked(newRolePermissions, permission.value)"
+                (change)="togglePermission(newRolePermissions, permission.value)"
+              >
+                {{ permission.label }}
+              </mat-checkbox>
+            }
+          </div>
+        }
       }
     </div>
 
@@ -59,10 +72,23 @@
               @for (module of moduleOptions; track module.value) {
                 <mat-checkbox
                   [checked]="isModuleChecked(editingModules, module.value)"
-                  (change)="toggleModule(editingModules, module.value)"
+                  (change)="toggleModule(editingModules, editingPermissions, module.value)"
                 >
                   {{ module.label }}
                 </mat-checkbox>
+
+                @if (isModuleChecked(editingModules, module.value) && subPermissionsFor(module.value).length > 0) {
+                  <div class="sub-permission-checkboxes">
+                    @for (permission of subPermissionsFor(module.value); track permission.value) {
+                      <mat-checkbox
+                        [checked]="isPermissionChecked(editingPermissions, permission.value)"
+                        (change)="togglePermission(editingPermissions, permission.value)"
+                      >
+                        {{ permission.label }}
+                      </mat-checkbox>
+                    }
+                  </div>
+                }
               }
             </div>
 

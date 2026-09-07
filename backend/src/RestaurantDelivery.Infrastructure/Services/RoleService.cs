@@ -1,6 +1,8 @@
+using System.Text.Json;
 using RestaurantDelivery.Core.Common;
 using RestaurantDelivery.Core.DTOs.Roles;
 using RestaurantDelivery.Core.Entities;
+using RestaurantDelivery.Core.Enums;
 using RestaurantDelivery.Core.Interfaces;
 
 namespace RestaurantDelivery.Infrastructure.Services;
@@ -35,7 +37,18 @@ public class RoleService : IRoleService
             return ServiceResult<RoleResponse>.Failure(modulesResult.Errors.ToArray());
         }
 
-        var role = new Role { Name = name, Modules = modulesResult.Data };
+        var permissionsResult = ValidateGranularPermissions(request.GranularPermissions, modulesResult.Data);
+        if (!permissionsResult.Succeeded)
+        {
+            return ServiceResult<RoleResponse>.Failure(permissionsResult.Errors.ToArray());
+        }
+
+        var role = new Role
+        {
+            Name = name,
+            Modules = modulesResult.Data,
+            GranularPermissionsJson = SerializePermissions(permissionsResult.Data)
+        };
         await _repository.AddAsync(role);
         await _repository.SaveChangesAsync();
 
@@ -64,8 +77,15 @@ public class RoleService : IRoleService
             return ServiceResult<RoleResponse>.Failure(modulesResult.Errors.ToArray());
         }
 
+        var permissionsResult = ValidateGranularPermissions(request.GranularPermissions, modulesResult.Data);
+        if (!permissionsResult.Succeeded)
+        {
+            return ServiceResult<RoleResponse>.Failure(permissionsResult.Errors.ToArray());
+        }
+
         role.Name = name;
         role.Modules = modulesResult.Data;
+        role.GranularPermissionsJson = SerializePermissions(permissionsResult.Data);
         await _repository.SaveChangesAsync();
 
         return ServiceResult<RoleResponse>.Success(MapResponse(role));
@@ -92,10 +112,43 @@ public class RoleService : IRoleService
         return ServiceResult<bool>.Success(true);
     }
 
+    // Rejects unknown permission strings outright, and rejects a permission whose parent
+    // module isn't in the role's own module list - a role can't be granted "Orders.Create"
+    // without also having the "Orders" module, since the sub-permission is meaningless
+    // without the parent tab it narrows.
+    private static ServiceResult<List<string>> ValidateGranularPermissions(List<string> permissions, AdminModules modules)
+    {
+        var distinct = permissions.Distinct().ToList();
+
+        foreach (var permission in distinct)
+        {
+            if (!GranularPermissions.IsValid(permission))
+            {
+                return ServiceResult<List<string>>.Failure($"'{permission}' is not a recognized permission.");
+            }
+
+            var parentModule = GranularPermissions.ModuleFor(permission)!.Value;
+            if (!modules.HasFlag(parentModule))
+            {
+                return ServiceResult<List<string>>.Failure(
+                    $"Cannot grant '{permission}' without also granting the '{parentModule}' module.");
+            }
+        }
+
+        return ServiceResult<List<string>>.Success(distinct);
+    }
+
+    private static string? SerializePermissions(List<string> permissions) =>
+        permissions.Count == 0 ? null : JsonSerializer.Serialize(permissions);
+
+    private static List<string> DeserializePermissions(string? json) =>
+        string.IsNullOrEmpty(json) ? new List<string>() : JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
+
     private static RoleResponse MapResponse(Role role) => new()
     {
         Id = role.Id,
         Name = role.Name,
-        Modules = AdminModulesMapper.ToNames(role.Modules)
+        Modules = AdminModulesMapper.ToNames(role.Modules),
+        GranularPermissions = DeserializePermissions(role.GranularPermissionsJson)
     };
 }

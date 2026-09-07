@@ -16,12 +16,29 @@ import { OrderService } from '../../../core/services/order.service';
 import { MenuItemService } from '../../../core/services/menu-item.service';
 import { DgteraSyncService } from '../../../core/services/dgtera-sync.service';
 import { OrderRealtimeService } from '../../../core/services/order-realtime.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { MenuItem } from '../../../core/models/menu-item.model';
 import { CreateOrderRequest, CustomerLookup, ORDER_STATUSES, Order, OrderStatus } from '../../../core/models/order.model';
 import { OrderDetailsDialogComponent } from '../order-details-dialog/order-details-dialog.component';
 
 type DashboardTab = 'create' | 'all' | 'active' | 'reports';
 type CustomerMode = 'new' | 'registered';
+
+// Maps each tab to the granular sub-permission that gates it (see the "Manage Roles"
+// nested checkboxes under the Orders module) - checked via AuthService.hasPermission's
+// "no recorded restriction = full access" rule, so a role with the Orders module but no
+// narrowed sub-permissions still sees every tab.
+const TAB_PERMISSIONS: Record<DashboardTab, string> = {
+  create: 'Orders.Create',
+  all: 'Orders.AllOrders',
+  active: 'Orders.ActiveStatus',
+  reports: 'Orders.Reports'
+};
+const TAB_ORDER: DashboardTab[] = ['create', 'all', 'active', 'reports'];
+
+function firstAccessibleTab(authService: AuthService): DashboardTab {
+  return TAB_ORDER.find((tab) => authService.hasPermission(TAB_PERMISSIONS[tab])) ?? 'active';
+}
 
 // How often the Active Status board's "time elapsed" labels refresh themselves without
 // any user interaction - short enough to feel live on an ops screen, long enough not to
@@ -52,6 +69,7 @@ export class AdminDashboardComponent implements OnInit {
   private readonly menuItemService = inject(MenuItemService);
   private readonly dgteraSyncService = inject(DgteraSyncService);
   private readonly orderRealtimeService = inject(OrderRealtimeService);
+  private readonly authService = inject(AuthService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
@@ -59,7 +77,7 @@ export class AdminDashboardComponent implements OnInit {
 
   @ViewChild('fileInput') private readonly fileInput?: ElementRef<HTMLInputElement>;
 
-  readonly activeTab = signal<DashboardTab>('active');
+  readonly activeTab = signal<DashboardTab>(firstAccessibleTab(this.authService));
   // The Active Status board shows all 5 statuses side by side (Delivered/Cancelled
   // included) so an admin can see an order's full lifecycle at a glance - the All Orders
   // tab covers the same data as a searchable flat history table instead.
@@ -420,6 +438,20 @@ export class AdminDashboardComponent implements OnInit {
     });
   }
 
+  canAccessTab(tab: DashboardTab): boolean {
+    return this.authService.hasPermission(TAB_PERMISSIONS[tab]);
+  }
+
+  // The tab buttons are already hidden via @if(canAccessTab(...)) in the template - this
+  // is a defensive second check so a programmatic switch (e.g. submitCreateOrder jumping
+  // to 'all' after saving) can't land on a tab this admin's role doesn't have permission
+  // for.
+  switchTab(tab: DashboardTab): void {
+    if (this.canAccessTab(tab)) {
+      this.activeTab.set(tab);
+    }
+  }
+
   openDetails(order: Order): void {
     const dialogRef = this.dialog.open(OrderDetailsDialogComponent, {
       width: '640px',
@@ -534,7 +566,7 @@ export class AdminDashboardComponent implements OnInit {
         this.snackBar.open(`Order #${order.id} created.`, 'Dismiss', { duration: 4000 });
         this.resetCreateForm();
         this.loadOrders();
-        this.activeTab.set('all');
+        this.switchTab('all');
       },
       error: (err) => {
         this.savingOrder.set(false);

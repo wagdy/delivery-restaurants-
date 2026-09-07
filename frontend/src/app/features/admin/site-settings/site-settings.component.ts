@@ -10,6 +10,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SettingsService } from '../../../core/services/settings.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
 // Deliberately narrower than ALLOWED_IMAGE_TYPES above (no WEBP/GIF/SVG) - a favicon
@@ -20,6 +21,22 @@ const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 
 type SettingsCategory = 'branding' | 'contact' | 'checkout' | 'payment';
+
+// Maps each settings category to the granular sub-permission that gates it (see the
+// "Manage Roles" nested checkboxes under the Settings module) - checked via
+// AuthService.hasPermission's "no recorded restriction = full access" rule, so a role
+// with the Settings module but no narrowed sub-permissions still sees every category.
+const CATEGORY_PERMISSIONS: Record<SettingsCategory, string> = {
+  branding: 'Settings.Branding',
+  contact: 'Settings.Contact',
+  checkout: 'Settings.Checkout',
+  payment: 'Settings.Payment'
+};
+const CATEGORY_ORDER: SettingsCategory[] = ['branding', 'contact', 'checkout', 'payment'];
+
+function firstAccessibleCategory(authService: AuthService): SettingsCategory {
+  return CATEGORY_ORDER.find((category) => authService.hasPermission(CATEGORY_PERMISSIONS[category])) ?? 'branding';
+}
 
 @Component({
   selector: 'app-site-settings',
@@ -40,12 +57,13 @@ type SettingsCategory = 'branding' | 'contact' | 'checkout' | 'payment';
 })
 export class SiteSettingsComponent {
   protected readonly settingsService = inject(SettingsService);
+  private readonly authService = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly snackBar = inject(MatSnackBar);
 
   readonly loading = signal(true);
   readonly saving = signal(false);
-  readonly activeCategory = signal<SettingsCategory>('branding');
+  readonly activeCategory = signal<SettingsCategory>(firstAccessibleCategory(this.authService));
 
   readonly uploadingLogo = signal(false);
   readonly uploadingBackgroundImage = signal(false);
@@ -115,6 +133,18 @@ export class SiteSettingsComponent {
         this.snackBar.open('Failed to load settings.', 'Dismiss', { duration: 4000 });
       }
     });
+  }
+
+  canAccessCategory(category: SettingsCategory): boolean {
+    return this.authService.hasPermission(CATEGORY_PERMISSIONS[category]);
+  }
+
+  // The nav buttons are already hidden via @if(canAccessCategory(...)) in the template -
+  // this is a defensive second check against any future programmatic switch.
+  switchCategory(category: SettingsCategory): void {
+    if (this.canAccessCategory(category)) {
+      this.activeCategory.set(category);
+    }
   }
 
   // A single [Required] attribute can't express "required only while the matching

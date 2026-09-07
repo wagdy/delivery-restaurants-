@@ -132,11 +132,24 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(
         "Module.CustomerInsights",
         policy => policy.Requirements.Add(new AnyModuleRequirement(AdminModules.Crm, AdminModules.Customers)));
+
+    // Granular sub-permission policies, ready for any future endpoint that maps onto
+    // exactly one of these - see GranularPermissionAuthorizationHandler's doc comment for
+    // why none of today's Orders/Settings endpoints are gated by these yet.
+    options.AddPolicy("Permission.Orders.Create", policy => policy.Requirements.Add(new GranularPermissionRequirement("Orders.Create")));
+    options.AddPolicy("Permission.Orders.AllOrders", policy => policy.Requirements.Add(new GranularPermissionRequirement("Orders.AllOrders")));
+    options.AddPolicy("Permission.Orders.ActiveStatus", policy => policy.Requirements.Add(new GranularPermissionRequirement("Orders.ActiveStatus")));
+    options.AddPolicy("Permission.Orders.Reports", policy => policy.Requirements.Add(new GranularPermissionRequirement("Orders.Reports")));
+    options.AddPolicy("Permission.Settings.Branding", policy => policy.Requirements.Add(new GranularPermissionRequirement("Settings.Branding")));
+    options.AddPolicy("Permission.Settings.Contact", policy => policy.Requirements.Add(new GranularPermissionRequirement("Settings.Contact")));
+    options.AddPolicy("Permission.Settings.Checkout", policy => policy.Requirements.Add(new GranularPermissionRequirement("Settings.Checkout")));
+    options.AddPolicy("Permission.Settings.Payment", policy => policy.Requirements.Add(new GranularPermissionRequirement("Settings.Payment")));
 });
 
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, OrdersAccessAuthorizationHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, AnyModuleAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, GranularPermissionAuthorizationHandler>();
 
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();

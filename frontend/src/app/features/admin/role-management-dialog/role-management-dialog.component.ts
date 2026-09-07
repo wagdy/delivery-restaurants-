@@ -10,7 +10,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { RoleService } from '../../../core/services/role.service';
-import { AdminModuleName, Role } from '../../../core/models/role.model';
+import { AdminModuleName, MODULE_SUB_PERMISSIONS, Role, SubPermissionOption } from '../../../core/models/role.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 
 const MODULE_OPTIONS: { value: AdminModuleName; label: string }[] = [
@@ -54,10 +54,12 @@ export class RoleManagementDialogComponent {
   readonly roles = signal<Role[]>([]);
   readonly newRoleName = signal('');
   readonly newRoleModules = signal<AdminModuleName[]>([]);
+  readonly newRolePermissions = signal<string[]>([]);
   readonly adding = signal(false);
   readonly editingId = signal<number | null>(null);
   readonly editingName = signal('');
   readonly editingModules = signal<AdminModuleName[]>([]);
+  readonly editingPermissions = signal<string[]>([]);
   readonly savingEdit = signal(false);
   private mutated = false;
 
@@ -83,10 +85,37 @@ export class RoleManagementDialogComponent {
     return modules().includes(module);
   }
 
-  toggleModule(modules: WritableSignal<AdminModuleName[]>, module: AdminModuleName): void {
+  // Unchecking a module also clears (and thereby hides) all of its nested sub-permissions
+  // - a role can't be left holding "Orders.Create" without the "Orders" module itself.
+  toggleModule(
+    modules: WritableSignal<AdminModuleName[]>,
+    permissions: WritableSignal<string[]>,
+    module: AdminModuleName
+  ): void {
     const current = modules();
-    modules.set(
-      current.includes(module) ? current.filter((m) => m !== module) : [...current, module]
+    const isChecked = current.includes(module);
+
+    if (isChecked) {
+      modules.set(current.filter((m) => m !== module));
+      const subPermissions = this.subPermissionsFor(module).map((p) => p.value);
+      permissions.set(permissions().filter((p) => !subPermissions.includes(p)));
+    } else {
+      modules.set([...current, module]);
+    }
+  }
+
+  subPermissionsFor(module: AdminModuleName): SubPermissionOption[] {
+    return MODULE_SUB_PERMISSIONS[module] ?? [];
+  }
+
+  isPermissionChecked(permissions: WritableSignal<string[]>, permission: string): boolean {
+    return permissions().includes(permission);
+  }
+
+  togglePermission(permissions: WritableSignal<string[]>, permission: string): void {
+    const current = permissions();
+    permissions.set(
+      current.includes(permission) ? current.filter((p) => p !== permission) : [...current, permission]
     );
   }
 
@@ -97,11 +126,13 @@ export class RoleManagementDialogComponent {
     }
 
     this.adding.set(true);
-    this.roleService.create({ name, modules: this.newRoleModules() }).subscribe({
+    const request = { name, modules: this.newRoleModules(), granularPermissions: this.newRolePermissions() };
+    this.roleService.create(request).subscribe({
       next: () => {
         this.adding.set(false);
         this.newRoleName.set('');
         this.newRoleModules.set([]);
+        this.newRolePermissions.set([]);
         this.mutated = true;
         this.load();
       },
@@ -116,12 +147,14 @@ export class RoleManagementDialogComponent {
     this.editingId.set(role.id);
     this.editingName.set(role.name);
     this.editingModules.set([...role.modules]);
+    this.editingPermissions.set([...role.granularPermissions]);
   }
 
   cancelEdit(): void {
     this.editingId.set(null);
     this.editingName.set('');
     this.editingModules.set([]);
+    this.editingPermissions.set([]);
   }
 
   saveEdit(role: Role): void {
@@ -132,7 +165,8 @@ export class RoleManagementDialogComponent {
     }
 
     this.savingEdit.set(true);
-    this.roleService.update(role.id, { name, modules: this.editingModules() }).subscribe({
+    const request = { name, modules: this.editingModules(), granularPermissions: this.editingPermissions() };
+    this.roleService.update(role.id, request).subscribe({
       next: () => {
         this.savingEdit.set(false);
         this.mutated = true;

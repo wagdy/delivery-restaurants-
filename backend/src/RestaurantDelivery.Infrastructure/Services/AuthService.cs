@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -119,7 +120,8 @@ public class AuthService : IAuthService
         }
 
         var modules = await ResolveAdminModuleNamesAsync(user);
-        return ServiceResult<UserProfileResponse>.Success(MapProfile(user, modules));
+        var permissions = await ResolveGranularPermissionNamesAsync(user);
+        return ServiceResult<UserProfileResponse>.Success(MapProfile(user, modules, permissions));
     }
 
     public async Task<ServiceResult<UserProfileResponse>> CreateStaffUserAsync(CreateStaffUserRequest request)
@@ -176,7 +178,8 @@ public class AuthService : IAuthService
         }
 
         var modules = await ResolveAdminModuleNamesAsync(user);
-        return ServiceResult<UserProfileResponse>.Success(MapProfile(user, modules));
+        var permissions = await ResolveGranularPermissionNamesAsync(user);
+        return ServiceResult<UserProfileResponse>.Success(MapProfile(user, modules, permissions));
     }
 
     // Empty for Customer/CaptainOrder. For Admin: every module when no custom Role is
@@ -204,19 +207,42 @@ public class AuthService : IAuthService
             : AdminModulesMapper.ToNames(role.Modules);
     }
 
+    // Empty for Customer/CaptainOrder, and empty for the no-CustomRole superuser default
+    // (mirrors ResolveAdminModuleNamesAsync's own "full access" default - a superuser has
+    // no recorded restrictions on any module). Otherwise the assigned Role's own granular
+    // permissions - empty if that Role recorded none, meaning "full access within whatever
+    // modules it has", the same "absence = full access" rule AdminModuleClaimsHelper
+    // already applies at the module level.
+    private async Task<List<string>> ResolveGranularPermissionNamesAsync(AppUser user)
+    {
+        if (user.Role != UserRole.Admin || user.CustomRoleId is null)
+        {
+            return new List<string>();
+        }
+
+        var role = await _roleRepository.GetByIdAsync(user.CustomRoleId.Value);
+        if (role is null || string.IsNullOrEmpty(role.GranularPermissionsJson))
+        {
+            return new List<string>();
+        }
+
+        return JsonSerializer.Deserialize<List<string>>(role.GranularPermissionsJson) ?? new List<string>();
+    }
+
     private async Task<AuthResponse> BuildAuthResponseAsync(AppUser user)
     {
         var modules = await ResolveAdminModuleNamesAsync(user);
-        var (token, expiresAtUtc) = _tokenService.CreateToken(user, modules);
+        var permissions = await ResolveGranularPermissionNamesAsync(user);
+        var (token, expiresAtUtc) = _tokenService.CreateToken(user, modules, permissions);
         return new AuthResponse
         {
             Token = token,
             ExpiresAtUtc = expiresAtUtc,
-            User = MapProfile(user, modules)
+            User = MapProfile(user, modules, permissions)
         };
     }
 
-    private static UserProfileResponse MapProfile(AppUser user, List<string> modules) => new()
+    private static UserProfileResponse MapProfile(AppUser user, List<string> modules, List<string> permissions) => new()
     {
         Id = user.Id,
         Email = user.Email ?? string.Empty,
@@ -224,6 +250,7 @@ public class AuthService : IAuthService
         PhoneNumber = user.PhoneNumber,
         Address = user.Address,
         Role = user.Role,
-        Modules = user.Role == UserRole.Admin ? modules : null
+        Modules = user.Role == UserRole.Admin ? modules : null,
+        GranularPermissions = user.Role == UserRole.Admin ? permissions : null
     };
 }

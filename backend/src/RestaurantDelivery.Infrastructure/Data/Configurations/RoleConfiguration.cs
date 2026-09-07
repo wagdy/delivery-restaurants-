@@ -10,5 +10,6 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
     {
         builder.Property(r => r.Name).HasMaxLength(100).IsRequired();
         builder.HasIndex(r => r.Name).IsUnique();
+        builder.Property(r => r.GranularPermissionsJson).HasMaxLength(2000);
     }
 }

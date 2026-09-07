@@ -18,7 +18,10 @@ public class JwtTokenService : ITokenService
         _configuration = configuration;
     }
 
-    public (string Token, DateTime ExpiresAtUtc) CreateToken(AppUser user, IReadOnlyList<string> adminModules)
+    public (string Token, DateTime ExpiresAtUtc) CreateToken(
+        AppUser user,
+        IReadOnlyList<string> adminModules,
+        IReadOnlyList<string> granularPermissions)
     {
         var jwtSection = _configuration.GetSection("Jwt");
         var key = jwtSection["Key"]
@@ -38,6 +41,7 @@ public class JwtTokenService : ITokenService
         };
 
         claims.AddRange(adminModules.Select(m => new Claim(AdminModuleClaims.ClaimType, m)));
+        claims.AddRange(granularPermissions.Select(p => new Claim(GranularPermissionClaims.ClaimType, p)));
 
         var expiresAtUtc = DateTime.UtcNow.AddMinutes(expiryMinutes);
 

@@ -19,6 +19,23 @@
   gap: 4px 12px;
 }
 
+// Nested sub-permission checkboxes revealed under a checked parent module - flex-basis:
+// 100% forces each onto its own full-width row within the wrapping .module-checkboxes
+// flex container, so the indent reads clearly as "belongs to the module above it" rather
+// than blending into the same row.
+.sub-permission-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  flex-basis: 100%;
+  gap: 4px 12px;
+  padding-left: 28px;
+  margin: 2px 0 4px;
+
+  mat-checkbox {
+    font-size: 0.9rem;
+  }
+}
+
 .loading-state {
   display: flex;
   justify-content: center;

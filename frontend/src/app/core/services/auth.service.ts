@@ -27,6 +27,17 @@ export class AuthService {
     return this._user()?.modules?.includes(name) ?? false;
   }
 
+  // Mirrors the backend's GranularPermissionAuthorizationHandler: no recorded permission
+  // claims for this permission's module means "no restriction", full access - so a role
+  // created before this feature existed (or one that just never narrowed this module)
+  // keeps seeing everything under it.
+  hasPermission(permission: string): boolean {
+    const granted = this._user()?.granularPermissions ?? [];
+    const modulePrefix = permission.split('.')[0] + '.';
+    const hasAnyForModule = granted.some((p) => p.startsWith(modulePrefix));
+    return !hasAnyForModule || granted.includes(permission);
+  }
+
   constructor() {
     this.restoreSession();
   }

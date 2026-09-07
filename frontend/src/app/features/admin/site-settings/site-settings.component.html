@@ -11,42 +11,50 @@
       <div class="settings-layout">
         <nav class="settings-nav">
           <div class="nav-group-label">Site Settings</div>
-          <button
-            type="button"
-            class="nav-item"
-            [class.active]="activeCategory() === 'branding'"
-            (click)="activeCategory.set('branding')"
-          >
-            <mat-icon>palette</mat-icon>
-            Branding
-          </button>
-          <button
-            type="button"
-            class="nav-item"
-            [class.active]="activeCategory() === 'contact'"
-            (click)="activeCategory.set('contact')"
-          >
-            <mat-icon>contact_mail</mat-icon>
-            Contact &amp; Footer
-          </button>
-          <button
-            type="button"
-            class="nav-item"
-            [class.active]="activeCategory() === 'checkout'"
-            (click)="activeCategory.set('checkout')"
-          >
-            <mat-icon>receipt_long</mat-icon>
-            Checkout &amp; Taxes
-          </button>
-          <button
-            type="button"
-            class="nav-item"
-            [class.active]="activeCategory() === 'payment'"
-            (click)="activeCategory.set('payment')"
-          >
-            <mat-icon>payments</mat-icon>
-            Payment Systems
-          </button>
+          @if (canAccessCategory('branding')) {
+            <button
+              type="button"
+              class="nav-item"
+              [class.active]="activeCategory() === 'branding'"
+              (click)="switchCategory('branding')"
+            >
+              <mat-icon>palette</mat-icon>
+              Branding
+            </button>
+          }
+          @if (canAccessCategory('contact')) {
+            <button
+              type="button"
+              class="nav-item"
+              [class.active]="activeCategory() === 'contact'"
+              (click)="switchCategory('contact')"
+            >
+              <mat-icon>contact_mail</mat-icon>
+              Contact &amp; Footer
+            </button>
+          }
+          @if (canAccessCategory('checkout')) {
+            <button
+              type="button"
+              class="nav-item"
+              [class.active]="activeCategory() === 'checkout'"
+              (click)="switchCategory('checkout')"
+            >
+              <mat-icon>receipt_long</mat-icon>
+              Checkout &amp; Taxes
+            </button>
+          }
+          @if (canAccessCategory('payment')) {
+            <button
+              type="button"
+              class="nav-item"
+              [class.active]="activeCategory() === 'payment'"
+              (click)="switchCategory('payment')"
+            >
+              <mat-icon>payments</mat-icon>
+              Payment Systems
+            </button>
+          }
         </nav>
 
         <div class="settings-content">

@@ -49,18 +49,26 @@
 </mat-toolbar>
 
 <nav class="tabs-nav">
-  <button type="button" class="tab-button" [class.active]="activeTab() === 'create'" (click)="activeTab.set('create')">
-    Create Order
-  </button>
-  <button type="button" class="tab-button" [class.active]="activeTab() === 'all'" (click)="activeTab.set('all')">
-    All Orders
-  </button>
-  <button type="button" class="tab-button" [class.active]="activeTab() === 'active'" (click)="activeTab.set('active')">
-    Active Status
-  </button>
-  <button type="button" class="tab-button" [class.active]="activeTab() === 'reports'" (click)="activeTab.set('reports')">
-    Reports
-  </button>
+  @if (canAccessTab('create')) {
+    <button type="button" class="tab-button" [class.active]="activeTab() === 'create'" (click)="switchTab('create')">
+      Create Order
+    </button>
+  }
+  @if (canAccessTab('all')) {
+    <button type="button" class="tab-button" [class.active]="activeTab() === 'all'" (click)="switchTab('all')">
+      All Orders
+    </button>
+  }
+  @if (canAccessTab('active')) {
+    <button type="button" class="tab-button" [class.active]="activeTab() === 'active'" (click)="switchTab('active')">
+      Active Status
+    </button>
+  }
+  @if (canAccessTab('reports')) {
+    <button type="button" class="tab-button" [class.active]="activeTab() === 'reports'" (click)="switchTab('reports')">
+      Reports
+    </button>
+  }
 </nav>
 
 @if (!audioUnlocked()) {
