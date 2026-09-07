@@ -82,6 +82,11 @@ export interface CreateOrderRequest {
   // Set only by the admin "Create Order" screen when a registered customer was picked
   // via phone search - re-validated server-side, never trusted at face value either.
   customerId?: string | null;
+  // Set only by the admin "Create Order" screen's New Customer mode - tells the backend
+  // to find-or-create a real customer account from customerName/customerPhone/
+  // deliveryAddress instead of leaving the order a guest order (see OrderService.CreateAsync,
+  // which only honors this for staff-created orders).
+  isNewCustomer?: boolean;
 }
 
 // For the admin "Create Order" screen's registered-customer phone search.

@@ -182,6 +182,47 @@ public class AuthService : IAuthService
         return ServiceResult<UserProfileResponse>.Success(MapProfile(user, modules, permissions));
     }
 
+    public async Task<ServiceResult<string>> FindOrCreateCustomerByPhoneAsync(string fullName, string phoneNumber, string? address)
+    {
+        var existing = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
+        if (existing is not null)
+        {
+            return ServiceResult<string>.Success(existing.Id);
+        }
+
+        // Identity requires a unique Email/UserName even though customers log in by phone -
+        // same placeholder convention as RegisterAsync/CreateStaffUserAsync. Unique because
+        // the phone lookup above already confirmed this number isn't taken.
+        var syntheticEmail = $"customer+{phoneNumber}@internal.otantik";
+
+        var user = new AppUser
+        {
+            UserName = syntheticEmail,
+            Email = syntheticEmail,
+            EmailConfirmed = true,
+            FullName = fullName,
+            PhoneNumber = phoneNumber,
+            Address = address,
+            Role = UserRole.Customer
+        };
+
+        // The customer isn't present to choose a password - a cashier is typing their
+        // details into the POS, not the customer themselves. This value is never shown to
+        // or used by anyone; it only satisfies Identity's requirement that every account
+        // have one. A real login (password reset, or a future OTP flow) would be a
+        // separate, explicit follow-up - this account exists for CRM/loyalty tracking and
+        // phone-based recognition on a future visit, not for the customer to sign into yet.
+        var generatedPassword = $"Aa1{Guid.NewGuid():N}{Guid.NewGuid():N}";
+
+        var createResult = await _userManager.CreateAsync(user, generatedPassword);
+        if (!createResult.Succeeded)
+        {
+            return ServiceResult<string>.Failure(createResult.Errors.Select(e => e.Description).ToArray());
+        }
+
+        return ServiceResult<string>.Success(user.Id);
+    }
+
     // Empty for Customer/CaptainOrder. For Admin: every module when no custom Role is
     // assigned (the default, backward-compatible "full access" superuser behavior), else
     // the assigned Role's modules - falling back to full access if that Role has somehow

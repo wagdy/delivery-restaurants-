@@ -17,6 +17,7 @@ public class OrderService : IOrderService
     private readonly IPromoCodeRepository _promoCodeRepository;
     private readonly ICategoryRepository _categoryRepository;
     private readonly ISettingsService _settingsService;
+    private readonly IAuthService _authService;
 
     public OrderService(
         IOrderRepository repository,
@@ -26,7 +27,8 @@ public class OrderService : IOrderService
         IOrderRealtimeNotifier orderRealtimeNotifier,
         IPromoCodeRepository promoCodeRepository,
         ICategoryRepository categoryRepository,
-        ISettingsService settingsService)
+        ISettingsService settingsService,
+        IAuthService authService)
     {
         _repository = repository;
         _pushNotificationService = pushNotificationService;
@@ -36,16 +38,35 @@ public class OrderService : IOrderService
         _promoCodeRepository = promoCodeRepository;
         _categoryRepository = categoryRepository;
         _settingsService = settingsService;
+        _authService = authService;
     }
 
     public async Task<ServiceResult<OrderResponse>> CreateAsync(CreateOrderRequest request, string? userId, bool isStaffCreated = false)
     {
+        // Only a staff-created order can auto-register a customer - IsNewCustomer is
+        // otherwise ignored entirely. Without this gate, a public/guest checkout request
+        // could attach itself to any stranger's account just by sending their phone
+        // number, since phone numbers (unlike CreateOrderRequest.CustomerId's opaque GUID)
+        // aren't a secret. Resolves to an existing account if this phone is already
+        // registered (self-healing a cashier picking "New" for a repeat customer) rather
+        // than erroring or creating a duplicate.
+        if (request.IsNewCustomer && isStaffCreated)
+        {
+            var customerResult = await _authService.FindOrCreateCustomerByPhoneAsync(
+                request.CustomerName, request.CustomerPhone, request.DeliveryAddress);
+            if (!customerResult.Succeeded)
+            {
+                return ServiceResult<OrderResponse>.Failure(customerResult.Errors.ToArray());
+            }
+
+            userId = customerResult.Data;
+        }
         // Covers both a normal customer's own (already-trustworthy) JWT-derived id and
         // an admin-supplied CreateOrderRequest.CustomerId from the "Create Order" POS
         // screen's phone search - the latter is exactly the case that needs this check,
         // since it's a client-supplied value; validating both paths uniformly is one
         // extra indexed lookup on the common path and closes the gap on the new one.
-        if (userId is not null && await _repository.GetCustomerByIdAsync(userId) is null)
+        else if (userId is not null && await _repository.GetCustomerByIdAsync(userId) is null)
         {
             return ServiceResult<OrderResponse>.Failure("The selected customer account could not be found.");
         }

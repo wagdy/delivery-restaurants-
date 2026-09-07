@@ -694,6 +694,12 @@ export class AdminDashboardComponent implements OnInit {
     // order-creation behavior (see the now-retired OrderFormDialogComponent create mode).
     // Promo code text IS now forwarded, though - re-validated server-side the same way the
     // customer flow's is, never trusted at face value for the discount amount.
+    //
+    // New Customer mode sends isNewCustomer: true and lets the backend find-or-create a
+    // real account from the Name/Phone/Address already on the form - Registered Customer
+    // mode instead strictly passes the customerId captured from the phone-search selection,
+    // never re-deriving it from the (possibly since-edited) form fields.
+    const isNewCustomer = this.customerMode() === 'new';
     const request: CreateOrderRequest = {
       customerName: raw.customerName,
       customerPhone: raw.customerPhone,
@@ -702,7 +708,8 @@ export class AdminDashboardComponent implements OnInit {
       paymentMethod: 'Cash',
       promoCodeText: this.promoResult() ? this.promoCodeInput().trim() : null,
       deliveryFee: AdminDashboardComponent.ADMIN_ORDER_DELIVERY_FEE,
-      customerId: this.customerMode() === 'registered' ? (this.selectedCustomer()?.id ?? null) : null
+      customerId: isNewCustomer ? null : (this.selectedCustomer()?.id ?? null),
+      isNewCustomer
     };
 
     this.orderService.create(request).subscribe({

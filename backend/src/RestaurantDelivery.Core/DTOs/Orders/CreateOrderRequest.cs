@@ -37,4 +37,12 @@ public class CreateOrderRequest
     // A normal customer's own checkout never sends this (OrdersController.Create derives
     // their id from their own JWT instead, ignoring this field entirely).
     public string? CustomerId { get; set; }
+
+    // True only from the admin "Create Order" screen's New Customer mode - tells
+    // OrderService.CreateAsync to find-or-create a real Customer-role AppUser from
+    // CustomerName/CustomerPhone/DeliveryAddress instead of leaving the order a guest
+    // order. Deliberately only honored for staff-created orders (see CreateAsync) - a
+    // public/guest checkout request could otherwise attach itself to any stranger's
+    // account just by guessing their phone number.
+    public bool IsNewCustomer { get; set; }
 }
