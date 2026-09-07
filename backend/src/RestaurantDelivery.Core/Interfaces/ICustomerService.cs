@@ -1,12 +1,13 @@
+using RestaurantDelivery.Core.DTOs.Common;
 using RestaurantDelivery.Core.DTOs.Customers;
 
 namespace RestaurantDelivery.Core.Interfaces;
 
 public interface ICustomerService
 {
-    Task<List<CustomerInsightResponse>> GetCustomerInsightsAsync();
+    Task<PagedResult<CustomerAnalyticsResponse>> GetAnalyticsPagedAsync(int page, int pageSize, string? search);
 
-    // For the CRM admin screen - includes each customer's loyalty standing, unlike
-    // GetCustomerInsightsAsync which is order-stats only.
-    Task<List<CustomerCrmResponse>> GetCrmCustomersAsync();
+    // No paging - the export is a one-shot download of everything currently matching
+    // (search is honored, same as the paged screen; there are no other filters yet).
+    Task<Stream> ExportAnalyticsAsync(string? search);
 }

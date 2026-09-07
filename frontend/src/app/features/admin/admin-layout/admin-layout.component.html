@@ -19,14 +19,15 @@
       Staff
     </a>
   }
-  @if (authService.hasModule('Customers')) {
-    <a mat-tab-link routerLink="customers" routerLinkActive #customersLink="routerLinkActive" [active]="customersLink.isActive">
-      Customers
-    </a>
-  }
-  @if (authService.hasModule('Crm')) {
-    <a mat-tab-link routerLink="crm" routerLinkActive #crmLink="routerLinkActive" [active]="crmLink.isActive">
-      CRM
+  @if (authService.hasModule('Customers') || authService.hasModule('Crm')) {
+    <a
+      mat-tab-link
+      routerLink="customer-insights"
+      routerLinkActive
+      #customerInsightsLink="routerLinkActive"
+      [active]="customerInsightsLink.isActive"
+    >
+      Customer Insights
     </a>
   }
   @if (authService.hasModule('Campaigns')) {

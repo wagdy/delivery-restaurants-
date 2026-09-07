@@ -34,10 +34,172 @@
 }
 
 .table-wrapper {
-  padding: 16px;
+  padding: 16px 16px 0;
   overflow-x: auto;
 }
 
 table {
   width: 100%;
+}
+
+.points-value {
+  margin-left: 6px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+// Same keyword-matched tier palette as the Rewards page / order details dialog (see
+// shared/utils/tier-style.util.ts) - kept visually consistent with every other place a
+// tier name is shown in this app.
+.tier-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+
+  &.tier-bronze {
+    background: #e6d6c8;
+    color: #5c3d24;
+  }
+
+  &.tier-silver {
+    background: #e0e0e0;
+    color: #4a4a4a;
+  }
+
+  &.tier-gold {
+    background: #f5e3ab;
+    color: #7a5c00;
+  }
+
+  &.tier-vip {
+    background: #2b1a10;
+    color: #d4af37;
+  }
+
+  &.tier-default {
+    background: #dde1f7;
+    color: #3f51b5;
+  }
+}
+
+// Equivalent to Tailwind's `inline-flex rounded-full px-2.5 py-1 text-xs font-semibold`
+// badge with a color-coded variant per tier (e.g. bg-green-100 text-green-800) - this
+// project has no Tailwind installed, so the same result is plain CSS instead, matching
+// every other component's substitution pattern.
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+
+  &.badge-high {
+    background: #e6f4ea;
+    color: #1e7e34;
+  }
+
+  &.badge-mid {
+    background: #fff3e0;
+    color: #e65100;
+  }
+
+  &.badge-low {
+    background: rgba(0, 0, 0, 0.06);
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.punch-enrolled {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: #1565c0;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.punch-not-enrolled {
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.status-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+
+  &.status-Active {
+    background: #e6f4ea;
+    color: #1e7e34;
+  }
+
+  &.status-AtRisk {
+    background: #fdecea;
+    color: #c62828;
+  }
+
+  &.status-VIP {
+    background: #2b1a10;
+    color: #d4af37;
+  }
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px;
+}
+
+.page-numbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.page-number {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  background: white;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  &.active {
+    background: var(--app-primary-color, #3f51b5);
+    border-color: var(--app-primary-color, #3f51b5);
+    color: white;
+    font-weight: 600;
+  }
+}
+
+.ellipsis {
+  padding: 0 4px;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.page-summary {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.5);
 }

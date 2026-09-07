@@ -4,11 +4,20 @@
 
   <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
     <mat-label>Search</mat-label>
-    <input matInput [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" placeholder="Name or phone" />
+    <input matInput [ngModel]="searchTerm()" (ngModelChange)="onSearchChange($event)" placeholder="Name or contact info" />
   </mat-form-field>
 
   <button mat-icon-button (click)="load()" aria-label="Refresh">
     <mat-icon>refresh</mat-icon>
+  </button>
+
+  <button mat-flat-button color="primary" [disabled]="exporting()" (click)="exportToExcel()">
+    @if (exporting()) {
+      <mat-spinner diameter="18"></mat-spinner>
+    } @else {
+      <mat-icon>download</mat-icon>
+    }
+    Download Excel
   </button>
 </mat-toolbar>
 
@@ -18,33 +27,105 @@
   </div>
 } @else if (errorMessage()) {
   <p class="error-text">{{ errorMessage() }}</p>
-} @else if (filteredCustomers().length === 0) {
+} @else if (customers().length === 0) {
   <p class="empty-state">No customers found.</p>
 } @else {
   <div class="table-wrapper">
-    <table mat-table [dataSource]="filteredCustomers()">
-      <ng-container matColumnDef="customerName">
+    <table mat-table [dataSource]="customers()">
+      <ng-container matColumnDef="fullName">
         <th mat-header-cell *matHeaderCellDef>Customer</th>
-        <td mat-cell *matCellDef="let c">{{ c.customerName }}</td>
+        <td mat-cell *matCellDef="let c">{{ c.fullName }}</td>
       </ng-container>
 
-      <ng-container matColumnDef="phoneNumber">
-        <th mat-header-cell *matHeaderCellDef>Phone</th>
-        <td mat-cell *matCellDef="let c">{{ c.phoneNumber || '—' }}</td>
+      <ng-container matColumnDef="contactInfo">
+        <th mat-header-cell *matHeaderCellDef>Contact</th>
+        <td mat-cell *matCellDef="let c">{{ c.contactInfo }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="totalPoints">
+        <th mat-header-cell *matHeaderCellDef>Points</th>
+        <td mat-cell *matCellDef="let c">
+          <span class="tier-badge" [class]="tierClass(c.membershipTier)">{{ c.membershipTier }}</span>
+          <span class="points-value">{{ c.totalPoints }}</span>
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="totalOrders">
-        <th mat-header-cell *matHeaderCellDef>Total Orders</th>
+        <th mat-header-cell *matHeaderCellDef>Orders</th>
         <td mat-cell *matCellDef="let c">{{ c.totalOrders }}</td>
       </ng-container>
 
-      <ng-container matColumnDef="averageOrderValue">
-        <th mat-header-cell *matHeaderCellDef>Average Order Value</th>
-        <td mat-cell *matCellDef="let c">L.E {{ c.averageOrderValue.toFixed(2) }}</td>
+      <ng-container matColumnDef="averageCheck">
+        <th mat-header-cell *matHeaderCellDef>Average Check</th>
+        <td mat-cell *matCellDef="let c">
+          <span class="badge" [class]="averageCheckClass(c.averageCheck)">L.E {{ c.averageCheck.toFixed(2) }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="totalLifetimeValue">
+        <th mat-header-cell *matHeaderCellDef>Lifetime Value</th>
+        <td mat-cell *matCellDef="let c">
+          <span class="badge" [class]="lifetimeValueClass(c.totalLifetimeValue)">L.E {{ c.totalLifetimeValue.toFixed(2) }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="punchCard">
+        <th mat-header-cell *matHeaderCellDef>Punch Card</th>
+        <td mat-cell *matCellDef="let c">
+          @if (c.isPunchCardEnrolled) {
+            <span class="punch-enrolled">
+              <mat-icon>loyalty</mat-icon>
+              {{ c.punchCardRedeemsCount }} redeemed
+            </span>
+          } @else {
+            <span class="punch-not-enrolled">Not enrolled</span>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let c">
+          <span class="status-chip" [class]="'status-' + customerStatus(c)">{{ statusLabel(customerStatus(c)) }}</span>
+        </td>
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
+  </div>
+
+  <div class="pagination">
+    <button mat-stroked-button [disabled]="page() === 1" (click)="previousPage()">
+      <mat-icon>chevron_left</mat-icon>
+      Previous
+    </button>
+
+    <div class="page-numbers">
+      @if (visiblePages()[0] > 1) {
+        <button type="button" class="page-number" (click)="goToPage(1)">1</button>
+        @if (visiblePages()[0] > 2) {
+          <span class="ellipsis">&hellip;</span>
+        }
+      }
+
+      @for (p of visiblePages(); track p) {
+        <button type="button" class="page-number" [class.active]="p === page()" (click)="goToPage(p)">{{ p }}</button>
+      }
+
+      @if (visiblePages()[visiblePages().length - 1] < totalPages()) {
+        @if (visiblePages()[visiblePages().length - 1] < totalPages() - 1) {
+          <span class="ellipsis">&hellip;</span>
+        }
+        <button type="button" class="page-number" (click)="goToPage(totalPages())">{{ totalPages() }}</button>
+      }
+    </div>
+
+    <button mat-stroked-button [disabled]="page() === totalPages()" (click)="nextPage()">
+      Next
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+
+    <span class="page-summary">Page {{ page() }} of {{ totalPages() }} &middot; {{ totalCount() }} customers</span>
   </div>
 }

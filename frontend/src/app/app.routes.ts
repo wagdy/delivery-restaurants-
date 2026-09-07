@@ -97,17 +97,14 @@ export const routes: Routes = [
           )
       },
       {
-        path: 'customers',
-        canActivate: [moduleGuard('Customers')],
+        // Merged "Customer Insights" dashboard (formerly separate Customers/CRM pages) -
+        // reachable by either pre-existing module grant, see module.guard.ts.
+        path: 'customer-insights',
+        canActivate: [moduleGuard(['Customers', 'Crm'])],
         loadComponent: () =>
           import('./features/admin/customer-insights/customer-insights.component').then(
             (m) => m.CustomerInsightsComponent
           )
-      },
-      {
-        path: 'crm',
-        canActivate: [moduleGuard('Crm')],
-        loadComponent: () => import('./features/admin/crm/crm.component').then((m) => m.CrmComponent)
       },
       {
         path: 'campaigns',

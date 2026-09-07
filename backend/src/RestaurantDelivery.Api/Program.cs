@@ -126,10 +126,17 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("Module.Campaigns", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.Campaigns)));
     options.AddPolicy("Module.Scanner", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.Scanner)));
     options.AddPolicy("Module.PromoCodes", policy => policy.Requirements.Add(new PermissionRequirement(AdminModules.PromoCodes)));
+
+    // The merged Customer Insights dashboard (formerly separate CRM/Customers pages) -
+    // passes for either pre-existing module so no already-configured role loses access.
+    options.AddPolicy(
+        "Module.CustomerInsights",
+        policy => policy.Requirements.Add(new AnyModuleRequirement(AdminModules.Crm, AdminModules.Customers)));
 });
 
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, OrdersAccessAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, AnyModuleAuthorizationHandler>();
 
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
