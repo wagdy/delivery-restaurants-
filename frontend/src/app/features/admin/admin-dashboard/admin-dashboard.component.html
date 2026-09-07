@@ -140,7 +140,7 @@
         }
       }
 
-      <form [formGroup]="createForm" (ngSubmit)="submitCreateOrder()" class="create-order-form">
+      <form [formGroup]="createForm" (ngSubmit)="openReview()" class="create-order-form">
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Customer name</mat-label>
           <input matInput formControlName="customerName" />
@@ -159,7 +159,7 @@
         <div class="items-section" formArrayName="items">
           <h3>Items</h3>
 
-          @for (itemGroup of createItems.controls; track $index; let i = $index) {
+          @for (itemGroup of createItems.controls; track itemGroup; let i = $index) {
             <div class="item-row" [formGroupName]="i">
               <mat-form-field appearance="outline" subscriptSizing="dynamic" class="item-select">
                 <mat-label>Item</mat-label>
@@ -187,23 +187,150 @@
           </button>
         </div>
 
-        <p class="estimated-total">Estimated total: L.E {{ createOrderTotal().toFixed(2) }}</p>
+        <p class="estimated-total">Estimated total: L.E {{ createItemsSubtotal().toFixed(2) }}</p>
 
-        @if (createOrderError()) {
+        @if (createOrderError() && !reviewing()) {
           <p class="error-text">{{ createOrderError() }}</p>
         }
 
-        <button mat-flat-button color="primary" type="submit" class="place-order-button" [disabled]="savingOrder()">
-          @if (savingOrder()) {
-            <mat-spinner diameter="20"></mat-spinner>
-          } @else {
-            <ng-container>
-              <mat-icon>point_of_sale</mat-icon>
-              Place Order
-            </ng-container>
-          }
-        </button>
+        @if (!reviewing()) {
+          <button mat-flat-button color="primary" type="submit" class="place-order-button">
+            <mat-icon>rate_review</mat-icon>
+            Review Order
+          </button>
+        }
       </form>
+
+      @if (reviewing()) {
+        <div class="review-section">
+          <h3>
+            <mat-icon>receipt_long</mat-icon>
+            Order Summary
+          </h3>
+
+          <div class="review-block">
+            <h4>Customer Details</h4>
+            <dl class="review-detail-list">
+              <div>
+                <dt>Name</dt>
+                <dd>{{ createForm.value.customerName }}</dd>
+              </div>
+              <div>
+                <dt>Phone</dt>
+                <dd>{{ createForm.value.customerPhone }}</dd>
+              </div>
+              <div>
+                <dt>Delivery address</dt>
+                <dd>{{ createForm.value.deliveryAddress }}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div class="review-block">
+            <h4>Order Items</h4>
+            <ul class="review-items-list">
+              @for (line of reviewLines(); track line.menuItemId) {
+                <li>
+                  <span class="review-item-name">{{ line.name }} &times; {{ line.quantity }}</span>
+                  <span class="review-item-total">L.E {{ line.lineTotal.toFixed(2) }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+
+          <div class="review-block">
+            <h4>Promo Code</h4>
+            <div class="promo-row">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="promo-field">
+                <mat-label>Promo code</mat-label>
+                <input
+                  matInput
+                  [ngModel]="promoCodeInput()"
+                  (ngModelChange)="promoCodeInput.set($event)"
+                  [ngModelOptions]="{ standalone: true }"
+                  [disabled]="!!promoResult()"
+                />
+              </mat-form-field>
+
+              @if (promoResult()) {
+                <button mat-stroked-button type="button" (click)="removePromoCode()">
+                  <mat-icon>close</mat-icon>
+                  Remove
+                </button>
+              } @else {
+                <button
+                  mat-stroked-button
+                  type="button"
+                  [disabled]="applyingPromo() || !promoCodeInput().trim()"
+                  (click)="applyPromoCode()"
+                >
+                  @if (applyingPromo()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    Apply
+                  }
+                </button>
+              }
+            </div>
+
+            @if (promoError()) {
+              <p class="error-text">{{ promoError() }}</p>
+            }
+          </div>
+
+          <div class="review-totals">
+            <div class="review-total-row">
+              <span>Subtotal</span>
+              <span>L.E {{ createItemsSubtotal().toFixed(2) }}</span>
+            </div>
+            @if (discountAmount() > 0) {
+              <div class="review-total-row discount-row">
+                <span>Discount</span>
+                <span>&minus; L.E {{ discountAmount().toFixed(2) }}</span>
+              </div>
+            }
+            <div class="review-total-row">
+              <span>Delivery Fee</span>
+              <span>L.E {{ reviewDeliveryFee().toFixed(2) }}</span>
+            </div>
+            <div class="review-total-row">
+              <span>Tax</span>
+              <span>L.E {{ reviewTaxAmount().toFixed(2) }}</span>
+            </div>
+            <div class="review-total-row final-total-row">
+              <span>Final Total</span>
+              <span>L.E {{ reviewFinalTotal().toFixed(2) }}</span>
+            </div>
+          </div>
+
+          @if (createOrderError()) {
+            <p class="error-text">{{ createOrderError() }}</p>
+          }
+
+          <div class="review-actions">
+            <button mat-stroked-button type="button" [disabled]="savingOrder()" (click)="closeReview()">
+              Back to Edit
+            </button>
+            <button
+              mat-flat-button
+              color="primary"
+              type="button"
+              class="place-order-button"
+              [disabled]="savingOrder()"
+              (click)="submitCreateOrder()"
+            >
+              @if (savingOrder()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                <ng-container>
+                  <mat-icon>point_of_sale</mat-icon>
+                  Place Order
+                </ng-container>
+              }
+            </button>
+          </div>
+        </div>
+      }
     </div>
   }
 

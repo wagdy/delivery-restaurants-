@@ -2,6 +2,7 @@ import { Component, DestroyRef, ElementRef, HostListener, OnInit, ViewChild, com
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { startWith } from 'rxjs';
 import { saveAs } from 'file-saver';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,9 +18,19 @@ import { MenuItemService } from '../../../core/services/menu-item.service';
 import { DgteraSyncService } from '../../../core/services/dgtera-sync.service';
 import { OrderRealtimeService } from '../../../core/services/order-realtime.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SettingsService } from '../../../core/services/settings.service';
+import { CheckoutService } from '../../../core/services/checkout.service';
 import { MenuItem } from '../../../core/models/menu-item.model';
 import { CreateOrderRequest, CustomerLookup, ORDER_STATUSES, Order, OrderStatus } from '../../../core/models/order.model';
+import { ValidatePromoResponse } from '../../../core/models/checkout.model';
 import { OrderDetailsDialogComponent } from '../order-details-dialog/order-details-dialog.component';
+
+interface ReviewLine {
+  menuItemId: number;
+  name: string;
+  quantity: number;
+  lineTotal: number;
+}
 
 type DashboardTab = 'create' | 'all' | 'active' | 'reports';
 type CustomerMode = 'new' | 'registered';
@@ -70,6 +81,8 @@ export class AdminDashboardComponent implements OnInit {
   private readonly dgteraSyncService = inject(DgteraSyncService);
   private readonly orderRealtimeService = inject(OrderRealtimeService);
   private readonly authService = inject(AuthService);
+  private readonly settingsService = inject(SettingsService);
+  private readonly checkoutService = inject(CheckoutService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
@@ -137,6 +150,22 @@ export class AdminDashboardComponent implements OnInit {
   readonly savingOrder = signal(false);
   readonly createOrderError = signal<string | null>(null);
 
+  // Manual staff-entered orders (phone-in, walk-in) skip delivery entirely - a single
+  // shared constant instead of a magic literal wherever the fee is read or submitted.
+  private static readonly ADMIN_ORDER_DELIVERY_FEE = 0;
+
+  // Recalculated from scratch on every FormArray change (add/remove/quantity/item-select
+  // all funnel through this one valueChanges subscription - see the constructor) rather
+  // than trusting the array's rendered DOM state, which is what let the two states drift
+  // out of sync in the first place (see the @for track fix on createItems.controls below).
+  readonly createItemsSubtotal = signal(0);
+
+  readonly reviewing = signal(false);
+  readonly promoCodeInput = signal('');
+  readonly promoResult = signal<ValidatePromoResponse | null>(null);
+  readonly promoError = signal<string | null>(null);
+  readonly applyingPromo = signal(false);
+
   readonly createForm = this.fb.nonNullable.group({
     customerName: ['', [Validators.required, Validators.maxLength(200)]],
     customerPhone: ['', [Validators.required, Validators.maxLength(30)]],
@@ -152,6 +181,17 @@ export class AdminDashboardComponent implements OnInit {
     this.loadOrders();
     this.menuItemService.getAll().subscribe({ next: (items) => this.menuItems.set(items) });
     this.createItems.push(this.buildCreateItemGroup());
+
+    // Fixes the stale-total bug: FormArray.valueChanges fires on push()/removeAt() and on
+    // every keystroke in a quantity/item field alike, so recomputing here - strictly from
+    // the array's own current value, never from anything the view happens to be showing -
+    // is what actually guarantees the total is never one step behind a deletion.
+    this.createItems.valueChanges
+      .pipe(startWith(this.createItems.value), takeUntilDestroyed(this.destroyRef))
+      .subscribe((items: { menuItemId: number | null; quantity: number }[]) => {
+        const total = items.reduce((sum, item) => sum + this.createItemPrice(item.menuItemId) * (item.quantity || 0), 0);
+        this.createItemsSubtotal.set(Math.round(total * 100) / 100);
+      });
 
     // Resumes the alarm the instant audio unlocks, if orders were already waiting -
     // covers the case where a new order arrives before the cashier's first click.
@@ -531,15 +571,109 @@ export class AdminDashboardComponent implements OnInit {
     return this.menuItems().find((m) => m.id === menuItemId)?.price ?? 0;
   }
 
+  // --- Review Order ---
+
   // A plain method, not a computed signal - the create form is a ReactiveForm (not
-  // signal-backed), so this is re-evaluated on Angular's normal change-detection cycle
-  // (any input/click in the template), matching the pattern already established in
-  // OrderFormDialogComponent's own estimatedTotal getter.
-  createOrderTotal(): number {
-    return this.createItems.controls.reduce((sum, group) => {
-      const value = group.getRawValue() as { menuItemId: number | null; quantity: number };
-      return sum + this.createItemPrice(value.menuItemId) * (value.quantity || 0);
-    }, 0);
+  // signal-backed), so this re-evaluates on Angular's normal change-detection cycle,
+  // matching this file's own established pattern (columnOrders/timeElapsed above). Safe to
+  // read live even while the review section is open, since nothing here is a one-time
+  // snapshot - if the cashier edits an item while reviewing, this reflects it immediately.
+  reviewLines(): ReviewLine[] {
+    return this.createItems.controls
+      .map((group) => group.getRawValue() as { menuItemId: number | null; quantity: number })
+      .filter((value): value is { menuItemId: number; quantity: number } => value.menuItemId !== null)
+      .map((value) => ({
+        menuItemId: value.menuItemId,
+        name: this.menuItems().find((m) => m.id === value.menuItemId)?.name ?? 'Unknown item',
+        quantity: value.quantity,
+        lineTotal: this.createItemPrice(value.menuItemId) * value.quantity
+      }));
+  }
+
+  reviewDeliveryFee(): number {
+    return AdminDashboardComponent.ADMIN_ORDER_DELIVERY_FEE;
+  }
+
+  // Falls back to a plain client-side estimate (no discount) until a promo is applied -
+  // same convention as CheckoutComponent.taxAmount, so the summary always shows a real
+  // number without waiting on a network round trip just to render the tax line.
+  reviewTaxAmount(): number {
+    const promo = this.promoResult();
+    if (promo) {
+      return promo.taxAmount;
+    }
+    return Math.round(this.createItemsSubtotal() * (this.settingsService.settings().taxPercentage / 100) * 100) / 100;
+  }
+
+  discountAmount(): number {
+    return this.promoResult()?.discountAmount ?? 0;
+  }
+
+  reviewFinalTotal(): number {
+    const promo = this.promoResult();
+    if (promo) {
+      return promo.total;
+    }
+    return this.createItemsSubtotal() + this.reviewTaxAmount() + this.reviewDeliveryFee();
+  }
+
+  // Validates the form exactly like submitCreateOrder used to on its own submit button -
+  // Review Order is now the gate, Place Order (inside the review section) trusts it was
+  // already checked here and re-checks defensively rather than redundantly.
+  openReview(): void {
+    if (this.reviewing()) {
+      return;
+    }
+
+    if (this.createForm.invalid || this.createItems.length === 0) {
+      this.createForm.markAllAsTouched();
+      if (this.createItems.length === 0) {
+        this.createOrderError.set('Add at least one item.');
+      }
+      return;
+    }
+
+    this.createOrderError.set(null);
+    this.reviewing.set(true);
+  }
+
+  closeReview(): void {
+    this.reviewing.set(false);
+  }
+
+  applyPromoCode(): void {
+    const codeText = this.promoCodeInput().trim();
+    const lines = this.reviewLines();
+    if (!codeText || lines.length === 0) {
+      return;
+    }
+
+    this.applyingPromo.set(true);
+    this.promoError.set(null);
+
+    this.checkoutService
+      .validatePromo({
+        codeText,
+        deliveryFee: this.reviewDeliveryFee(),
+        items: lines.map((l) => ({ menuItemId: l.menuItemId, quantity: l.quantity, addOnIds: [] }))
+      })
+      .subscribe({
+        next: (result) => {
+          this.applyingPromo.set(false);
+          this.promoResult.set(result);
+        },
+        error: (err) => {
+          this.applyingPromo.set(false);
+          this.promoResult.set(null);
+          this.promoError.set(err.error?.errors?.[0] ?? 'This promo code could not be applied.');
+        }
+      });
+  }
+
+  removePromoCode(): void {
+    this.promoCodeInput.set('');
+    this.promoResult.set(null);
+    this.promoError.set(null);
   }
 
   submitCreateOrder(): void {
@@ -555,16 +689,19 @@ export class AdminDashboardComponent implements OnInit {
     this.createOrderError.set(null);
 
     const raw = this.createForm.getRawValue();
-    // Manual staff-entered orders (phone-in, walk-in) skip the customer checkout flow
-    // entirely - Cash/no delivery fee, matching this dashboard's pre-existing manual
+    // Manual staff-entered orders (phone-in, walk-in) skip the customer checkout flow's
+    // payment-method selection - Cash, matching this dashboard's pre-existing manual
     // order-creation behavior (see the now-retired OrderFormDialogComponent create mode).
+    // Promo code text IS now forwarded, though - re-validated server-side the same way the
+    // customer flow's is, never trusted at face value for the discount amount.
     const request: CreateOrderRequest = {
       customerName: raw.customerName,
       customerPhone: raw.customerPhone,
       deliveryAddress: raw.deliveryAddress,
       items: raw.items.map((i) => ({ menuItemId: i.menuItemId!, quantity: i.quantity, addOnIds: [] })),
       paymentMethod: 'Cash',
-      deliveryFee: 0,
+      promoCodeText: this.promoResult() ? this.promoCodeInput().trim() : null,
+      deliveryFee: AdminDashboardComponent.ADMIN_ORDER_DELIVERY_FEE,
       customerId: this.customerMode() === 'registered' ? (this.selectedCustomer()?.id ?? null) : null
     };
 
@@ -591,5 +728,7 @@ export class AdminDashboardComponent implements OnInit {
     this.customerSearchPhone.set('');
     this.customerSearchError.set(null);
     this.customerMode.set('new');
+    this.reviewing.set(false);
+    this.removePromoCode();
   }
 }

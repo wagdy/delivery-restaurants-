@@ -381,6 +381,140 @@
   align-self: flex-start;
 }
 
+// --- Tab 1: Review Order (receipt-style summary shown after "Review Order") ---
+// Equivalent to Tailwind's `bg-white rounded-xl shadow-sm p-5 mt-4 divide-y divide-gray-100`
+// - this project has no Tailwind installed, so the same card-with-dividers receipt look is
+// done with plain CSS instead, matching every other component's substitution pattern.
+.review-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    font-size: 1.05rem;
+  }
+}
+
+.review-block {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+
+  &:first-of-type {
+    padding-top: 0;
+  }
+
+  h4 {
+    margin: 0 0 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgba(0, 0, 0, 0.5);
+  }
+}
+
+.review-detail-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.9rem;
+  }
+
+  dt {
+    color: rgba(0, 0, 0, 0.55);
+  }
+
+  dd {
+    margin: 0;
+    font-weight: 500;
+    text-align: right;
+  }
+}
+
+.review-items-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.9rem;
+  }
+}
+
+.review-item-name {
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.review-item-total {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.promo-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.promo-field {
+  flex: 1 1 auto;
+}
+
+.review-totals {
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.review-total-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.discount-row {
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+// The "highly visible Final Total" - deliberately the loudest row in the receipt so a
+// cashier reads the one number that matters without scanning the whole breakdown.
+.final-total-row {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.15);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.review-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 16px;
+}
+
 // --- Tab 2: All Orders ---
 
 .table-wrapper {
