@@ -79,12 +79,59 @@ public class PushNotificationService : IPushNotificationService
             return;
         }
 
+        var payload = BuildNewOrderPayload(
+            title: "New Order Available!",
+            body: $"Order #{order.Id} · ${order.TotalAmount:F2} · {order.DeliveryAddress}",
+            orderId: order.Id,
+            url: $"/captain?orderId={order.Id}");
+
+        // A captain's own device connection dropping is a much lower-stakes miss than a
+        // cashier's - any other captain can still pick up the order - so this keeps the
+        // original short TTL rather than the cashier alarm's longer one below.
+        await SendToSubscriptionsAsync(subscriptions, payload, PushMessageUrgency.Normal, timeToLiveSeconds: 60, order.Id);
+    }
+
+    public async Task NotifyCashiersOfNewOrderAsync(Order order)
+    {
+        List<WebPushSubscription> subscriptions;
+        try
+        {
+            subscriptions = await _repository.GetForCashiersAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load cashier push subscriptions for order {OrderId}.", order.Id);
+            return;
+        }
+
+        var payload = BuildNewOrderPayload(
+            title: "New Order Received!",
+            body: $"Order #{order.Id} · {order.CustomerName} · ${order.TotalAmount:F2}",
+            orderId: order.Id,
+            url: "/admin/orders");
+
+        // High urgency is the standards-based Web Push equivalent of an FCM
+        // "high-priority" message - it tells the browser's push service (which, for every
+        // Chromium browser, IS Google's own FCM infrastructure under the hood) to wake the
+        // device promptly instead of batching delivery for battery savings. TTL is longer
+        // than the captain alarm's: a missed order is the entire point of this feature, so
+        // this gives the OS's background delivery scheduler more room before giving up,
+        // rather than optimizing for the rare case of an order this stale still mattering.
+        await SendToSubscriptionsAsync(subscriptions, payload, PushMessageUrgency.High, timeToLiveSeconds: 300, order.Id);
+    }
+
+    private async Task SendToSubscriptionsAsync(
+        List<WebPushSubscription> subscriptions,
+        string payload,
+        PushMessageUrgency urgency,
+        int timeToLiveSeconds,
+        int orderId)
+    {
         if (subscriptions.Count == 0)
         {
             return;
         }
 
-        var payload = BuildNewOrderPayload(order);
         var expiredEndpoints = new List<string>();
 
         foreach (var subscription in subscriptions)
@@ -93,7 +140,7 @@ public class PushNotificationService : IPushNotificationService
             pushSubscription.SetKey(PushEncryptionKeyName.P256DH, subscription.P256dh);
             pushSubscription.SetKey(PushEncryptionKeyName.Auth, subscription.Auth);
 
-            var message = new PushMessage(payload) { TimeToLive = 60 };
+            var message = new PushMessage(payload) { TimeToLive = timeToLiveSeconds, Urgency = urgency };
 
             try
             {
@@ -114,7 +161,7 @@ public class PushNotificationService : IPushNotificationService
                 _logger.LogWarning(
                     ex,
                     "Failed to deliver push notification for order {OrderId} to subscription {Endpoint}.",
-                    order.Id,
+                    orderId,
                     subscription.Endpoint);
             }
         }
@@ -133,7 +180,7 @@ public class PushNotificationService : IPushNotificationService
         }
     }
 
-    private static string BuildNewOrderPayload(Order order)
+    private static string BuildNewOrderPayload(string title, string body, int orderId, string url)
     {
         // Shape expected by Angular's built-in service worker push handler:
         // https://angular.dev/ecosystem/service-workers/push-notifications
@@ -141,20 +188,20 @@ public class PushNotificationService : IPushNotificationService
         {
             notification = new
             {
-                title = "New Order Available!",
-                body = $"Order #{order.Id} · ${order.TotalAmount:F2} · {order.DeliveryAddress}",
+                title,
+                body,
                 icon = "assets/icons/icon-128x128.png",
                 vibrate = new[] { 200, 100, 200 },
-                tag = $"order-{order.Id}",
+                tag = $"order-{orderId}",
                 data = new
                 {
-                    orderId = order.Id,
+                    orderId,
                     onActionClick = new
                     {
                         @default = new
                         {
                             operation = "navigateLastFocusedOrOpen",
-                            url = $"/captain?orderId={order.Id}"
+                            url
                         }
                     }
                 }

@@ -168,6 +168,14 @@ export class AdminDashboardComponent implements OnInit {
   ngOnInit(): void {
     this.alarmAudio.loop = true;
 
+    // Foreground-recovery signal from OrderRealtimeService - fires when the cashier
+    // unlocks the phone or switches back to this tab after the connection may have been
+    // dropped by mobile OS background limits. Refetches instead of trusting SignalR alone
+    // to have delivered every event that happened while backgrounded.
+    this.orderRealtimeService.connectionRestored.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.loadOrders();
+    });
+
     this.orderRealtimeService.newOrderReceived.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((notification) => {
       // Duplicate guard: this same order could also arrive via a background
       // loadOrders() refresh (e.g. from syncDgteraOrders()) racing the socket push.

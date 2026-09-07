@@ -18,6 +18,12 @@ public class WebPushSubscriptionRepository : GenericRepository<WebPushSubscripti
     public Task<List<WebPushSubscription>> GetForCaptainsAsync() =>
         DbSet.Where(s => s.User.Role == UserRole.CaptainOrder).ToListAsync();
 
+    public Task<List<WebPushSubscription>> GetForCashiersAsync() =>
+        DbSet.Where(s =>
+                s.User.Role == UserRole.Admin &&
+                (s.User.CustomRoleId == null || (s.User.CustomRole!.Modules & AdminModules.Orders) == AdminModules.Orders))
+            .ToListAsync();
+
     public async Task RemoveByEndpointAsync(string endpoint, string userId)
     {
         var subscription = await DbSet.FirstOrDefaultAsync(s => s.Endpoint == endpoint && s.UserId == userId);

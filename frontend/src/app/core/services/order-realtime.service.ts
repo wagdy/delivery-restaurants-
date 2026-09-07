@@ -1,5 +1,5 @@
 import { Injectable, effect, inject } from '@angular/core';
-import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
 import { Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
@@ -19,6 +19,15 @@ export class OrderRealtimeService {
   private readonly newOrderReceivedSubject = new Subject<NewOrderNotification>();
   readonly newOrderReceived = this.newOrderReceivedSubject.asObservable();
 
+  // Fires after a foreground-recovery check (see the visibilitychange listener below)
+  // confirms/restores the connection - the admin dashboard listens to this to refetch
+  // orders it may have missed while backgrounded, without the cashier pressing refresh.
+  // Deliberately does NOT fire on the very first connect (the auth effect below) since
+  // every consumer already does its own initial load; it's specifically the
+  // foreground-recovery signal called out by this feature's own requirements.
+  private readonly connectionRestoredSubject = new Subject<void>();
+  readonly connectionRestored = this.connectionRestoredSubject.asObservable();
+
   private connection: HubConnection | null = null;
 
   constructor() {
@@ -32,6 +41,44 @@ export class OrderRealtimeService {
         this.disconnect();
       }
     });
+
+    // Mobile OS background limits can fully kill the WebSocket (and freeze
+    // withAutomaticReconnect's own retry timers along with it) while the tab is hidden -
+    // screen-locked or backgrounded - in a way that isn't guaranteed to self-heal the
+    // instant the cashier looks at the screen again. Checking explicitly on every
+    // foreground transition, rather than trusting automatic reconnect alone, is what
+    // actually guarantees no order gets missed.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        void this.ensureConnected();
+      }
+    });
+  }
+
+  // Reconnects if the connection was dropped, then always signals connectionRestored -
+  // even when the socket reports itself as already "Connected", a background tab's
+  // messages can still have been silently dropped by the OS, so the safest contract is
+  // "foreground recovery always re-syncs," not "only when a reconnect was needed."
+  private async ensureConnected(): Promise<void> {
+    if (!this.authService.token() || !this.authService.isAdmin()) {
+      return;
+    }
+
+    if (!this.connection) {
+      this.connect();
+      return;
+    }
+
+    if (this.connection.state === HubConnectionState.Disconnected) {
+      try {
+        await this.connection.start();
+      } catch (err) {
+        console.error('Order realtime reconnect failed on foreground recovery.', err);
+        return;
+      }
+    }
+
+    this.connectionRestoredSubject.next();
   }
 
   private connect(): void {

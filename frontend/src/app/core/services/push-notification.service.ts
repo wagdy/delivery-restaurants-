@@ -67,7 +67,10 @@ export class PushNotificationService {
   /**
    * While the app is open in the foreground, Angular's service worker still fires
    * notificationClicks — handle it the same way the backend's onActionClick payload
-   * tells a closed app to behave, so behavior is consistent either way.
+   * tells a closed app to behave, so behavior is consistent either way. Reads the
+   * destination straight out of that same payload (`data.onActionClick.default.url`)
+   * rather than hardcoding a route, so this one handler works for both the captain and
+   * cashier notification payloads without needing to know which kind it just received.
    */
   private listenForNotificationClicksOnce(): void {
     if (this.listeningForClicks) {
@@ -76,8 +79,8 @@ export class PushNotificationService {
     this.listeningForClicks = true;
 
     this.swPush.notificationClicks.subscribe(({ notification }) => {
-      const orderId = (notification.data as { orderId?: number } | undefined)?.orderId;
-      this.router.navigate(['/captain'], orderId ? { queryParams: { orderId } } : {});
+      const data = notification.data as { onActionClick?: { default?: { url?: string } } } | undefined;
+      this.router.navigateByUrl(data?.onActionClick?.default?.url ?? '/');
     });
   }
 }

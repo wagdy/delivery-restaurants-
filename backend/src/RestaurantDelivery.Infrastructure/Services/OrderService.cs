@@ -105,8 +105,16 @@ public class OrderService : IOrderService
         await _repository.SaveChangesAsync();
 
         // Notification failures must never surface as an order-creation failure —
-        // NotifyCaptainsOfNewOrderAsync swallows and logs its own errors internally.
+        // both methods swallow and log their own errors internally. Captains always need
+        // to know about a new delivery regardless of who entered it, but the cashier push
+        // is suppressed for staff-created orders for the same reason the SignalR alarm is
+        // (see NewOrderNotification.IsStaffCreated) - a cashier shouldn't get paged for an
+        // order they (or a co-worker) just typed into the POS themselves.
         await _pushNotificationService.NotifyCaptainsOfNewOrderAsync(order);
+        if (!isStaffCreated)
+        {
+            await _pushNotificationService.NotifyCashiersOfNewOrderAsync(order);
+        }
 
         // Live-updates the admin/cashier Orders tab the instant this order lands, instead
         // of staff having to manually refresh to see it. Same "never throw" contract as
