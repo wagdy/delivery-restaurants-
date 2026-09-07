@@ -47,6 +47,8 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(o => o.ExternalSource).HasMaxLength(50);
         builder.Property(o => o.ExternalOrderId).HasMaxLength(100);
 
+        builder.Property(o => o.IsAcknowledged).HasDefaultValue(false);
+
         // Postgres treats every NULL as distinct in a unique index, so orders placed
         // normally (both columns null) never collide with each other here - only an
         // actual repeat (same source + same external id) is rejected.

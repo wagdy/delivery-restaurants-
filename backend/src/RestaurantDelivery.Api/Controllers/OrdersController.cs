@@ -113,6 +113,22 @@ public class OrdersController : ControllerBase
         return Ok(result.Data);
     }
 
+    // Dismisses the cashier dashboard's new-order alarm for this order - admin-only
+    // (unlike UpdateStatus above, which captains also use), since only the cashier
+    // dashboard shows the alarm/acknowledge button at all.
+    [Authorize(Policy = "Module.Orders")]
+    [HttpPatch("{id:int}/acknowledge")]
+    public async Task<ActionResult<OrderResponse>> Acknowledge(int id)
+    {
+        var result = await _service.AcknowledgeAsync(id);
+        if (!result.Succeeded)
+        {
+            return NotFound(new { errors = result.Errors });
+        }
+
+        return Ok(result.Data);
+    }
+
     [Authorize(Policy = "Module.Orders")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)

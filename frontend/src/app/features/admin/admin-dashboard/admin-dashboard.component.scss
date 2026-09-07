@@ -96,6 +96,24 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
+// Highlights any order the cashier hasn't dismissed the alarm for yet - a pulsing red
+// border is deliberately more attention-grabbing than the rest of the board, matching
+// the "no orders are missed" goal of the whole feature.
+.order-card.unacknowledged {
+  border: 2px solid #e53935;
+  animation: pulse-border 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(229, 57, 53, 0);
+  }
+}
+
 .card-top {
   display: flex;
   justify-content: space-between;
@@ -137,4 +155,48 @@
   font-size: 0.8rem;
   text-align: center;
   padding: 12px 0;
+}
+
+.audio-unlock-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #fff3e0;
+  color: #e65100;
+  font-size: 0.85rem;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.acknowledge-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  background: #e53935;
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+
+  &:hover {
+    background: #c62828;
+  }
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
 }

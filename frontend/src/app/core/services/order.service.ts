@@ -44,6 +44,12 @@ export class OrderService {
     return this.http.patch<Order>(`${this.baseUrl}/${id}/status`, { status });
   }
 
+  // Dismisses the cashier dashboard's new-order alarm for this order - independent of
+  // updateStatus above, see Order.isAcknowledged's own doc comment.
+  acknowledge(id: number): Observable<Order> {
+    return this.http.patch<Order>(`${this.baseUrl}/${id}/acknowledge`, {});
+  }
+
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }

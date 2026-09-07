@@ -41,6 +41,16 @@ public class Order
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+    // Deliberately independent of Status (not a new OrderStatus value like
+    // "Acknowledged") - this tracks whether a cashier has dismissed the live new-order
+    // alarm for this order, which is orthogonal to its fulfillment stage. An order can
+    // be Pending and acknowledged, or (in principle) Preparing and never acknowledged
+    // (e.g. it arrived via a channel that doesn't push the alarm at all, like a bulk
+    // Excel import - see BulkOrderImportService). Mirrors the same reasoning that kept
+    // PaymentStatus out of the OrderStatus enum.
+    public bool IsAcknowledged { get; set; }
+    public DateTime? AcknowledgedAt { get; set; }
+
     // Set the first time this order's Delivered-transition finishes awarding loyalty
     // points/punches (see LoyaltyService.ProcessOrderDeliveredAsync) - checked before
     // re-processing so toggling the status away and back to Delivered can never award

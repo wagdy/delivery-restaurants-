@@ -230,6 +230,27 @@ public class OrderService : IOrderService
         return ServiceResult<OrderResponse>.Success(MapResponse(order));
     }
 
+    public async Task<ServiceResult<OrderResponse>> AcknowledgeAsync(int id)
+    {
+        var order = await _repository.GetByIdWithItemsAsync(id);
+        if (order is null)
+        {
+            return ServiceResult<OrderResponse>.Failure("Order not found.");
+        }
+
+        // Idempotent - re-acknowledging an already-acknowledged order (e.g. a duplicate
+        // click, or two cashiers on different tabs) just returns success without
+        // clobbering the original AcknowledgedAt timestamp.
+        if (!order.IsAcknowledged)
+        {
+            order.IsAcknowledged = true;
+            order.AcknowledgedAt = DateTime.UtcNow;
+            await _repository.SaveChangesAsync();
+        }
+
+        return ServiceResult<OrderResponse>.Success(MapResponse(order));
+    }
+
     public async Task<ServiceResult<bool>> DeleteAsync(int id)
     {
         var order = await _repository.GetByIdAsync(id);
@@ -356,6 +377,8 @@ public class OrderService : IOrderService
         DeliveryFee = order.DeliveryFee,
         PaymentMethod = order.PaymentMethod,
         PaymentStatus = order.PaymentStatus,
+        IsAcknowledged = order.IsAcknowledged,
+        AcknowledgedAt = order.AcknowledgedAt,
         Items = order.OrderItems.Select(oi => new OrderItemResponse
         {
             Id = oi.Id,

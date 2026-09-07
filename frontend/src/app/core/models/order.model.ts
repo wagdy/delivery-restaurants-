@@ -50,6 +50,10 @@ export interface Order {
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   subtotal: number;
+  // Whether a cashier has dismissed the live new-order alarm for this order -
+  // independent of `status`, see the backend Order.IsAcknowledged doc comment.
+  isAcknowledged: boolean;
+  acknowledgedAt?: string | null;
 }
 
 export interface BulkOrderImportResult {

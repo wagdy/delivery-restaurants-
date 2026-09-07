@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, HostListener, OnInit, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -54,6 +54,18 @@ export class AdminDashboardComponent implements OnInit {
   readonly downloadingTemplate = signal(false);
   readonly uploading = signal(false);
 
+  // Orders whose new-order alarm hasn't been dismissed yet this session (populated only
+  // from live SignalR pushes below - an order's own persisted isAcknowledged flag is
+  // what the backend tracks, but this set is what actually drives the alarm/button UI,
+  // so a page refresh doesn't resurrect an alarm for an order that arrived before the
+  // reload, per this component's own established "duplicate guard" pattern).
+  readonly unacknowledgedOrderIds = signal<Set<number>>(new Set());
+  // Browsers block Audio.play() before the page has seen a user gesture - this tracks
+  // whether that gesture has happened yet, so the "click anywhere to enable alerts"
+  // banner knows when to hide itself.
+  readonly audioUnlocked = signal(false);
+  private readonly alarmAudio = this.buildAlarmAudio();
+
   readonly filteredOrders = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
     const all = this.orders();
@@ -70,6 +82,14 @@ export class AdminDashboardComponent implements OnInit {
 
   constructor() {
     this.loadOrders();
+
+    // Resumes the alarm the instant audio unlocks, if orders were already waiting -
+    // covers the case where a new order arrives before the cashier's first click.
+    effect(() => {
+      if (this.audioUnlocked() && this.unacknowledgedOrderIds().size > 0) {
+        this.alarmAudio.play().catch(() => {});
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -90,7 +110,9 @@ export class AdminDashboardComponent implements OnInit {
         }
       });
 
-      this.playNewOrderChime();
+      this.unacknowledgedOrderIds.update((ids) => new Set(ids).add(notification.orderId));
+      this.startAlarmIfNeeded();
+
       this.snackBar
         .open(
           `New order received - ${notification.customerName} (${notification.totalAmount.toFixed(2)} EGP)`,
@@ -107,31 +129,127 @@ export class AdminDashboardComponent implements OnInit {
     });
   }
 
-  // Short two-tone chime via the Web Audio API - no external sound asset needed, and
-  // avoids autoplay-policy issues an <audio> element with a preloaded src can hit.
-  private playNewOrderChime(): void {
-    try {
-      const AudioContextCtor = window.AudioContext ?? (window as any).webkitAudioContext;
-      const context = new AudioContextCtor();
-      const playTone = (frequency: number, startTime: number, duration: number) => {
-        const oscillator = context.createOscillator();
-        const gain = context.createGain();
-        oscillator.type = 'sine';
-        oscillator.frequency.value = frequency;
-        gain.gain.setValueAtTime(0.2, startTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-        oscillator.connect(gain);
-        gain.connect(context.destination);
-        oscillator.start(startTime);
-        oscillator.stop(startTime + duration);
-      };
-
-      const now = context.currentTime;
-      playTone(880, now, 0.18);
-      playTone(1175, now + 0.18, 0.22);
-    } catch (err) {
-      console.error('Failed to play new-order chime.', err);
+  // First user gesture anywhere on the page "unlocks" the alarm's Audio element per
+  // browser autoplay policy - a play()-then-immediately-pause() is the standard trick
+  // (no audible glitch, since it's paused within the same microtask before any samples
+  // are actually rendered to the speakers).
+  @HostListener('document:click')
+  unlockAudio(): void {
+    if (this.audioUnlocked()) {
+      return;
     }
+
+    this.alarmAudio
+      .play()
+      .then(() => {
+        this.alarmAudio.pause();
+        this.alarmAudio.currentTime = 0;
+        this.audioUnlocked.set(true);
+      })
+      .catch(() => {
+        // Still blocked - the next click retries. No harm in leaving the banner up.
+      });
+  }
+
+  private startAlarmIfNeeded(): void {
+    if (this.unacknowledgedOrderIds().size === 0 || !this.audioUnlocked()) {
+      return;
+    }
+    this.alarmAudio.play().catch((err) => console.error('Failed to play new-order alarm.', err));
+  }
+
+  private stopAlarmIfNoneLeft(): void {
+    if (this.unacknowledgedOrderIds().size > 0) {
+      return;
+    }
+    this.alarmAudio.pause();
+    this.alarmAudio.currentTime = 0;
+  }
+
+  // Cashier clicked "Order Received" (تم استلام الطلب) on a specific card - persists the
+  // acknowledgment server-side (so it survives a refresh/re-login) and, only once every
+  // other pending order is also dismissed, stops the shared alarm.
+  acknowledgeOrder(order: Order): void {
+    this.orderService.acknowledge(order.id).subscribe({
+      next: (updated) => {
+        this.orders.update((current) => current.map((o) => (o.id === updated.id ? updated : o)));
+        this.unacknowledgedOrderIds.update((ids) => {
+          const next = new Set(ids);
+          next.delete(order.id);
+          return next;
+        });
+        this.stopAlarmIfNoneLeft();
+      },
+      error: () => {
+        this.snackBar.open('Failed to acknowledge order.', 'Dismiss', { duration: 4000 });
+      }
+    });
+  }
+
+  isUnacknowledged(order: Order): boolean {
+    return this.unacknowledgedOrderIds().has(order.id);
+  }
+
+  // Synthesizes a short repeating beep-beep-silence pattern as a real WAV file (no
+  // external sound asset to host/bundle) and wraps it in a genuine HTMLAudioElement with
+  // loop = true, so play()/pause()/currentTime behave exactly like a normal <audio> tag.
+  private buildAlarmAudio(): HTMLAudioElement {
+    const sampleRate = 8000;
+    const segments: { frequency: number; duration: number }[] = [
+      { frequency: 1000, duration: 0.22 },
+      { frequency: 0, duration: 0.12 },
+      { frequency: 1300, duration: 0.22 },
+      { frequency: 0, duration: 0.6 }
+    ];
+
+    const totalSamples = segments.reduce((sum, s) => sum + Math.round(s.duration * sampleRate), 0);
+    const samples = new Int16Array(totalSamples);
+
+    let offset = 0;
+    for (const segment of segments) {
+      const segmentSamples = Math.round(segment.duration * sampleRate);
+      for (let i = 0; i < segmentSamples; i++) {
+        const value = segment.frequency > 0 ? Math.sin((2 * Math.PI * segment.frequency * i) / sampleRate) * 0.5 : 0;
+        samples[offset + i] = Math.round(value * 32767);
+      }
+      offset += segmentSamples;
+    }
+
+    const audio = new Audio(URL.createObjectURL(this.encodeWav(samples, sampleRate)));
+    audio.loop = true;
+    return audio;
+  }
+
+  private encodeWav(samples: Int16Array, sampleRate: number): Blob {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buffer);
+
+    const writeString = (offset: number, text: string) => {
+      for (let i = 0; i < text.length; i++) {
+        view.setUint8(offset + i, text.charCodeAt(i));
+      }
+    };
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM
+    view.setUint16(22, 1, true); // mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true); // byte rate
+    view.setUint16(32, 2, true); // block align
+    view.setUint16(34, 16, true); // bits per sample
+    writeString(36, 'data');
+    view.setUint32(40, samples.length * 2, true);
+
+    let offset = 44;
+    for (let i = 0; i < samples.length; i++, offset += 2) {
+      view.setInt16(offset, samples[i], true);
+    }
+
+    return new Blob([buffer], { type: 'audio/wav' });
   }
 
   columnOrders(status: OrderStatus): Order[] {

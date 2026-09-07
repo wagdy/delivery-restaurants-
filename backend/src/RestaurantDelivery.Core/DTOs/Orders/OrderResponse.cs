@@ -30,6 +30,9 @@ public class OrderResponse
     public PaymentMethod PaymentMethod { get; set; }
     public PaymentStatus PaymentStatus { get; set; }
 
+    public bool IsAcknowledged { get; set; }
+    public DateTime? AcknowledgedAt { get; set; }
+
     // Convenience for the order-confirmation/summary UI - the pre-tax, pre-discount sum
     // of line items, derived rather than stored (TotalAmount is the only money value
     // that's actually persisted as "the truth"; this and the fields above are its

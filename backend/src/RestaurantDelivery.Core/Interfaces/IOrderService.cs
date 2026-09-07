@@ -13,5 +13,10 @@ public interface IOrderService
     Task<ServiceResult<List<OrderResponse>>> GetMyOrdersAsync(string userId);
     Task<ServiceResult<OrderResponse>> UpdateAsync(int id, UpdateOrderRequest request);
     Task<ServiceResult<OrderResponse>> UpdateStatusAsync(int id, OrderStatus status);
+
+    // Dismisses the cashier dashboard's new-order alarm for this order specifically -
+    // see Order.IsAcknowledged's own doc comment for why this is separate from Status.
+    Task<ServiceResult<OrderResponse>> AcknowledgeAsync(int id);
+
     Task<ServiceResult<bool>> DeleteAsync(int id);
 }
