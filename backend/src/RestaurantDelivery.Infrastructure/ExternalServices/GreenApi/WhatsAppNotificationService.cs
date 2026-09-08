@@ -88,13 +88,48 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
             return;
         }
 
-        var managerMessage =
-            "🚨 طلب جديد بانتظار التأكيد!\n" +
-            $"رقم الطلب: #{order.Id}\n" +
-            $"العميل: {order.CustomerName}\n" +
-            $"العنوان: {order.DeliveryAddress}\n" +
-            $"الإجمالي: {order.TotalAmount:0.##} جنيه";
-        await SendMessageAsync(managerPhone, managerMessage);
+        await SendMessageAsync(managerPhone, BuildManagerMessage(order));
+    }
+
+    // Every line total (and the subtotal below) uses Quantity × (UnitPrice + add-ons'
+    // prices) - OrderItem.UnitPrice alone excludes add-ons (mirrors
+    // OrderService.CalculateTotal's own formula), so a plain Quantity × UnitPrice would
+    // silently under-report both figures for any item with add-ons selected. There's no
+    // stored Order.Subtotal column - it's always derived from the order's own items so it
+    // can never drift from what TotalAmount was actually built from.
+    private static string BuildManagerMessage(Order order)
+    {
+        static decimal LineTotal(OrderItem item) => item.Quantity * (item.UnitPrice + item.AddOns.Sum(a => a.Price));
+
+        var itemsList = new StringBuilder();
+        foreach (var item in order.OrderItems)
+        {
+            itemsList.AppendLine($"- {item.Quantity}x {item.MenuItem.Name} ({LineTotal(item):0.##} جنيه)");
+        }
+
+        var subtotal = order.OrderItems.Sum(LineTotal);
+
+        var message = new StringBuilder();
+        message.AppendLine("🚨 طلب جديد بانتظار التأكيد!");
+        message.AppendLine($"رقم الطلب: #{order.Id}");
+        message.AppendLine($"العميل: {order.CustomerName}");
+        message.AppendLine($"الهاتف: {order.CustomerPhone}");
+        message.AppendLine($"العنوان: {order.DeliveryAddress}");
+        message.AppendLine();
+        message.AppendLine("📦 محتويات الطلب:");
+        message.Append(itemsList);
+        message.AppendLine();
+        message.AppendLine("💰 تفاصيل الحساب:");
+        message.AppendLine($"المجموع: {subtotal:0.##} جنيه");
+        message.AppendLine($"التوصيل: {order.DeliveryFee:0.##} جنيه");
+        message.AppendLine($"الضريبة: {order.TaxAmount:0.##} جنيه");
+        if (order.DiscountAmount > 0)
+        {
+            message.AppendLine($"الخصم: {order.DiscountAmount:0.##} جنيه");
+        }
+        message.AppendLine($"الإجمالي المطلوب: {order.TotalAmount:0.##} جنيه");
+
+        return message.ToString().TrimEnd();
     }
 
     private async Task SendMessageAsync(string phoneNumber, string message)
