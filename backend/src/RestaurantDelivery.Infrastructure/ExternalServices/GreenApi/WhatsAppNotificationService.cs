@@ -83,7 +83,12 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         // currency-per-point formula rounds down to nothing) - "🎉 تم إضافة 0 نقطة" would
         // read as broken rather than encouraging, so this touchpoint simply doesn't fire
         // for it. SendOrderConfirmationAsync already covers that order regardless.
-        if (earnedPoints <= 0)
+        //
+        // The rating link is this message's entire call to action (unlike
+        // SendWelcomeMessageAsync's optional wallet-card link) - with no FrontendBaseUrl
+        // configured there's nothing sensible to send, so this skips entirely rather than
+        // going out with a dangling "...عبر الرابط التالي:" and nothing after it.
+        if (earnedPoints <= 0 || string.IsNullOrWhiteSpace(_options.FrontendBaseUrl))
         {
             return Task.CompletedTask;
         }
@@ -92,19 +97,27 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
             $"مرحباً {customerName}، نتمنى أن تكون قد استمتعت بوجبتك من أوتانتيك! 🧡\n\n" +
             $"🎉 تم إضافة {earnedPoints} نقطة إلى كارت الولاء الخاص بك بنجاح.\n" +
             "رأيك يهمنا جداً! شاركنا تقييمك للطلب لمساعدتنا على تقديم الأفضل لك دائماً عبر الرابط التالي: " +
-            $"https://otantik.com/customer-review/{orderId}";
+            $"{_options.FrontendBaseUrl.TrimEnd('/')}/customer-review/{orderId}";
 
         return SendMessageAsync(phoneNumber, message);
     }
 
     public Task SendLoyaltyWalletUpdateAsync(string phoneNumber, string customerName, bool isRedemption, int transactionPoints, int totalBalance)
     {
+        // Same reasoning as SendPostDeliveryPointsNotificationAsync above - the rating
+        // link is this message's entire call to action, so this skips entirely rather
+        // than sending a dangling link with no FrontendBaseUrl configured.
+        if (string.IsNullOrWhiteSpace(_options.FrontendBaseUrl))
+        {
+            return Task.CompletedTask;
+        }
+
         var actionText = isRedemption ? "🔻 تم استبدال" : "✅ تم إضافة";
 
         var message =
             $"مرحباً {customerName}،\n\n" +
             $"💳 تحديث جديد لمحفظة نقاط أوتانتيك الخاصة بك: {actionText} {transactionPoints} نقطة. رصيدك الحالي هو: {totalBalance} نقطة.\n" +
-            "يسعدنا دائماً خدمتك! شاركنا تقييمك لتجربتك اليوم عبر الرابط التالي: https://otantik.com/rate/store";
+            $"يسعدنا دائماً خدمتك! شاركنا تقييمك لتجربتك اليوم عبر الرابط التالي: {_options.FrontendBaseUrl.TrimEnd('/')}/rate/store";
 
         return SendMessageAsync(phoneNumber, message);
     }
