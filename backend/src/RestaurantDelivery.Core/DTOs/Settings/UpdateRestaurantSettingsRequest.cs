@@ -65,7 +65,13 @@ public class UpdateRestaurantSettingsRequest : IValidatableObject
     public decimal BaseDeliveryFee { get; set; }
 
     [MaxLength(30)]
-    public string? ManagerPhoneNumber { get; set; }
+    public string? ManagerWhatsApp1 { get; set; }
+
+    [MaxLength(30)]
+    public string? ManagerWhatsApp2 { get; set; }
+
+    [MaxLength(30)]
+    public string? ManagerWhatsApp3 { get; set; }
 
     // A single DataAnnotation attribute can't make VisaFawryUrl/InstapayAccount
     // conditionally required based on their matching toggle, hence IValidatableObject.

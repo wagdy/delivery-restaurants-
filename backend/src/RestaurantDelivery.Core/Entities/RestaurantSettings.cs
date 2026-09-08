@@ -76,9 +76,13 @@ public class RestaurantSettings
     // that extension requires changing this column - it just stops being the only fee.
     public decimal BaseDeliveryFee { get; set; }
 
-    // WhatsApp number the shift manager's "new order" alert is sent to (see
+    // Up to 3 WhatsApp numbers the detailed "new order" alert is sent to (see
     // WhatsAppNotificationService.SendOrderNotificationsAsync) - deliberately separate from
     // Phone above, which is the public contact number shown to customers in the footer.
-    // Null/empty simply skips the manager alert; the customer's own confirmation still sends.
-    public string? ManagerPhoneNumber { get; set; }
+    // Each is independently optional: any mix of null/empty across the three simply skips
+    // that slot, and all three empty skips the manager alert entirely - the customer's own
+    // confirmation still sends regardless.
+    public string? ManagerWhatsApp1 { get; set; }
+    public string? ManagerWhatsApp2 { get; set; }
+    public string? ManagerWhatsApp3 { get; set; }
 }

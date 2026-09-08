@@ -381,17 +381,38 @@
                   }
                 </mat-form-field>
 
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Manager WhatsApp Number</mat-label>
-                  <input matInput formControlName="managerPhoneNumber" placeholder="e.g. 01012345678" />
-                  <mat-hint>
-                    Receives a WhatsApp alert for every new order. Separate from the public contact number below -
-                    leave blank to disable the alert.
-                  </mat-hint>
-                  @if (form.controls.managerPhoneNumber.hasError('maxlength')) {
-                    <mat-error>Must be 30 characters or fewer</mat-error>
-                  }
-                </mat-form-field>
+                <div class="settings-subsection">
+                  <h3 class="subsection-title">Manager WhatsApp Notifications (Optional)</h3>
+                  <p class="field-hint">
+                    Each number below gets a detailed WhatsApp alert - order items, subtotal, tax, delivery, and
+                    total - the moment a new order comes in. Separate from the public contact number above. Fill in
+                    one, two, three, or none; leave all blank to turn the alert off entirely.
+                  </p>
+
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Manager 1 Phone</mat-label>
+                    <input matInput formControlName="managerWhatsApp1" placeholder="e.g. 01012345678" />
+                    @if (form.controls.managerWhatsApp1.hasError('maxlength')) {
+                      <mat-error>Must be 30 characters or fewer</mat-error>
+                    }
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Manager 2 Phone</mat-label>
+                    <input matInput formControlName="managerWhatsApp2" placeholder="e.g. 01012345678" />
+                    @if (form.controls.managerWhatsApp2.hasError('maxlength')) {
+                      <mat-error>Must be 30 characters or fewer</mat-error>
+                    }
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Manager 3 Phone</mat-label>
+                    <input matInput formControlName="managerWhatsApp3" placeholder="e.g. 01012345678" />
+                    @if (form.controls.managerWhatsApp3.hasError('maxlength')) {
+                      <mat-error>Must be 30 characters or fewer</mat-error>
+                    }
+                  </mat-form-field>
+                </div>
               </mat-card-content>
             </mat-card>
           }

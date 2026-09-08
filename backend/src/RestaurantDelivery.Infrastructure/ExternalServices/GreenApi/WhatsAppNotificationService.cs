@@ -77,18 +77,23 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         return SendMessageAsync(phoneNumber, builder.ToString().TrimEnd());
     }
 
-    public async Task SendOrderNotificationsAsync(Order order, string? managerPhone)
+    public async Task SendOrderNotificationsAsync(Order order, IEnumerable<string?> managerPhones)
     {
         var customerMessage =
             $"مرحباً {order.CustomerName}، تم استلام طلبك بنجاح. شكراً لطلبك من مطعم أوتانتيك! رقم الطلب: #{order.Id}";
         await SendMessageAsync(order.CustomerPhone, customerMessage);
 
-        if (string.IsNullOrWhiteSpace(managerPhone))
+        var validManagerPhones = managerPhones.Where(p => !string.IsNullOrWhiteSpace(p)).ToList();
+        if (validManagerPhones.Count == 0)
         {
             return;
         }
 
-        await SendMessageAsync(managerPhone, BuildManagerMessage(order));
+        // Same message to every configured manager, sent concurrently - formatting each
+        // number into Green API's chatId shape happens inside SendMessageAsync itself
+        // (see ToChatId), same as every other message this service sends.
+        var managerMessage = BuildManagerMessage(order);
+        await Task.WhenAll(validManagerPhones.Select(phone => SendMessageAsync(phone!, managerMessage)));
     }
 
     // Every line total (and the subtotal below) uses Quantity × (UnitPrice + add-ons'

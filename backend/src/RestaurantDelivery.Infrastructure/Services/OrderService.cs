@@ -143,7 +143,9 @@ public class OrderService : IOrderService
         // IOptions, and ILogger, all safe to keep running after this method returns. Not
         // awaiting it here is what actually keeps a slow Green API response from adding
         // its own latency to the checkout API's HTTP response.
-        _ = _whatsAppNotificationService.SendOrderNotificationsAsync(order, settings.ManagerPhoneNumber);
+        _ = _whatsAppNotificationService.SendOrderNotificationsAsync(
+            order,
+            [settings.ManagerWhatsApp1, settings.ManagerWhatsApp2, settings.ManagerWhatsApp3]);
 
         // Live-updates the admin/cashier Orders tab the instant this order lands, instead
         // of staff having to manually refresh to see it. Same "never throw" contract as

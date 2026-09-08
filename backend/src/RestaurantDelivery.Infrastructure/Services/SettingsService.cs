@@ -47,7 +47,9 @@ public class SettingsService : ISettingsService
         settings.IsInstapayEnabled = request.IsInstapayEnabled;
         settings.InstapayAccount = request.InstapayAccount;
         settings.BaseDeliveryFee = request.BaseDeliveryFee;
-        settings.ManagerPhoneNumber = request.ManagerPhoneNumber;
+        settings.ManagerWhatsApp1 = request.ManagerWhatsApp1;
+        settings.ManagerWhatsApp2 = request.ManagerWhatsApp2;
+        settings.ManagerWhatsApp3 = request.ManagerWhatsApp3;
 
         await _context.SaveChangesAsync();
 
@@ -91,6 +93,8 @@ public class SettingsService : ISettingsService
         IsInstapayEnabled = settings.IsInstapayEnabled,
         InstapayAccount = settings.InstapayAccount,
         BaseDeliveryFee = settings.BaseDeliveryFee,
-        ManagerPhoneNumber = settings.ManagerPhoneNumber
+        ManagerWhatsApp1 = settings.ManagerWhatsApp1,
+        ManagerWhatsApp2 = settings.ManagerWhatsApp2,
+        ManagerWhatsApp3 = settings.ManagerWhatsApp3
     };
 }

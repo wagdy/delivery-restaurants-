@@ -103,6 +103,21 @@
   margin: 0 0 8px;
 }
 
+// Equivalent to Tailwind's `mt-6 pt-6 border-t border-gray-200` - this project has no
+// Tailwind installed, so the same "distinct block within the same card" separation is
+// done with plain CSS instead, matching every other component's substitution pattern.
+.settings-subsection {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.subsection-title {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
 .upload-section {
   margin: 4px 0 20px;
 }

@@ -15,9 +15,10 @@ public interface IWhatsAppNotificationService
 
     // Fired on order CREATION, distinct from SendOrderConfirmationAsync above (which fires
     // on DELIVERY, with the full points/rewards breakdown) - this is the immediate "we got
-    // your order" touchpoint, plus a same-message-flow alert to whoever Site Settings has
-    // configured as the shift manager. managerPhone is nullable because that setting is
-    // optional: no manager alert is sent when it's unset, but the customer's own message
-    // still goes out regardless.
-    Task SendOrderNotificationsAsync(Order order, string? managerPhone);
+    // your order" touchpoint, plus the same detailed alert sent to every configured manager
+    // number (up to the 3 Site Settings slots - RestaurantSettings.ManagerWhatsApp1/2/3).
+    // Entries are individually optional: null/empty/whitespace ones are filtered out, and
+    // an empty list after filtering just skips the manager alert entirely - the customer's
+    // own confirmation still sends regardless.
+    Task SendOrderNotificationsAsync(Order order, IEnumerable<string?> managerPhones);
 }

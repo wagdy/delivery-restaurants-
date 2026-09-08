@@ -38,11 +38,14 @@ export interface RestaurantSettings {
   // hardcoded constant now.
   baseDeliveryFee: number;
 
-  // WhatsApp number the shift manager's "new order" alert is sent to on order creation -
+  // Up to 3 WhatsApp numbers the detailed "new order" alert is sent to on order creation -
   // deliberately separate from `phone` above, which is the public contact number shown to
-  // customers in the footer. Null/empty skips the manager alert (the customer's own
-  // confirmation still sends regardless) - see WhatsAppNotificationService.SendOrderNotificationsAsync.
-  managerPhoneNumber?: string | null;
+  // customers in the footer. Each is independently optional; all three empty skips the
+  // manager alert entirely (the customer's own confirmation still sends regardless) - see
+  // WhatsAppNotificationService.SendOrderNotificationsAsync.
+  managerWhatsApp1?: string | null;
+  managerWhatsApp2?: string | null;
+  managerWhatsApp3?: string | null;
 }
 
 export type UpdateRestaurantSettingsRequest = RestaurantSettings;
