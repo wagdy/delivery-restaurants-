@@ -77,6 +77,26 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         return SendMessageAsync(phoneNumber, builder.ToString().TrimEnd());
     }
 
+    public Task SendPostDeliveryPointsNotificationAsync(string phoneNumber, string customerName, int earnedPoints, int orderId)
+    {
+        // A 0-point delivery is possible (e.g. an order small enough that the
+        // currency-per-point formula rounds down to nothing) - "🎉 تم إضافة 0 نقطة" would
+        // read as broken rather than encouraging, so this touchpoint simply doesn't fire
+        // for it. SendOrderConfirmationAsync already covers that order regardless.
+        if (earnedPoints <= 0)
+        {
+            return Task.CompletedTask;
+        }
+
+        var message =
+            $"مرحباً {customerName}، نتمنى أن تكون قد استمتعت بوجبتك من أوتانتيك! 🧡\n" +
+            $"🎉 تم إضافة {earnedPoints} نقطة إلى كارت الولاء الخاص بك بنجاح.\n" +
+            "رأيك يهمنا جداً! شاركنا تقييمك للطلب لمساعدتنا على تقديم الأفضل لك دائماً عبر الرابط التالي: " +
+            $"https://otantik.com/rate/{orderId}";
+
+        return SendMessageAsync(phoneNumber, message);
+    }
+
     public async Task SendOrderNotificationsAsync(Order order, IEnumerable<string?> managerPhones)
     {
         var customerMessage =

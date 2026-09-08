@@ -21,4 +21,11 @@ public interface IWhatsAppNotificationService
     // an empty list after filtering just skips the manager alert entirely - the customer's
     // own confirmation still sends regardless.
     Task SendOrderNotificationsAsync(Order order, IEnumerable<string?> managerPhones);
+
+    // A second, separate touchpoint fired alongside SendOrderConfirmationAsync when an
+    // order reaches Delivered - deliberately short and detail-free (no items, no totals),
+    // just a warm thank-you, the points just earned, and a rating link. Only meaningful
+    // for a registered customer (a guest order has no loyalty profile to credit points
+    // to), which the caller is responsible for checking before calling this.
+    Task SendPostDeliveryPointsNotificationAsync(string phoneNumber, string customerName, int earnedPoints, int orderId);
 }
