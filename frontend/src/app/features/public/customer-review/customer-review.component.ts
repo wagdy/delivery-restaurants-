@@ -1,30 +1,34 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { ReviewService } from '../../../core/services/review.service';
 import { SettingsService } from '../../../core/services/settings.service';
 import { SubmitReviewAnswer, SurveyQuestion } from '../../../core/models/review.model';
 
-// The fully public, chrome-free general store-rating page - reached via
-// SendLoyaltyWalletUpdateAsync's WhatsApp link ("/rate/store"), which has no order
-// context at all (a cashier-scanned wallet update, not a specific delivery). The
-// order-specific counterpart is a separate, dedicated CustomerReviewComponent
-// ("/customer-review/:orderId") - not this component - since that route always has an
-// order and never needs a "no orderId" branch. Deliberately standalone with no
-// admin/storefront layout - see AppComponent's isBarePage check, which hides the
-// app-wide toolbar/sidenav specifically for "/rate/" and "/customer-review/" routes.
+// The fully public, chrome-free per-order review page - reached via the WhatsApp link
+// WhatsAppNotificationService.SendPostDeliveryPointsNotificationAsync sends
+// ("/customer-review/:orderId"). Unlike CustomerSurveyComponent (the general store-wide
+// "/rate/store" page, which has no order context and stays in English matching this
+// app's existing storefront copy), this route is always order-specific and the Arabic
+// UI text was specified directly for it - so this component's own copy is Arabic
+// throughout (dir="rtl" on the host), not just the one button/thank-you line. Deliberately
+// standalone with no admin/storefront layout - see AppComponent's isBarePage check.
 @Component({
-  selector: 'app-customer-survey',
+  selector: 'app-customer-review',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './customer-survey.component.html',
-  styleUrl: './customer-survey.component.scss'
+  host: { dir: 'rtl', lang: 'ar' },
+  templateUrl: './customer-review.component.html',
+  styleUrl: './customer-review.component.scss'
 })
-export class CustomerSurveyComponent implements OnInit {
+export class CustomerReviewComponent implements OnInit {
+  private readonly route = inject(ActivatedRoute);
   private readonly reviewService = inject(ReviewService);
   protected readonly settingsService = inject(SettingsService);
 
   protected readonly starPositions = [1, 2, 3, 4, 5];
 
+  protected readonly orderId = signal<number | null>(null);
   protected readonly loading = signal(true);
   protected readonly loadError = signal<string | null>(null);
   protected readonly questions = signal<SurveyQuestion[]>([]);
@@ -37,16 +41,29 @@ export class CustomerSurveyComponent implements OnInit {
 
   protected readonly submitting = signal(false);
   protected readonly submitError = signal<string | null>(null);
-  protected readonly submitted = signal(false);
+
+  // Named exactly isSubmitted (not "submitted") per this page's own spec - flips the
+  // template from the question form to the Arabic thank-you state once the API call
+  // succeeds.
+  isSubmitted = false;
 
   ngOnInit(): void {
+    const param = this.route.snapshot.paramMap.get('orderId');
+    const parsed = param ? Number(param) : NaN;
+    if (!Number.isFinite(parsed)) {
+      this.loadError.set('رابط التقييم غير صالح.');
+      this.loading.set(false);
+      return;
+    }
+    this.orderId.set(parsed);
+
     this.reviewService.getPublicQuestions().subscribe({
       next: (questions) => {
         this.questions.set(questions);
         this.loading.set(false);
       },
       error: () => {
-        this.loadError.set('Sorry, we could not load the feedback form. Please try again later.');
+        this.loadError.set('عذراً، تعذر تحميل نموذج التقييم. يرجى المحاولة مرة أخرى لاحقاً.');
         this.loading.set(false);
       }
     });
@@ -73,9 +90,9 @@ export class CustomerSurveyComponent implements OnInit {
   }
 
   // Record<number, string> types indexed access as plain `string` (no
-  // noUncheckedIndexedAccess), which made a template-level `answers()[id] ?? ''` trip an
-  // "unnecessary ??" compiler warning despite genuinely being undefined for an
-  // unanswered question at runtime - routed through an explicitly-typed helper instead.
+  // noUncheckedIndexedAccess), which would otherwise trip Angular's "unnecessary ??"
+  // template diagnostic despite genuinely being undefined for an unanswered question at
+  // runtime - routed through an explicitly-typed helper instead.
   getAnswerText(questionId: number): string {
     return this.answers()[questionId] ?? '';
   }
@@ -90,7 +107,7 @@ export class CustomerSurveyComponent implements OnInit {
 
   submit(): void {
     if (this.overallRating() < 1) {
-      this.submitError.set('Please choose an overall rating before submitting.');
+      this.submitError.set('يرجى اختيار تقييم عام قبل الإرسال.');
       return;
     }
 
@@ -106,19 +123,19 @@ export class CustomerSurveyComponent implements OnInit {
 
     this.reviewService
       .submit({
-        orderId: null,
+        orderId: this.orderId(),
         overallRating: this.overallRating(),
         answers: answerPayload
       })
       .subscribe({
         next: () => {
           this.submitting.set(false);
-          this.submitted.set(true);
+          this.isSubmitted = true;
         },
         error: (err) => {
           this.submitting.set(false);
           this.submitError.set(
-            err.error?.errors?.[0] ?? 'Something went wrong submitting your feedback. Please try again.'
+            err.error?.errors?.[0] ?? 'حدث خطأ أثناء إرسال تقييمك. يرجى المحاولة مرة أخرى.'
           );
         }
       });

@@ -92,7 +92,7 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
             $"مرحباً {customerName}، نتمنى أن تكون قد استمتعت بوجبتك من أوتانتيك! 🧡\n\n" +
             $"🎉 تم إضافة {earnedPoints} نقطة إلى كارت الولاء الخاص بك بنجاح.\n" +
             "رأيك يهمنا جداً! شاركنا تقييمك للطلب لمساعدتنا على تقديم الأفضل لك دائماً عبر الرابط التالي: " +
-            $"https://otantik.com/rate/order/{orderId}";
+            $"https://otantik.com/customer-review/{orderId}";
 
         return SendMessageAsync(phoneNumber, message);
     }

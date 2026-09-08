@@ -129,7 +129,7 @@ public class ReviewService : IReviewService
 
     public async Task<ServiceResult<OrderReviewDetailResponse>> SubmitReviewAsync(SubmitReviewRequest request, string? customerId)
     {
-        // Order-specific link (SendPostDeliveryPointsNotificationAsync's "/rate/order/{id}")
+        // Order-specific link (SendPostDeliveryPointsNotificationAsync's "/customer-review/{id}")
         // vs. general store-wide link (SendLoyaltyWalletUpdateAsync's "/rate/store", which
         // has no order context at all) - only the former has an order to validate/dedupe.
         if (request.OrderId is { } orderId)

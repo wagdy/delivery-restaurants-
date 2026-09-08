@@ -51,9 +51,9 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/auth/email-login/email-login.component').then((m) => m.EmailLoginComponent)
   },
-  // Fully public, chrome-free survey page reached via a WhatsApp rating link - no guard,
-  // no admin/storefront layout (see AppComponent's isBarePage check). Both routes render
-  // the same component; "store" has no orderId route param at all.
+  // Fully public, chrome-free store-wide rating page reached via
+  // SendLoyaltyWalletUpdateAsync's WhatsApp link - no guard, no admin/storefront layout
+  // (see AppComponent's isBarePage check).
   {
     path: 'rate/store',
     loadComponent: () =>
@@ -61,11 +61,15 @@ export const routes: Routes = [
         (m) => m.CustomerSurveyComponent
       )
   },
+  // Fully public, chrome-free per-order review page reached via
+  // SendPostDeliveryPointsNotificationAsync's WhatsApp link - a dedicated component
+  // (distinct from CustomerSurveyComponent above), since this route is always
+  // order-specific and never needs the "no orderId" store-wide branch.
   {
-    path: 'rate/order/:orderId',
+    path: 'customer-review/:orderId',
     loadComponent: () =>
-      import('./features/public/customer-survey/customer-survey.component').then(
-        (m) => m.CustomerSurveyComponent
+      import('./features/public/customer-review/customer-review.component').then(
+        (m) => m.CustomerReviewComponent
       )
   },
   {

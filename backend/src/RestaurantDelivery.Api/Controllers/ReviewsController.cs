@@ -7,7 +7,7 @@ namespace RestaurantDelivery.Api.Controllers;
 
 // Every action here is staff-only (Module.Reviews) - the two anonymous/public actions
 // (the active question list and review submission, used by the customer-facing survey
-// page at /rate/store and /rate/order/:orderId) live separately in
+// page at /rate/store and /customer-review/:orderId) live separately in
 // PublicReviewsController, so a glance at this controller's attributes alone is enough to
 // confirm nothing here is reachable without the Reviews permission.
 [ApiController]

@@ -53,14 +53,6 @@ export class CustomerReviewsComponent implements OnInit {
   readonly questionTypeOptions = QUESTION_TYPE_OPTIONS;
   readonly starPositions = [1, 2, 3, 4, 5];
 
-  // The general store-review link (PublicReviewsController's public survey page) -
-  // deliberately the same hardcoded production domain WhatsAppNotificationService's
-  // SendLoyaltyWalletUpdateAsync sends, not window.location.origin, so "Publish &
-  // Preview"/"Copy Link" always reflect the exact link customers actually receive
-  // regardless of which environment (local dev, staging) the admin is using right now.
-  // Keep these two in sync if the production domain ever changes.
-  readonly publicStoreReviewUrl = 'https://otantik.com/rate/store';
-
   // --- Tab 1: Survey Configuration ---
 
   readonly loadingQuestions = signal(true);
@@ -90,20 +82,6 @@ export class CustomerReviewsComponent implements OnInit {
 
   switchTab(tab: CustomerReviewsTab): void {
     this.activeTab.set(tab);
-  }
-
-  // Opens the exact page a customer sees when they tap the store-rating link in a
-  // WhatsApp message, in a new tab, so the admin can preview it without leaving this
-  // screen or losing in-progress question edits.
-  openPublicPreview(): void {
-    window.open(this.publicStoreReviewUrl, '_blank');
-  }
-
-  copyPublicLink(): void {
-    navigator.clipboard.writeText(this.publicStoreReviewUrl).then(
-      () => this.snackBar.open('Link copied to clipboard.', 'Dismiss', { duration: 3000 }),
-      () => this.snackBar.open('Could not copy the link.', 'Dismiss', { duration: 4000 })
-    );
   }
 
   // --- Tab 1 methods ---

@@ -6,7 +6,7 @@ using RestaurantDelivery.Core.Interfaces;
 namespace RestaurantDelivery.Api.Controllers;
 
 // Fully anonymous - backs the customer-facing survey page at /rate/store and
-// /rate/order/:orderId. No [Authorize] anywhere in this controller: a guest order can be
+// /customer-review/:orderId. No [Authorize] anywhere in this controller: a guest order can be
 // reviewed too (matches this app's "guest checkout is a first-class flow" convention),
 // and a general store-wide review has no order or account to gate on at all. Kept
 // separate from ReviewsController (staff-only, Module.Reviews) so it's obvious at a

@@ -51,13 +51,14 @@ export class AppComponent {
   // reasoning as StorefrontComponent's own category fetch.
   readonly categories = signal<Category[]>([]);
 
-  // True for the fully public, chrome-free customer survey page ("/rate/store",
-  // "/rate/order/:orderId") - this app-wide toolbar/sidenav (cart, login, admin link,
-  // category drawer) would look completely out of place on a page reached from a WhatsApp
-  // link by a customer who may not even be logged in. Initialized from the current URL
-  // (not just NavigationEnd) so a hard-reload directly on a /rate/ URL starts bare too,
-  // rather than flashing the full chrome for one frame before the first navigation event.
-  protected readonly isBarePage = signal(this.router.url.startsWith('/rate/'));
+  // True for the fully public, chrome-free customer-facing pages ("/rate/store",
+  // "/customer-review/:orderId") - this app-wide toolbar/sidenav (cart, login, admin
+  // link, category drawer) would look completely out of place on a page reached from a
+  // WhatsApp link by a customer who may not even be logged in. Initialized from the
+  // current URL (not just NavigationEnd) so a hard-reload directly on one of these URLs
+  // starts bare too, rather than flashing the full chrome for one frame before the first
+  // navigation event.
+  protected readonly isBarePage = signal(AppComponent.isBareUrl(this.router.url));
 
   constructor() {
     this.categoryService.getAll().subscribe({
@@ -67,8 +68,12 @@ export class AppComponent {
     });
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => {
-      this.isBarePage.set((event as NavigationEnd).urlAfterRedirects.startsWith('/rate/'));
+      this.isBarePage.set(AppComponent.isBareUrl((event as NavigationEnd).urlAfterRedirects));
     });
+  }
+
+  private static isBareUrl(url: string): boolean {
+    return url.startsWith('/rate/') || url.startsWith('/customer-review/');
   }
 
   openCart(): void {
