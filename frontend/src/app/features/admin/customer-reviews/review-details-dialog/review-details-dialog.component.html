@@ -1,0 +1,54 @@
+<h2 mat-dialog-title>Review Details</h2>
+
+<mat-dialog-content>
+  @if (review(); as r) {
+    <div class="review-header">
+      <div>
+        <p class="review-order">Order #{{ r.orderId }}</p>
+        <p class="review-customer">{{ r.customerName }}</p>
+        <p class="review-date">{{ r.createdAt | date: 'medium' }}</p>
+      </div>
+
+      <div class="overall-rating">
+        <span class="rating-label">Overall Rating</span>
+        <div class="stars">
+          @for (position of stars; track position) {
+            <mat-icon [class.filled]="isFilledStar(r.overallRating, position)">star</mat-icon>
+          }
+        </div>
+      </div>
+    </div>
+
+    @if (r.answers.length === 0) {
+      <p class="empty-state">No additional survey questions were answered for this review.</p>
+    } @else {
+      <ul class="answers-list">
+        @for (answer of r.answers; track answer.surveyQuestionId) {
+          <li class="answer-row">
+            <p class="answer-question">{{ answer.questionText }}</p>
+
+            @if (answer.questionType === 'StarRating') {
+              <div class="stars">
+                @for (position of stars; track position) {
+                  <mat-icon [class.filled]="isFilledStar(answerAsRating(answer.answerValue), position)">star</mat-icon>
+                }
+              </div>
+            } @else {
+              <p class="answer-value">{{ answer.answerValue }}</p>
+            }
+          </li>
+        }
+      </ul>
+    }
+  } @else if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else if (errorMessage()) {
+    <p class="error-text">{{ errorMessage() }}</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-flat-button color="primary" (click)="close()">Close</button>
+</mat-dialog-actions>

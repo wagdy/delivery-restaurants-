@@ -35,6 +35,10 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     // name here would silently hide the inherited member.
     public DbSet<Role> CustomRoles => Set<Role>();
 
+    public DbSet<SurveyQuestion> SurveyQuestions => Set<SurveyQuestion>();
+    public DbSet<OrderReview> OrderReviews => Set<OrderReview>();
+    public DbSet<ReviewAnswer> ReviewAnswers => Set<ReviewAnswer>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

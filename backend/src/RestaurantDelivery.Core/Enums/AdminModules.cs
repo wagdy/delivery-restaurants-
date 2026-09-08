@@ -12,7 +12,8 @@ public enum AdminModules
     Crm = 1 << 5,
     Campaigns = 1 << 6,
     Scanner = 1 << 7,
-    PromoCodes = 1 << 8
+    PromoCodes = 1 << 8,
+    Reviews = 1 << 9
 }
 
 // Single source of truth for the JWT claim type carrying granted admin modules - the

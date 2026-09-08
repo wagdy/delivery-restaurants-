@@ -7,7 +7,8 @@ export type AdminModuleName =
   | 'Crm'
   | 'Campaigns'
   | 'Scanner'
-  | 'PromoCodes';
+  | 'PromoCodes'
+  | 'Reviews';
 
 export interface SubPermissionOption {
   value: string;

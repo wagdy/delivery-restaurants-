@@ -125,6 +125,14 @@ export const routes: Routes = [
         canActivate: [moduleGuard('PromoCodes')],
         loadComponent: () =>
           import('./features/admin/promo-codes/promo-codes.component').then((m) => m.PromoCodesComponent)
+      },
+      {
+        path: 'reviews',
+        canActivate: [moduleGuard('Reviews')],
+        loadComponent: () =>
+          import('./features/admin/customer-reviews/customer-reviews.component').then(
+            (m) => m.CustomerReviewsComponent
+          )
       }
     ]
   },

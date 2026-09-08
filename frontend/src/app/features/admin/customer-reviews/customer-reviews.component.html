@@ -1,0 +1,163 @@
+<mat-toolbar class="reviews-toolbar">
+  <h1>Customer Reviews</h1>
+</mat-toolbar>
+
+<nav class="tabs-nav">
+  <button type="button" class="tab-button" [class.active]="activeTab() === 'survey'" (click)="switchTab('survey')">
+    Survey Configuration
+  </button>
+  <button type="button" class="tab-button" [class.active]="activeTab() === 'reviews'" (click)="switchTab('reviews')">
+    Submitted Reviews
+  </button>
+</nav>
+
+@switch (activeTab()) {
+  @case ('survey') {
+    <div class="tab-panel survey-panel">
+      @if (loadingQuestions()) {
+        <div class="loading-state">
+          <mat-spinner diameter="40"></mat-spinner>
+        </div>
+      } @else {
+        <form [formGroup]="surveyForm">
+          <div formArrayName="questions" class="questions-list">
+            @for (group of questions.controls; track group; let i = $index) {
+              <div class="question-card" [formGroupName]="i">
+                <div class="question-row">
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="question-text-field">
+                    <mat-label>Question text</mat-label>
+                    <input matInput formControlName="text" placeholder="e.g. How was your food?" />
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="question-type-field">
+                    <mat-label>Question type</mat-label>
+                    <mat-select formControlName="type">
+                      @for (option of questionTypeOptions; track option.value) {
+                        <mat-option [value]="option.value">{{ option.label }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+
+                @if (isSingleChoice(i)) {
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+                    <mat-label>Options (comma-separated)</mat-label>
+                    <input matInput formControlName="optionsText" placeholder="e.g. Excellent, Good, Average, Poor" />
+                    <mat-hint>Shown to the customer as single-choice buttons.</mat-hint>
+                  </mat-form-field>
+                }
+
+                <div class="question-footer">
+                  <div class="active-toggle">
+                    <span class="field-label">Active</span>
+                    <mat-slide-toggle formControlName="isActive"></mat-slide-toggle>
+                  </div>
+
+                  <div class="question-actions">
+                    <button
+                      mat-flat-button
+                      color="primary"
+                      type="button"
+                      [disabled]="savingIndex() === i"
+                      (click)="saveQuestion(i)"
+                    >
+                      @if (savingIndex() === i) {
+                        <mat-spinner diameter="18"></mat-spinner>
+                      } @else {
+                        <ng-container>
+                          <mat-icon>save</mat-icon>
+                          Save
+                        </ng-container>
+                      }
+                    </button>
+                    <button
+                      mat-icon-button
+                      color="warn"
+                      type="button"
+                      [disabled]="deletingIndex() === i"
+                      (click)="removeQuestion(i)"
+                      aria-label="Delete question"
+                    >
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            } @empty {
+              <p class="empty-state">No survey questions yet. Add one below.</p>
+            }
+          </div>
+
+          <button mat-stroked-button type="button" (click)="addQuestion()">
+            <mat-icon>add</mat-icon>
+            Add Question
+          </button>
+        </form>
+      }
+    </div>
+  }
+
+  @case ('reviews') {
+    <div class="tab-panel">
+      @if (loadingReviews()) {
+        <div class="loading-state">
+          <mat-spinner diameter="40"></mat-spinner>
+        </div>
+      } @else {
+        <div class="table-wrapper">
+          <table class="reviews-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer Name</th>
+                <th>Overall Rating</th>
+                <th>Date</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (review of reviews(); track review.id) {
+                <tr>
+                  <td>#{{ review.orderId }}</td>
+                  <td>{{ review.customerName }}</td>
+                  <td>
+                    <div class="stars">
+                      @for (position of starPositions; track position) {
+                        <mat-icon [class.filled]="isFilledStar(review.overallRating, position)">star</mat-icon>
+                      }
+                    </div>
+                  </td>
+                  <td>{{ review.createdAt | date: 'short' }}</td>
+                  <td>
+                    <button mat-stroked-button type="button" (click)="viewDetails(review)">View Details</button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr class="empty-row">
+                  <td colspan="5">No reviews submitted yet.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (totalPages() > 1) {
+          <div class="pagination">
+            <button mat-icon-button [disabled]="page() === 1" (click)="goToPage(page() - 1)" aria-label="Previous page">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            <span>Page {{ page() }} of {{ totalPages() }}</span>
+            <button
+              mat-icon-button
+              [disabled]="page() === totalPages()"
+              (click)="goToPage(page() + 1)"
+              aria-label="Next page"
+            >
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+        }
+      }
+    </div>
+  }
+}

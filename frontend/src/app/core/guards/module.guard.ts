@@ -19,7 +19,8 @@ const ADMIN_MODULE_PATHS: { module: AdminModuleName | AdminModuleName[]; path: s
   { module: ['Customers', 'Crm'], path: 'customer-insights' },
   { module: 'Campaigns', path: 'campaigns' },
   { module: 'Scanner', path: 'scanner' },
-  { module: 'PromoCodes', path: 'promo-codes' }
+  { module: 'PromoCodes', path: 'promo-codes' },
+  { module: 'Reviews', path: 'reviews' }
 ];
 
 function hasAnyModule(authService: AuthService, module: AdminModuleName | AdminModuleName[]): boolean {

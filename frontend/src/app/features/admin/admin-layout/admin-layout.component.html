@@ -45,6 +45,11 @@
       Promo Codes
     </a>
   }
+  @if (authService.hasModule('Reviews')) {
+    <a mat-tab-link routerLink="reviews" routerLinkActive #reviewsLink="routerLinkActive" [active]="reviewsLink.isActive">
+      Customer Reviews
+    </a>
+  }
 </nav>
 
 <mat-tab-nav-panel #tabPanel>

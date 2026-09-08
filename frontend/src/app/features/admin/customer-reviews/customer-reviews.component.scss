@@ -1,0 +1,197 @@
+.reviews-toolbar {
+  background: white;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  height: auto;
+  min-height: 64px;
+  padding: 10px 16px;
+
+  h1 {
+    font-size: 1.25rem;
+    margin: 0;
+  }
+}
+
+// Equivalent to Tailwind's `flex border-b border-gray-200` - this project has no
+// Tailwind installed, so the same horizontal tab-strip look is done with plain CSS,
+// matching every other component's substitution pattern this session.
+.tabs-nav {
+  display: flex;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  background: white;
+  overflow-x: auto;
+}
+
+.tab-button {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 12px 18px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    color: rgba(0, 0, 0, 0.75);
+  }
+
+  &.active {
+    color: var(--app-primary-color, #3f51b5);
+    border-bottom-color: var(--app-primary-color, #3f51b5);
+  }
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.tab-panel {
+  padding: 16px;
+}
+
+// --- Tab 1: Survey Configuration ---
+
+.questions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.question-card {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.question-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.question-text-field {
+  flex: 2 1 320px;
+}
+
+.question-type-field {
+  flex: 1 1 200px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.question-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.active-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field-label {
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.question-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  button[mat-flat-button] {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    mat-spinner {
+      display: inline-block;
+    }
+  }
+}
+
+.empty-state {
+  color: rgba(0, 0, 0, 0.4);
+  padding: 24px 0;
+  text-align: center;
+}
+
+// --- Tab 2: Submitted Reviews ---
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.reviews-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+
+  th,
+  td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    font-size: 0.875rem;
+  }
+
+  th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgba(0, 0, 0, 0.5);
+  }
+
+  .empty-row td {
+    text-align: center;
+    color: rgba(0, 0, 0, 0.4);
+  }
+}
+
+.stars {
+  display: flex;
+  gap: 2px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: rgba(0, 0, 0, 0.2);
+
+    &.filled {
+      color: #f9a825;
+    }
+  }
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 0 4px;
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.6);
+}
