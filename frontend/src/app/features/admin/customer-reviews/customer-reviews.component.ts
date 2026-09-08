@@ -213,7 +213,8 @@ export class CustomerReviewsComponent implements OnInit {
     const confirmRef = this.dialog.open(ConfirmDialogComponent, {
       data: {
         title: 'Delete question',
-        message: 'Delete this survey question? This only works if no customer has answered it yet.',
+        message:
+          'Delete this survey question? It will disappear from this list and the customer survey - any past customer answers to it are kept for historical reviews.',
         confirmLabel: 'Delete',
         danger: true
       }

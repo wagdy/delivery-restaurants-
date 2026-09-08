@@ -20,7 +20,11 @@ public class ReviewService : IReviewService
 
     public async Task<List<SurveyQuestionResponse>> GetQuestionsAsync(bool activeOnly)
     {
-        var query = _context.SurveyQuestions.AsQueryable();
+        // A soft-deleted question is excluded unconditionally - the admin builder
+        // (activeOnly: false, which still wants to see deactivated-but-not-deleted
+        // questions) and the public survey (activeOnly: true) both go through this same
+        // method, so filtering here is the one place that needs to enforce it for both.
+        var query = _context.SurveyQuestions.Where(q => !q.IsDeleted).AsQueryable();
         if (activeOnly)
         {
             query = query.Where(q => q.IsActive);
@@ -50,7 +54,7 @@ public class ReviewService : IReviewService
     public async Task<ServiceResult<SurveyQuestionResponse>> UpdateQuestionAsync(int id, SurveyQuestionRequest request)
     {
         var question = await _context.SurveyQuestions.FindAsync(id);
-        if (question is null)
+        if (question is null || question.IsDeleted)
         {
             return ServiceResult<SurveyQuestionResponse>.Failure("Question not found.");
         }
@@ -69,19 +73,19 @@ public class ReviewService : IReviewService
     public async Task<ServiceResult<bool>> DeleteQuestionAsync(int id)
     {
         var question = await _context.SurveyQuestions.FindAsync(id);
-        if (question is null)
+        if (question is null || question.IsDeleted)
         {
             return ServiceResult<bool>.Failure("Question not found.");
         }
 
-        var answerCount = await _context.ReviewAnswers.CountAsync(a => a.SurveyQuestionId == id);
-        if (answerCount > 0)
-        {
-            return ServiceResult<bool>.Failure(
-                $"Cannot delete this question because {answerCount} customer answer(s) already reference it. Deactivate it instead.");
-        }
-
-        _context.SurveyQuestions.Remove(question);
+        // Soft delete, not Remove() - a hard delete would hit ReviewAnswerConfiguration's
+        // DeleteBehavior.Restrict FK the moment any customer has answered this question,
+        // and even where no answer exists yet, physically removing the row would still
+        // erase it as a real Id other things could reference later. Setting IsDeleted
+        // hides it everywhere (see GetQuestionsAsync) while every historical
+        // ReviewAnswer pointing at it - and the "Submitted Reviews" detail view that
+        // reads them - stays exactly as it was.
+        question.IsDeleted = true;
         await _context.SaveChangesAsync();
 
         return ServiceResult<bool>.Success(true);
@@ -155,7 +159,7 @@ public class ReviewService : IReviewService
         // deleted, rather than failing the whole submission over stale form state.
         var questionIds = request.Answers.Select(a => a.SurveyQuestionId).Distinct().ToList();
         var validQuestionIds = await _context.SurveyQuestions
-            .Where(q => questionIds.Contains(q.Id) && q.IsActive)
+            .Where(q => questionIds.Contains(q.Id) && q.IsActive && !q.IsDeleted)
             .Select(q => q.Id)
             .ToListAsync();
 

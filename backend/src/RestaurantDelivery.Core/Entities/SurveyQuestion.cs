@@ -21,6 +21,16 @@ public class SurveyQuestion
     // question never orphans or rewrites past answers.
     public bool IsActive { get; set; } = true;
 
+    // A soft delete, not IsActive again: deleting a question the admin no longer wants
+    // to see anywhere (including their own builder) can't be a hard Remove() once
+    // ReviewAnswers reference it - Postgres would reject it (ReviewAnswerConfiguration's
+    // SurveyQuestion FK is DeleteBehavior.Restrict) rather than silently orphan or
+    // cascade-delete real customer answers. IsDeleted hides the row everywhere
+    // (ReviewService.GetQuestionsAsync excludes it unconditionally, for both the admin
+    // builder and the public survey) while the row - and every answer pointing at it -
+    // stays intact for historical "Submitted Reviews" detail views.
+    public bool IsDeleted { get; set; }
+
     // Determines render order on the survey form and in the admin builder - admins can
     // reorder questions without their Id (and therefore every historical ReviewAnswer
     // referencing them) changing.
