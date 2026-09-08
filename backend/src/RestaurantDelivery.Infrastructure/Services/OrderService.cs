@@ -268,23 +268,22 @@ public class OrderService : IOrderService
 
         if (status == OrderStatus.Delivered && !alreadyProcessedForLoyalty)
         {
-            // Both of these must never fail this method - ProcessOrderDeliveredAsync
-            // catches its own DbUpdateException race, and the WhatsApp service swallows
-            // and logs every failure internally.
+            // Awards points/punches and returns the customer's post-award balance
+            // (NewTotalPoints) - must never fail this method, ProcessOrderDeliveredAsync
+            // catches its own DbUpdateException race internally.
             var loyaltyResult = await _loyaltyService.ProcessOrderDeliveredAsync(order);
-            await _whatsAppNotificationService.SendOrderConfirmationAsync(
-                order.CustomerPhone, order.CustomerName, order,
-                loyaltyResult.PointsEarned, loyaltyResult.NewTotalPoints, loyaltyResult.TierUpgraded, loyaltyResult.PunchUpdates);
 
-            // A second, separate touchpoint - the same wallet-update template the Scanner's
-            // manual earn/redeem sends, fired here too so a delivery reads as just another
-            // wallet change. Only for a registered customer (order.UserId is null for a
-            // guest order, which has no loyalty profile to have earned points on in the
-            // first place). Deliberately NOT awaited: this is purely a customer-engagement
-            // side effect, so it must never add its own latency to the "mark delivered"
-            // response an admin/captain is waiting on - same reasoning, and same
-            // safe-to-fire-and-forget shape (no request-scoped dependencies, never throws),
-            // as SendOrderNotificationsAsync in OrderService.CreateAsync.
+            // The only WhatsApp touchpoint on delivery - the old order-summary "تم تسليم
+            // طلبك... ملخص الطلب" message (SendOrderConfirmationAsync) has been removed
+            // entirely, not just for this branch; it had no other caller. Only for a
+            // registered customer (order.UserId is null for a guest order, which has no
+            // loyalty profile to have earned points on in the first place) - a guest
+            // delivery now sends no WhatsApp message at all. Deliberately NOT awaited:
+            // this is purely a customer-engagement side effect, so it must never add its
+            // own latency to the "mark delivered" response an admin/captain is waiting
+            // on - same reasoning, and same safe-to-fire-and-forget shape (no
+            // request-scoped dependencies, never throws), as SendOrderNotificationsAsync
+            // in OrderService.CreateAsync.
             if (order.UserId is not null)
             {
                 _ = _whatsAppNotificationService.SendPostDeliveryPointsNotificationAsync(

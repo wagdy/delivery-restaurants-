@@ -1,4 +1,3 @@
-using RestaurantDelivery.Core.DTOs.Loyalty;
 using RestaurantDelivery.Core.Entities;
 
 namespace RestaurantDelivery.Core.Interfaces;
@@ -11,22 +10,21 @@ public interface IWhatsAppNotificationService
 {
     Task SendWelcomeMessageAsync(string phoneNumber, string customerName);
 
-    Task SendOrderConfirmationAsync(string phoneNumber, string customerName, Order order, int pointsEarned, int newTotalPoints, bool tierUpgraded, List<PunchUpdateSummary> punchUpdates);
-
-    // Fired on order CREATION, distinct from SendOrderConfirmationAsync above (which fires
-    // on DELIVERY, with the full points/rewards breakdown) - this is the immediate "we got
-    // your order" touchpoint, plus the same detailed alert sent to every configured manager
-    // number (up to the 3 Site Settings slots - RestaurantSettings.ManagerWhatsApp1/2/3).
-    // Entries are individually optional: null/empty/whitespace ones are filtered out, and
-    // an empty list after filtering just skips the manager alert entirely - the customer's
-    // own confirmation still sends regardless.
+    // The immediate "we got your order" touchpoint on order CREATION, plus the same
+    // detailed alert sent to every configured manager number (up to the 3 Site Settings
+    // slots - RestaurantSettings.ManagerWhatsApp1/2/3). Entries are individually
+    // optional: null/empty/whitespace ones are filtered out, and an empty list after
+    // filtering just skips the manager alert entirely - the customer's own confirmation
+    // still sends regardless.
     Task SendOrderNotificationsAsync(Order order, IEnumerable<string?> managerPhones);
 
-    // A second, separate touchpoint fired alongside SendOrderConfirmationAsync when an
-    // order reaches Delivered - its own exact, specified wallet-style template (close to
-    // but not literally shared with SendLoyaltyWalletUpdateAsync below - see that
-    // method's implementation comment for the specific differences). newTotalPoints is
-    // the customer's balance *after* this order's points were added
+    // The only WhatsApp touchpoint fired when an order reaches Delivered - its own
+    // exact, specified wallet-style template (close to but not literally shared with
+    // SendLoyaltyWalletUpdateAsync below - see that method's implementation comment for
+    // the specific differences). There used to also be a detailed order-summary message
+    // here (an "OrderConfirmation" send with items/totals/points/tier breakdown) -
+    // removed entirely, not replaced, per explicit instruction. newTotalPoints is the
+    // customer's balance *after* this order's points were added
     // (OrderLoyaltyResult.NewTotalPoints), not their balance before. Only meaningful for
     // a registered customer (a guest order has no loyalty profile to credit points to),
     // which the caller is responsible for checking before calling this.

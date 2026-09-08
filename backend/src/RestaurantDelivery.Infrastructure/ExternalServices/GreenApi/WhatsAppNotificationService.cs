@@ -2,7 +2,6 @@ using System.Net.Http.Json;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using RestaurantDelivery.Core.DTOs.Loyalty;
 using RestaurantDelivery.Core.Entities;
 using RestaurantDelivery.Core.Interfaces;
 
@@ -52,46 +51,13 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         return SendMessageAsync(phoneNumber, message);
     }
 
-    public Task SendOrderConfirmationAsync(string phoneNumber, string customerName, Order order, int pointsEarned, int newTotalPoints, bool tierUpgraded, List<PunchUpdateSummary> punchUpdates)
-    {
-        var builder = new StringBuilder();
-        builder.AppendLine($"مرحباً {customerName}، تم تسليم طلبك رقم #{order.Id} بنجاح!");
-        builder.AppendLine();
-        builder.AppendLine("ملخص الطلب:");
-        foreach (var item in order.OrderItems)
-        {
-            builder.AppendLine($"- {item.Quantity}x {item.MenuItem.Name}");
-        }
-
-        builder.AppendLine($"الإجمالي: {order.TotalAmount:0.##} جنيه");
-
-        if (pointsEarned > 0)
-        {
-            builder.AppendLine();
-            builder.AppendLine($"🎉 لقد حصلت على {pointsEarned} نقطة! رصيدك الآن {newTotalPoints} نقطة.");
-            if (tierUpgraded)
-            {
-                builder.AppendLine("لقد ترقّت إلى مستوى عضوية أعلى، مبروك!");
-            }
-        }
-
-        foreach (var punch in punchUpdates)
-        {
-            builder.AppendLine();
-            builder.AppendLine(punch.RewardsEarnedThisOrder > 0
-                ? $"🎉 مبروك! لقد حصلت على مكافأة مجانية في بطاقة {punch.CampaignTitle}!"
-                : $"تم إضافة ختم في بطاقة {punch.CampaignTitle}! رصيدك الآن {punch.CurrentPunches} من {punch.TargetPunches}.");
-        }
-
-        return SendMessageAsync(phoneNumber, builder.ToString().TrimEnd());
-    }
-
     public Task SendPostDeliveryPointsNotificationAsync(string phoneNumber, string customerName, int earnedPoints, int newTotalPoints)
     {
         // A 0-point delivery is possible (e.g. an order small enough that the
         // currency-per-point formula rounds down to nothing) - "✅ تم إضافة 0 نقاط" would
         // read as broken rather than encouraging, so this touchpoint simply doesn't fire
-        // for it. SendOrderConfirmationAsync already covers that order regardless.
+        // for it. This is now the *only* WhatsApp touchpoint on delivery (the old
+        // order-summary message has been removed entirely, not just superseded here).
         if (earnedPoints <= 0)
         {
             return Task.CompletedTask;
