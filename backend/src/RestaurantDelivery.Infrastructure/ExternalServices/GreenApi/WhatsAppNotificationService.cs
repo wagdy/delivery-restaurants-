@@ -56,8 +56,9 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         // A 0-point delivery is possible (e.g. an order small enough that the
         // currency-per-point formula rounds down to nothing) - "✅ تم إضافة 0 نقاط" would
         // read as broken rather than encouraging, so this touchpoint simply doesn't fire
-        // for it. This is now the *only* WhatsApp touchpoint on delivery (the old
-        // order-summary message has been removed entirely, not just superseded here).
+        // for it. The old order-summary message has been removed entirely, not just
+        // superseded here - a 0-point registered delivery now sends nothing at all,
+        // same as it would for a guest (see SendGuestDeliveryThankYouAsync below).
         if (earnedPoints <= 0)
         {
             return Task.CompletedTask;
@@ -79,6 +80,22 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
             $"رصيدك الحالي هو: {newTotalPoints} نقطة.\n\n" +
             "يسعدنا دائماً خدمتك! شاركنا تقييمك لتجربتك اليوم عبر الرابط التالي:\n" +
             $"{RatingBaseUrl}/rate/store";
+
+        return SendMessageAsync(phoneNumber, message);
+    }
+
+    public Task SendGuestDeliveryThankYouAsync(string phoneNumber, string customerName, int orderId)
+    {
+        // Not an exact-specified template like the two above - drafted to match this
+        // app's existing tone/style, flagged as such when introduced. No points/balance
+        // line (a guest has no LoyaltyProfile for either figure to come from); links to
+        // the order-specific rating flow so a guest can still leave feedback on this
+        // particular order despite having no account.
+        var message =
+            $"مرحباً {customerName}،\n" +
+            "شكراً لطلبك من مطعم أوتانتيك، نتمنى أن تكون قد استمتعت بوجبتك! 🧡\n\n" +
+            $"شاركنا تقييمك لطلبك رقم #{orderId} لمساعدتنا على تقديم الأفضل دائماً عبر الرابط التالي:\n" +
+            $"{RatingBaseUrl}/rate/store?orderId={orderId}";
 
         return SendMessageAsync(phoneNumber, message);
     }

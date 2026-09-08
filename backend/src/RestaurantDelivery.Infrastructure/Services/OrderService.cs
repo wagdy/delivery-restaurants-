@@ -275,19 +275,24 @@ public class OrderService : IOrderService
 
             // The only WhatsApp touchpoint on delivery - the old order-summary "تم تسليم
             // طلبك... ملخص الطلب" message (SendOrderConfirmationAsync) has been removed
-            // entirely, not just for this branch; it had no other caller. Only for a
-            // registered customer (order.UserId is null for a guest order, which has no
-            // loyalty profile to have earned points on in the first place) - a guest
-            // delivery now sends no WhatsApp message at all. Deliberately NOT awaited:
-            // this is purely a customer-engagement side effect, so it must never add its
-            // own latency to the "mark delivered" response an admin/captain is waiting
-            // on - same reasoning, and same safe-to-fire-and-forget shape (no
-            // request-scoped dependencies, never throws), as SendOrderNotificationsAsync
-            // in OrderService.CreateAsync.
+            // entirely, not just for this branch; it had no other caller. Registered
+            // customers get the points/balance message; a guest order (order.UserId is
+            // null, so there's no LoyaltyProfile to report a balance from) gets a
+            // separate, points-free thank-you instead of nothing. Deliberately NOT
+            // awaited: this is purely a customer-engagement side effect, so it must
+            // never add its own latency to the "mark delivered" response an
+            // admin/captain is waiting on - same reasoning, and same
+            // safe-to-fire-and-forget shape (no request-scoped dependencies, never
+            // throws), as SendOrderNotificationsAsync in OrderService.CreateAsync.
             if (order.UserId is not null)
             {
                 _ = _whatsAppNotificationService.SendPostDeliveryPointsNotificationAsync(
                     order.CustomerPhone, order.CustomerName, loyaltyResult.PointsEarned, loyaltyResult.NewTotalPoints);
+            }
+            else
+            {
+                _ = _whatsAppNotificationService.SendGuestDeliveryThankYouAsync(
+                    order.CustomerPhone, order.CustomerName, order.Id);
             }
         }
 

@@ -18,17 +18,27 @@ public interface IWhatsAppNotificationService
     // still sends regardless.
     Task SendOrderNotificationsAsync(Order order, IEnumerable<string?> managerPhones);
 
-    // The only WhatsApp touchpoint fired when an order reaches Delivered - its own
-    // exact, specified wallet-style template (close to but not literally shared with
-    // SendLoyaltyWalletUpdateAsync below - see that method's implementation comment for
-    // the specific differences). There used to also be a detailed order-summary message
-    // here (an "OrderConfirmation" send with items/totals/points/tier breakdown) -
-    // removed entirely, not replaced, per explicit instruction. newTotalPoints is the
-    // customer's balance *after* this order's points were added
-    // (OrderLoyaltyResult.NewTotalPoints), not their balance before. Only meaningful for
-    // a registered customer (a guest order has no loyalty profile to credit points to),
-    // which the caller is responsible for checking before calling this.
+    // The WhatsApp touchpoint fired when a *registered* customer's order reaches
+    // Delivered - its own exact, specified wallet-style template (close to but not
+    // literally shared with SendLoyaltyWalletUpdateAsync below - see that method's
+    // implementation comment for the specific differences). There used to also be a
+    // detailed order-summary message here (an "OrderConfirmation" send with
+    // items/totals/points/tier breakdown) - removed entirely, not replaced, per explicit
+    // instruction. newTotalPoints is the customer's balance *after* this order's points
+    // were added (OrderLoyaltyResult.NewTotalPoints), not their balance before. Only
+    // meaningful for a registered customer (a guest order has no loyalty profile to
+    // credit points to) - see SendGuestDeliveryThankYouAsync below for the guest
+    // counterpart. The caller is responsible for choosing between the two.
     Task SendPostDeliveryPointsNotificationAsync(string phoneNumber, string customerName, int earnedPoints, int newTotalPoints);
+
+    // The Delivered-touchpoint counterpart for a *guest* order (order.UserId is null) -
+    // no points/balance line, since a guest has no LoyaltyProfile for either figure to
+    // come from. Links to the same order-specific rating flow
+    // ("/rate/store?orderId=<id>") the registered-customer path's link would otherwise
+    // cover, so a guest can still leave feedback on this specific order despite having
+    // no account - PublicReviewsController.Submit already accepts an anonymous
+    // (CustomerId-less) review tied to a real OrderId.
+    Task SendGuestDeliveryThankYouAsync(string phoneNumber, string customerName, int orderId);
 
     // Fired from LoyaltyService.EarnPointsAsync/RedeemPointsAsync after a staff-scanned
     // manual wallet transaction (Scanner UI - QR scan or phone lookup) succeeds.
