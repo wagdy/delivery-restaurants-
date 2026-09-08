@@ -44,7 +44,8 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
   visaFawryUrl: null,
   isInstapayEnabled: false,
   instapayAccount: null,
-  baseDeliveryFee: 4.99
+  baseDeliveryFee: 4.99,
+  managerPhoneNumber: null
 };
 
 @Injectable({ providedIn: 'root' })

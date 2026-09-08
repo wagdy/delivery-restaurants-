@@ -37,6 +37,12 @@ export interface RestaurantSettings {
   // AdminDashboardComponent's Create Order tab, both of which read this instead of a
   // hardcoded constant now.
   baseDeliveryFee: number;
+
+  // WhatsApp number the shift manager's "new order" alert is sent to on order creation -
+  // deliberately separate from `phone` above, which is the public contact number shown to
+  // customers in the footer. Null/empty skips the manager alert (the customer's own
+  // confirmation still sends regardless) - see WhatsAppNotificationService.SendOrderNotificationsAsync.
+  managerPhoneNumber?: string | null;
 }
 
 export type UpdateRestaurantSettingsRequest = RestaurantSettings;

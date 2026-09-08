@@ -380,6 +380,18 @@
                     <mat-error>Cannot be negative</mat-error>
                   }
                 </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Manager WhatsApp Number</mat-label>
+                  <input matInput formControlName="managerPhoneNumber" placeholder="e.g. 01012345678" />
+                  <mat-hint>
+                    Receives a WhatsApp alert for every new order. Separate from the public contact number below -
+                    leave blank to disable the alert.
+                  </mat-hint>
+                  @if (form.controls.managerPhoneNumber.hasError('maxlength')) {
+                    <mat-error>Must be 30 characters or fewer</mat-error>
+                  }
+                </mat-form-field>
               </mat-card-content>
             </mat-card>
           }
