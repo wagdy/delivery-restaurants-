@@ -28,4 +28,13 @@ public interface IWhatsAppNotificationService
     // for a registered customer (a guest order has no loyalty profile to credit points
     // to), which the caller is responsible for checking before calling this.
     Task SendPostDeliveryPointsNotificationAsync(string phoneNumber, string customerName, int earnedPoints, int orderId);
+
+    // Fired from LoyaltyService.EarnPointsAsync/RedeemPointsAsync after a staff-scanned
+    // manual wallet transaction (Scanner UI - QR scan or phone lookup) succeeds.
+    // transactionPoints is always the positive magnitude of the transaction (the caller
+    // passes request.PointsToRedeem as-is for a redemption, not its negated ledger value),
+    // since "🔻 تم استبدال -50 نقطة" would read as broken. totalBalance is the customer's
+    // resulting CurrentPoints. Distinct from SendPostDeliveryPointsNotificationAsync
+    // (order-delivered auto-earn) - this is for the separate manual/in-person path.
+    Task SendLoyaltyWalletUpdateAsync(string phoneNumber, string customerName, bool isRedemption, int transactionPoints, int totalBalance);
 }

@@ -18,12 +18,18 @@ public class LoyaltyService : ILoyaltyService
     private readonly ApplicationDbContext _context;
     private readonly ILoyaltyRealtimeNotifier _realtimeNotifier;
     private readonly ITierRepository _tierRepository;
+    private readonly IWhatsAppNotificationService _whatsAppNotificationService;
 
-    public LoyaltyService(ApplicationDbContext context, ILoyaltyRealtimeNotifier realtimeNotifier, ITierRepository tierRepository)
+    public LoyaltyService(
+        ApplicationDbContext context,
+        ILoyaltyRealtimeNotifier realtimeNotifier,
+        ITierRepository tierRepository,
+        IWhatsAppNotificationService whatsAppNotificationService)
     {
         _context = context;
         _realtimeNotifier = realtimeNotifier;
         _tierRepository = tierRepository;
+        _whatsAppNotificationService = whatsAppNotificationService;
     }
 
     public async Task<LoyaltyMeResponse> GetOrCreateProfileAsync(string appUserId, CancellationToken ct = default)
@@ -34,8 +40,8 @@ public class LoyaltyService : ILoyaltyService
 
     public async Task<ServiceResult<LoyaltyTransactionResponse>> EarnPointsAsync(string actorId, EarnPointsRequest request, CancellationToken ct = default)
     {
-        var customerExists = await _context.Users.AnyAsync(u => u.Id == request.CustomerId, ct);
-        if (!customerExists)
+        var customer = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.CustomerId, ct);
+        if (customer is null)
         {
             return ServiceResult<LoyaltyTransactionResponse>.Failure("Customer not found.");
         }
@@ -79,6 +85,17 @@ public class LoyaltyService : ILoyaltyService
             TierUpgraded = tierUpgraded
         }, ct);
 
+        // Fire-and-forget: never awaited, so this adds zero latency to the cashier's POS
+        // response. Not Task.Run either - SendMessageAsync is already I/O-bound (an async
+        // HttpClient call), so wrapping it in Task.Run would just burn a threadpool thread
+        // blocking on that same I/O instead of freeing it, with no benefit over awaiting a
+        // truly async Task without blocking the caller.
+        if (!string.IsNullOrWhiteSpace(customer.PhoneNumber))
+        {
+            _ = _whatsAppNotificationService.SendLoyaltyWalletUpdateAsync(
+                customer.PhoneNumber, customer.FullName, isRedemption: false, pointsEarned, profile.CurrentPoints);
+        }
+
         return ServiceResult<LoyaltyTransactionResponse>.Success(new LoyaltyTransactionResponse
         {
             CustomerId = profile.AppUserId,
@@ -116,8 +133,8 @@ public class LoyaltyService : ILoyaltyService
 
     public async Task<ServiceResult<LoyaltyTransactionResponse>> RedeemPointsAsync(string actorId, RedeemPointsRequest request, CancellationToken ct = default)
     {
-        var customerExists = await _context.Users.AnyAsync(u => u.Id == request.CustomerId, ct);
-        if (!customerExists)
+        var customer = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.CustomerId, ct);
+        if (customer is null)
         {
             return ServiceResult<LoyaltyTransactionResponse>.Failure("Customer not found.");
         }
@@ -153,6 +170,16 @@ public class LoyaltyService : ILoyaltyService
             MembershipTier = profile.MembershipTier ?? "Unranked",
             TierUpgraded = false
         }, ct);
+
+        // Fire-and-forget - see the matching comment in EarnPointsAsync above for why this
+        // isn't Task.Run. request.PointsToRedeem (not the negated ledger value just stored
+        // above) is passed as the positive magnitude - the "🔻 تم استبدال" template already
+        // conveys the direction, so a signed number here would double up as "-50".
+        if (!string.IsNullOrWhiteSpace(customer.PhoneNumber))
+        {
+            _ = _whatsAppNotificationService.SendLoyaltyWalletUpdateAsync(
+                customer.PhoneNumber, customer.FullName, isRedemption: true, request.PointsToRedeem, profile.CurrentPoints);
+        }
 
         return ServiceResult<LoyaltyTransactionResponse>.Success(new LoyaltyTransactionResponse
         {

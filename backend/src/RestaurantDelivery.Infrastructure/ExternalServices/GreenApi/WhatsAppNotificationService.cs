@@ -89,10 +89,22 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         }
 
         var message =
-            $"مرحباً {customerName}، نتمنى أن تكون قد استمتعت بوجبتك من أوتانتيك! 🧡\n" +
+            $"مرحباً {customerName}، نتمنى أن تكون قد استمتعت بوجبتك من أوتانتيك! 🧡\n\n" +
             $"🎉 تم إضافة {earnedPoints} نقطة إلى كارت الولاء الخاص بك بنجاح.\n" +
             "رأيك يهمنا جداً! شاركنا تقييمك للطلب لمساعدتنا على تقديم الأفضل لك دائماً عبر الرابط التالي: " +
-            $"https://otantik.com/rate/{orderId}";
+            $"https://otantik.com/rate/order/{orderId}";
+
+        return SendMessageAsync(phoneNumber, message);
+    }
+
+    public Task SendLoyaltyWalletUpdateAsync(string phoneNumber, string customerName, bool isRedemption, int transactionPoints, int totalBalance)
+    {
+        var actionText = isRedemption ? "🔻 تم استبدال" : "✅ تم إضافة";
+
+        var message =
+            $"مرحباً {customerName}،\n\n" +
+            $"💳 تحديث جديد لمحفظة نقاط أوتانتيك الخاصة بك: {actionText} {transactionPoints} نقطة. رصيدك الحالي هو: {totalBalance} نقطة.\n" +
+            "يسعدنا دائماً خدمتك! شاركنا تقييمك لتجربتك اليوم عبر الرابط التالي: https://otantik.com/rate/store";
 
         return SendMessageAsync(phoneNumber, message);
     }
