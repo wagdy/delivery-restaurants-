@@ -276,18 +276,19 @@ public class OrderService : IOrderService
                 order.CustomerPhone, order.CustomerName, order,
                 loyaltyResult.PointsEarned, loyaltyResult.NewTotalPoints, loyaltyResult.TierUpgraded, loyaltyResult.PunchUpdates);
 
-            // A separate, simpler thank-you-and-rate-us touchpoint - only for a registered
-            // customer (order.UserId is null for a guest order, which has no loyalty
-            // profile to have earned points on in the first place). Deliberately NOT
-            // awaited: this is purely a customer-engagement side effect, so it must never
-            // add its own latency to the "mark delivered" response an admin/captain is
-            // waiting on - same reasoning, and same safe-to-fire-and-forget shape (no
-            // request-scoped dependencies, never throws), as SendOrderNotificationsAsync
-            // in OrderService.CreateAsync.
+            // A second, separate touchpoint - the same wallet-update template the Scanner's
+            // manual earn/redeem sends, fired here too so a delivery reads as just another
+            // wallet change. Only for a registered customer (order.UserId is null for a
+            // guest order, which has no loyalty profile to have earned points on in the
+            // first place). Deliberately NOT awaited: this is purely a customer-engagement
+            // side effect, so it must never add its own latency to the "mark delivered"
+            // response an admin/captain is waiting on - same reasoning, and same
+            // safe-to-fire-and-forget shape (no request-scoped dependencies, never throws),
+            // as SendOrderNotificationsAsync in OrderService.CreateAsync.
             if (order.UserId is not null)
             {
                 _ = _whatsAppNotificationService.SendPostDeliveryPointsNotificationAsync(
-                    order.CustomerPhone, order.CustomerName, loyaltyResult.PointsEarned, order.Id);
+                    order.CustomerPhone, order.CustomerName, loyaltyResult.PointsEarned, loyaltyResult.NewTotalPoints);
             }
         }
 

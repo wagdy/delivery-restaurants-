@@ -86,10 +86,10 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         return SendMessageAsync(phoneNumber, builder.ToString().TrimEnd());
     }
 
-    public Task SendPostDeliveryPointsNotificationAsync(string phoneNumber, string customerName, int earnedPoints, int orderId)
+    public Task SendPostDeliveryPointsNotificationAsync(string phoneNumber, string customerName, int earnedPoints, int newTotalPoints)
     {
         // A 0-point delivery is possible (e.g. an order small enough that the
-        // currency-per-point formula rounds down to nothing) - "🎉 تم إضافة 0 نقطة" would
+        // currency-per-point formula rounds down to nothing) - "✅ تم إضافة 0 نقطة" would
         // read as broken rather than encouraging, so this touchpoint simply doesn't fire
         // for it. SendOrderConfirmationAsync already covers that order regardless.
         if (earnedPoints <= 0)
@@ -97,19 +97,11 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
             return Task.CompletedTask;
         }
 
-        // orderId is a query param (?orderId=), not a path segment - the public survey
-        // page (SurveyFormComponent, embedded by PublicSurveyPageComponent) reads it from
-        // there to attach the review to this specific order rather than submitting a
-        // general store-wide review.
-        var message =
-            $"مرحباً {customerName}، 🌟\n" +
-            "سعداء بخدمتكم في مطعم أوتانتيك!\n\n" +
-            $"🎉 تم إضافة {earnedPoints} نقطة إلى كارت الولاء الخاص بك بنجاح.\n\n" +
-            "في انتظار تقييمكم لطلبكم لمساعدتنا على تقديم الأفضل دائماً عبر الرابط التالي:\n" +
-            $"{RatingBaseUrl}/rate/store?orderId={orderId}\n\n" +
-            "شكراً لثقتكم بنا! 🧡";
-
-        return SendMessageAsync(phoneNumber, message);
+        // Unified with the manual Scanner earn/redeem message - same template, same
+        // rating link (a general "/rate/store" link now, not order-specific), just a
+        // different point of origin. Delegating (rather than duplicating the template
+        // text a second time) guarantees the two stay byte-for-byte identical.
+        return SendLoyaltyWalletUpdateAsync(phoneNumber, customerName, isRedemption: false, earnedPoints, newTotalPoints);
     }
 
     public Task SendLoyaltyWalletUpdateAsync(string phoneNumber, string customerName, bool isRedemption, int transactionPoints, int totalBalance)

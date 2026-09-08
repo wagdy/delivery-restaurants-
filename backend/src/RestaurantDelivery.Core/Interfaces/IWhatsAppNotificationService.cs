@@ -23,18 +23,22 @@ public interface IWhatsAppNotificationService
     Task SendOrderNotificationsAsync(Order order, IEnumerable<string?> managerPhones);
 
     // A second, separate touchpoint fired alongside SendOrderConfirmationAsync when an
-    // order reaches Delivered - deliberately short and detail-free (no items, no totals),
-    // just a warm thank-you, the points just earned, and a rating link. Only meaningful
-    // for a registered customer (a guest order has no loyalty profile to credit points
-    // to), which the caller is responsible for checking before calling this.
-    Task SendPostDeliveryPointsNotificationAsync(string phoneNumber, string customerName, int earnedPoints, int orderId);
+    // order reaches Delivered - unified with SendLoyaltyWalletUpdateAsync below (the
+    // manual Scanner earn/redeem message): same wallet-update template, same rating
+    // link, just a different point of origin. newTotalPoints is the customer's balance
+    // *after* this order's points were added (OrderLoyaltyResult.NewTotalPoints), not
+    // their balance before. Only meaningful for a registered customer (a guest order has
+    // no loyalty profile to credit points to), which the caller is responsible for
+    // checking before calling this.
+    Task SendPostDeliveryPointsNotificationAsync(string phoneNumber, string customerName, int earnedPoints, int newTotalPoints);
 
     // Fired from LoyaltyService.EarnPointsAsync/RedeemPointsAsync after a staff-scanned
-    // manual wallet transaction (Scanner UI - QR scan or phone lookup) succeeds.
+    // manual wallet transaction (Scanner UI - QR scan or phone lookup) succeeds, and also
+    // (via SendPostDeliveryPointsNotificationAsync above) from an order reaching
+    // Delivered - both are just "the wallet changed" events sharing one template.
     // transactionPoints is always the positive magnitude of the transaction (the caller
     // passes request.PointsToRedeem as-is for a redemption, not its negated ledger value),
     // since "🔻 تم استبدال -50 نقطة" would read as broken. totalBalance is the customer's
-    // resulting CurrentPoints. Distinct from SendPostDeliveryPointsNotificationAsync
-    // (order-delivered auto-earn) - this is for the separate manual/in-person path.
+    // resulting CurrentPoints.
     Task SendLoyaltyWalletUpdateAsync(string phoneNumber, string customerName, bool isRedemption, int transactionPoints, int totalBalance);
 }
