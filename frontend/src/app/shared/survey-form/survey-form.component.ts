@@ -1,34 +1,36 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
-import { ReviewService } from '../../../core/services/review.service';
-import { SettingsService } from '../../../core/services/settings.service';
-import { SubmitReviewAnswer, SurveyQuestion } from '../../../core/models/review.model';
+import { ReviewService } from '../../core/services/review.service';
+import { SubmitReviewAnswer, SurveyQuestion } from '../../core/models/review.model';
 
-// The fully public, chrome-free per-order review page - reached via the WhatsApp link
-// WhatsAppNotificationService.SendPostDeliveryPointsNotificationAsync sends
-// ("/customer-review/:orderId"). Unlike CustomerSurveyComponent (the general store-wide
-// "/rate/store" page, which has no order context and stays in English matching this
-// app's existing storefront copy), this route is always order-specific and the Arabic
-// UI text was specified directly for it - so this component's own copy is Arabic
-// throughout (dir="rtl" on the host), not just the one button/thank-you line. Deliberately
-// standalone with no admin/storefront layout - see AppComponent's isBarePage check.
+// The actual survey UI - fetching active questions, rendering the right control per
+// QuestionType, and submitting - with no opinion about the page it's dropped into. Used
+// two places: embedded directly in the admin's "Live Preview" tab
+// (CustomerReviewsComponent, orderId omitted) and wrapped by PublicSurveyPageComponent at
+// the real "/customer-review/:orderId" customer-facing route (orderId bound from the
+// route param). Both hosts get identical fetch/render/submit/thank-you behavior - only
+// the surrounding page chrome (brand header, background, card shell) differs, and that
+// lives in each host, not here. Arabic throughout (dir="rtl" on the host) regardless of
+// which host embeds it, since the copy itself doesn't change between contexts.
 @Component({
-  selector: 'app-customer-review',
+  selector: 'app-survey-form',
   standalone: true,
   imports: [CommonModule],
   host: { dir: 'rtl', lang: 'ar' },
-  templateUrl: './customer-review.component.html',
-  styleUrl: './customer-review.component.scss'
+  templateUrl: './survey-form.component.html',
+  styleUrl: './survey-form.component.scss'
 })
-export class CustomerReviewComponent implements OnInit {
-  private readonly route = inject(ActivatedRoute);
+export class SurveyFormComponent implements OnInit {
   private readonly reviewService = inject(ReviewService);
-  protected readonly settingsService = inject(SettingsService);
+
+  // Null when there's no specific order to attach the review to - the admin's "Live
+  // Preview" tab has no order context at all, and the public store-wide "/rate/store"
+  // flow (a separate page, not this component) is the same idea. The real
+  // "/customer-review/:orderId" page binds a real order id here.
+  readonly orderId = input<number | null>(null);
 
   protected readonly starPositions = [1, 2, 3, 4, 5];
 
-  protected readonly orderId = signal<number | null>(null);
   protected readonly loading = signal(true);
   protected readonly loadError = signal<string | null>(null);
   protected readonly questions = signal<SurveyQuestion[]>([]);
@@ -42,21 +44,13 @@ export class CustomerReviewComponent implements OnInit {
   protected readonly submitting = signal(false);
   protected readonly submitError = signal<string | null>(null);
 
-  // Named exactly isSubmitted (not "submitted") per this page's own spec - flips the
-  // template from the question form to the Arabic thank-you state once the API call
-  // succeeds.
+  // Named exactly isSubmitted (not "submitted") per this component's own spec - flips
+  // the template from the question form to the Arabic thank-you state once the API call
+  // succeeds. A plain field (not a signal) is enough since it's only ever set from inside
+  // an HTTP subscribe callback, which already runs inside Angular's zone.
   isSubmitted = false;
 
   ngOnInit(): void {
-    const param = this.route.snapshot.paramMap.get('orderId');
-    const parsed = param ? Number(param) : NaN;
-    if (!Number.isFinite(parsed)) {
-      this.loadError.set('رابط التقييم غير صالح.');
-      this.loading.set(false);
-      return;
-    }
-    this.orderId.set(parsed);
-
     this.reviewService.getPublicQuestions().subscribe({
       next: (questions) => {
         this.questions.set(questions);

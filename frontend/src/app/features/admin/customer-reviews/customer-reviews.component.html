@@ -9,6 +9,9 @@
   <button type="button" class="tab-button" [class.active]="activeTab() === 'reviews'" (click)="switchTab('reviews')">
     Submitted Reviews
   </button>
+  <button type="button" class="tab-button" [class.active]="activeTab() === 'preview'" (click)="switchTab('preview')">
+    Live Preview
+  </button>
 </nav>
 
 @switch (activeTab()) {
@@ -158,6 +161,19 @@
           </div>
         }
       }
+    </div>
+  }
+
+  @case ('preview') {
+    <div class="tab-panel preview-panel">
+      <p class="preview-hint">
+        This shows exactly what a customer sees when they open a review link - including a
+        real Submit, which saves a genuine review with no order attached (same as the
+        public "/rate/store" page). Switching tabs and back resets it.
+      </p>
+      <div class="preview-frame">
+        <app-survey-form [orderId]="null" />
+      </div>
     </div>
   }
 }

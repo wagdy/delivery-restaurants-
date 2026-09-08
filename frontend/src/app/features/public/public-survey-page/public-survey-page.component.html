@@ -1,0 +1,21 @@
+<div class="review-page">
+  <div class="review-card">
+    <div class="brand-header">
+      @if (settingsService.settings().centerLogoUrl || settingsService.settings().logoUrl) {
+        <img
+          class="brand-logo"
+          [src]="settingsService.settings().centerLogoUrl || settingsService.settings().logoUrl"
+          [alt]="settingsService.settings().restaurantName || 'أوتانتيك'"
+        />
+      } @else {
+        <div class="brand-fallback">{{ settingsService.settings().restaurantName || 'أوتانتيك' }}</div>
+      }
+    </div>
+
+    @if (invalidLink()) {
+      <p class="state-message error">رابط التقييم غير صالح.</p>
+    } @else {
+      <app-survey-form [orderId]="orderId()" />
+    }
+  </div>
+</div>

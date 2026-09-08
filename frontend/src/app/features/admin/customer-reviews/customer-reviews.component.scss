@@ -195,3 +195,24 @@
   font-size: 0.875rem;
   color: rgba(0, 0, 0, 0.6);
 }
+
+// --- Tab 3: Live Preview ---
+
+.preview-hint {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.825rem;
+  color: #1e40af;
+  margin: 0 0 16px;
+}
+
+.preview-frame {
+  max-width: 480px;
+  margin: 0 auto;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 24px;
+}

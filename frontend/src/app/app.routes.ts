@@ -62,14 +62,15 @@ export const routes: Routes = [
       )
   },
   // Fully public, chrome-free per-order review page reached via
-  // SendPostDeliveryPointsNotificationAsync's WhatsApp link - a dedicated component
-  // (distinct from CustomerSurveyComponent above), since this route is always
-  // order-specific and never needs the "no orderId" store-wide branch.
+  // SendPostDeliveryPointsNotificationAsync's WhatsApp link - a page shell wrapping the
+  // shared SurveyFormComponent (the same component embedded in the admin's "Live
+  // Preview" tab), since this route is always order-specific and never needs the "no
+  // orderId" store-wide branch CustomerSurveyComponent above handles.
   {
     path: 'customer-review/:orderId',
     loadComponent: () =>
-      import('./features/public/customer-review/customer-review.component').then(
-        (m) => m.CustomerReviewComponent
+      import('./features/public/public-survey-page/public-survey-page.component').then(
+        (m) => m.PublicSurveyPageComponent
       )
   },
   {

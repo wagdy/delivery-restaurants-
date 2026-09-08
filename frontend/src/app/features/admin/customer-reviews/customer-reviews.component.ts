@@ -14,9 +14,10 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { ReviewService } from '../../../core/services/review.service';
 import { OrderReview, SurveyQuestion, SurveyQuestionRequest, SurveyQuestionType } from '../../../core/models/review.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { SurveyFormComponent } from '../../../shared/survey-form/survey-form.component';
 import { ReviewDetailsDialogComponent } from './review-details-dialog/review-details-dialog.component';
 
-type CustomerReviewsTab = 'survey' | 'reviews';
+type CustomerReviewsTab = 'survey' | 'reviews' | 'preview';
 
 const QUESTION_TYPE_OPTIONS: { value: SurveyQuestionType; label: string }[] = [
   { value: 'StarRating', label: 'Star Rating' },
@@ -38,7 +39,8 @@ const QUESTION_TYPE_OPTIONS: { value: SurveyQuestionType; label: string }[] = [
     MatInputModule,
     MatSelectModule,
     MatSlideToggleModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    SurveyFormComponent
   ],
   templateUrl: './customer-reviews.component.html',
   styleUrl: './customer-reviews.component.scss'

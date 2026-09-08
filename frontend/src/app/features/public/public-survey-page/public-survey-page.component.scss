@@ -1,0 +1,61 @@
+// Equivalent to a Tailwind `min-h-screen bg-gradient-to-b ... flex items-center
+// justify-center p-4` page shell - this project has no Tailwind installed, so the same
+// mobile-first, centered-card look is done with plain CSS instead. Logical/symmetric
+// properties only (text-align: center, no left/right margins) so this renders correctly
+// under the host's dir="rtl" without any direction-specific overrides.
+:host {
+  display: block;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #fff7ed 0%, #fafafa 45%);
+  padding: 24px 16px 48px;
+  box-sizing: border-box;
+}
+
+.review-page {
+  display: flex;
+  justify-content: center;
+}
+
+.review-card {
+  width: 100%;
+  max-width: 480px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  padding: 32px 24px;
+  box-sizing: border-box;
+}
+
+.brand-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.brand-logo {
+  max-height: 64px;
+  max-width: 200px;
+  object-fit: contain;
+}
+
+.brand-fallback {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--app-primary-color, #ea580c);
+}
+
+.state-message {
+  text-align: center;
+  padding: 40px 0;
+  color: rgba(0, 0, 0, 0.5);
+
+  &.error {
+    color: #b91c1c;
+  }
+}
+
+@media (max-width: 380px) {
+  .review-card {
+    padding: 24px 16px;
+  }
+}
