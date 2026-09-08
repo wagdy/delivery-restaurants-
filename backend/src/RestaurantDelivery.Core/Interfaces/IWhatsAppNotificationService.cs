@@ -23,19 +23,17 @@ public interface IWhatsAppNotificationService
     Task SendOrderNotificationsAsync(Order order, IEnumerable<string?> managerPhones);
 
     // A second, separate touchpoint fired alongside SendOrderConfirmationAsync when an
-    // order reaches Delivered - unified with SendLoyaltyWalletUpdateAsync below (the
-    // manual Scanner earn/redeem message): same wallet-update template, same rating
-    // link, just a different point of origin. newTotalPoints is the customer's balance
-    // *after* this order's points were added (OrderLoyaltyResult.NewTotalPoints), not
-    // their balance before. Only meaningful for a registered customer (a guest order has
-    // no loyalty profile to credit points to), which the caller is responsible for
-    // checking before calling this.
+    // order reaches Delivered - its own exact, specified wallet-style template (close to
+    // but not literally shared with SendLoyaltyWalletUpdateAsync below - see that
+    // method's implementation comment for the specific differences). newTotalPoints is
+    // the customer's balance *after* this order's points were added
+    // (OrderLoyaltyResult.NewTotalPoints), not their balance before. Only meaningful for
+    // a registered customer (a guest order has no loyalty profile to credit points to),
+    // which the caller is responsible for checking before calling this.
     Task SendPostDeliveryPointsNotificationAsync(string phoneNumber, string customerName, int earnedPoints, int newTotalPoints);
 
     // Fired from LoyaltyService.EarnPointsAsync/RedeemPointsAsync after a staff-scanned
-    // manual wallet transaction (Scanner UI - QR scan or phone lookup) succeeds, and also
-    // (via SendPostDeliveryPointsNotificationAsync above) from an order reaching
-    // Delivered - both are just "the wallet changed" events sharing one template.
+    // manual wallet transaction (Scanner UI - QR scan or phone lookup) succeeds.
     // transactionPoints is always the positive magnitude of the transaction (the caller
     // passes request.PointsToRedeem as-is for a redemption, not its negated ledger value),
     // since "🔻 تم استبدال -50 نقطة" would read as broken. totalBalance is the customer's

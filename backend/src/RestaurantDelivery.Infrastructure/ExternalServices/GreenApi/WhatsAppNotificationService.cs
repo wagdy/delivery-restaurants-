@@ -89,7 +89,7 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
     public Task SendPostDeliveryPointsNotificationAsync(string phoneNumber, string customerName, int earnedPoints, int newTotalPoints)
     {
         // A 0-point delivery is possible (e.g. an order small enough that the
-        // currency-per-point formula rounds down to nothing) - "✅ تم إضافة 0 نقطة" would
+        // currency-per-point formula rounds down to nothing) - "✅ تم إضافة 0 نقاط" would
         // read as broken rather than encouraging, so this touchpoint simply doesn't fire
         // for it. SendOrderConfirmationAsync already covers that order regardless.
         if (earnedPoints <= 0)
@@ -97,11 +97,24 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
             return Task.CompletedTask;
         }
 
-        // Unified with the manual Scanner earn/redeem message - same template, same
-        // rating link (a general "/rate/store" link now, not order-specific), just a
-        // different point of origin. Delegating (rather than duplicating the template
-        // text a second time) guarantees the two stay byte-for-byte identical.
-        return SendLoyaltyWalletUpdateAsync(phoneNumber, customerName, isRedemption: false, earnedPoints, newTotalPoints);
+        // A specified, exact template - deliberately its own literal text rather than
+        // delegating to SendLoyaltyWalletUpdateAsync below, since it differs from that
+        // method's template in three small ways: no "،" after the customer's name, no
+        // blank line between the greeting and the wallet-update line, and "نقاط ."
+        // (plural, with a space before the period) instead of "نقطة." on the
+        // earned-points line. Written with \n concatenation (matching every other
+        // template in this file) rather than a verbatim string literal, so the actual
+        // line endings sent to WhatsApp can't vary with how this source file happens to
+        // be checked out (CRLF vs LF) - the rendered message is identical either way.
+        var message =
+            $"مرحباً {customerName}\n" +
+            "💳 تحديث جديد لمحفظة نقاط أوتانتيك الخاصة بك:\n" +
+            $"✅ تم إضافة {earnedPoints} نقاط .\n" +
+            $"رصيدك الحالي هو: {newTotalPoints} نقطة.\n\n" +
+            "يسعدنا دائماً خدمتك! شاركنا تقييمك لتجربتك اليوم عبر الرابط التالي:\n" +
+            $"{RatingBaseUrl}/rate/store";
+
+        return SendMessageAsync(phoneNumber, message);
     }
 
     public Task SendLoyaltyWalletUpdateAsync(string phoneNumber, string customerName, bool isRedemption, int transactionPoints, int totalBalance)
