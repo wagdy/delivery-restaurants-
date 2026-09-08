@@ -64,6 +64,9 @@ public class UpdateRestaurantSettingsRequest : IValidatableObject
     [Range(0, double.MaxValue, ErrorMessage = "Delivery fee cannot be negative.")]
     public decimal BaseDeliveryFee { get; set; }
 
+    [MaxLength(30)]
+    public string? ManagerPhoneNumber { get; set; }
+
     // A single DataAnnotation attribute can't make VisaFawryUrl/InstapayAccount
     // conditionally required based on their matching toggle, hence IValidatableObject.
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

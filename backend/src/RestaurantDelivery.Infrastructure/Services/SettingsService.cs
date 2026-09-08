@@ -47,6 +47,7 @@ public class SettingsService : ISettingsService
         settings.IsInstapayEnabled = request.IsInstapayEnabled;
         settings.InstapayAccount = request.InstapayAccount;
         settings.BaseDeliveryFee = request.BaseDeliveryFee;
+        settings.ManagerPhoneNumber = request.ManagerPhoneNumber;
 
         await _context.SaveChangesAsync();
 
@@ -89,6 +90,7 @@ public class SettingsService : ISettingsService
         VisaFawryUrl = settings.VisaFawryUrl,
         IsInstapayEnabled = settings.IsInstapayEnabled,
         InstapayAccount = settings.InstapayAccount,
-        BaseDeliveryFee = settings.BaseDeliveryFee
+        BaseDeliveryFee = settings.BaseDeliveryFee,
+        ManagerPhoneNumber = settings.ManagerPhoneNumber
     };
 }

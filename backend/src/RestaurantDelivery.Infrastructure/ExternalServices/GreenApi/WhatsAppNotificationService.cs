@@ -77,6 +77,26 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         return SendMessageAsync(phoneNumber, builder.ToString().TrimEnd());
     }
 
+    public async Task SendOrderNotificationsAsync(Order order, string? managerPhone)
+    {
+        var customerMessage =
+            $"مرحباً {order.CustomerName}، تم استلام طلبك بنجاح. شكراً لطلبك من مطعم أوتانتيك! رقم الطلب: #{order.Id}";
+        await SendMessageAsync(order.CustomerPhone, customerMessage);
+
+        if (string.IsNullOrWhiteSpace(managerPhone))
+        {
+            return;
+        }
+
+        var managerMessage =
+            "🚨 طلب جديد بانتظار التأكيد!\n" +
+            $"رقم الطلب: #{order.Id}\n" +
+            $"العميل: {order.CustomerName}\n" +
+            $"العنوان: {order.DeliveryAddress}\n" +
+            $"الإجمالي: {order.TotalAmount:0.##} جنيه";
+        await SendMessageAsync(managerPhone, managerMessage);
+    }
+
     private async Task SendMessageAsync(string phoneNumber, string message)
     {
         if (!_options.IsConfigured)
@@ -105,6 +125,10 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         }
     }
 
+    // Formats a local Egyptian number (e.g. "01123555570") into Green API's chatId format
+    // ("201123555570@c.us") - also accepts numbers already in +/00-prefixed international
+    // form. Kept as the single phone formatter for every message this service sends,
+    // rather than a second copy under a different name.
     private static string ToChatId(string phoneNumber)
     {
         var normalized = phoneNumber.Trim();

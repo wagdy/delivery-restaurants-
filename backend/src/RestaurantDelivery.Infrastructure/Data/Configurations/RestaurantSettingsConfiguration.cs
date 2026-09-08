@@ -37,5 +37,6 @@ public class RestaurantSettingsConfiguration : IEntityTypeConfiguration<Restaura
         // DELIVERY_FEE = 4.99) so the migration that adds this column doesn't silently
         // make every delivery free until an admin notices and sets a real value.
         builder.Property(s => s.BaseDeliveryFee).HasPrecision(10, 2).HasDefaultValue(4.99m);
+        builder.Property(s => s.ManagerPhoneNumber).HasMaxLength(30);
     }
 }

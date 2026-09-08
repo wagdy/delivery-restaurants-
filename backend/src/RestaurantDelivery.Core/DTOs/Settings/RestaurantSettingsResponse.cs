@@ -24,4 +24,5 @@ public class RestaurantSettingsResponse
     public bool IsInstapayEnabled { get; set; }
     public string? InstapayAccount { get; set; }
     public decimal BaseDeliveryFee { get; set; }
+    public string? ManagerPhoneNumber { get; set; }
 }

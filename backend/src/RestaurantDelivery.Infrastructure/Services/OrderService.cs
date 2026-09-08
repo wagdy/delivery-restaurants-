@@ -137,6 +137,14 @@ public class OrderService : IOrderService
             await _pushNotificationService.NotifyCashiersOfNewOrderAsync(order);
         }
 
+        // Deliberately NOT awaited: SendOrderNotificationsAsync never throws (see
+        // IWhatsAppNotificationService's contract, enforced by the implementation's own
+        // internal try/catch) and depends on nothing request-scoped - just an HttpClient,
+        // IOptions, and ILogger, all safe to keep running after this method returns. Not
+        // awaiting it here is what actually keeps a slow Green API response from adding
+        // its own latency to the checkout API's HTTP response.
+        _ = _whatsAppNotificationService.SendOrderNotificationsAsync(order, settings.ManagerPhoneNumber);
+
         // Live-updates the admin/cashier Orders tab the instant this order lands, instead
         // of staff having to manually refresh to see it. Same "never throw" contract as
         // the push notification above - order.Id is already populated by SaveChangesAsync.

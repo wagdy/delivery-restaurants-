@@ -75,4 +75,10 @@ public class RestaurantSettings
     // chosen area first and falls back to this value when no zone matches. Nothing about
     // that extension requires changing this column - it just stops being the only fee.
     public decimal BaseDeliveryFee { get; set; }
+
+    // WhatsApp number the shift manager's "new order" alert is sent to (see
+    // WhatsAppNotificationService.SendOrderNotificationsAsync) - deliberately separate from
+    // Phone above, which is the public contact number shown to customers in the footer.
+    // Null/empty simply skips the manager alert; the customer's own confirmation still sends.
+    public string? ManagerPhoneNumber { get; set; }
 }
