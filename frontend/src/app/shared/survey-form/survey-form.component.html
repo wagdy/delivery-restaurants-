@@ -4,7 +4,7 @@
   } @else if (loadError()) {
     <p class="state-message error">{{ loadError() }}</p>
   } @else {
-    <h1 class="survey-title">شاركنا رأيك في طلبك</h1>
+    <h1 class="survey-title">{{ title() }}</h1>
     <p class="survey-subtitle">رأيك يهمنا لتقديم تجربة أفضل دائماً.</p>
 
     <div class="overall-rating-block">

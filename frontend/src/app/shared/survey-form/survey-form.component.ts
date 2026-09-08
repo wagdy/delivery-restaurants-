@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, input, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReviewService } from '../../core/services/review.service';
 import { SubmitReviewAnswer, SurveyQuestion } from '../../core/models/review.model';
@@ -7,11 +7,12 @@ import { SubmitReviewAnswer, SurveyQuestion } from '../../core/models/review.mod
 // QuestionType, and submitting - with no opinion about the page it's dropped into. Used
 // two places: embedded directly in the admin's "Live Preview" tab
 // (CustomerReviewsComponent, orderId omitted) and wrapped by PublicSurveyPageComponent at
-// the real "/customer-review/:orderId" customer-facing route (orderId bound from the
-// route param). Both hosts get identical fetch/render/submit/thank-you behavior - only
-// the surrounding page chrome (brand header, background, card shell) differs, and that
-// lives in each host, not here. Arabic throughout (dir="rtl" on the host) regardless of
-// which host embeds it, since the copy itself doesn't change between contexts.
+// the real "/rate/store" customer-facing route (orderId bound from the optional
+// ?orderId= query param, present for a per-order review, absent for a general store-wide
+// one). Both hosts get identical fetch/render/submit/thank-you behavior - only the
+// surrounding page chrome (brand header, background, card shell) differs, and that lives
+// in each host, not here. Arabic throughout (dir="rtl" on the host) regardless of which
+// host embeds it, since the copy itself doesn't change between contexts.
 @Component({
   selector: 'app-survey-form',
   standalone: true,
@@ -24,10 +25,13 @@ export class SurveyFormComponent implements OnInit {
   private readonly reviewService = inject(ReviewService);
 
   // Null when there's no specific order to attach the review to - the admin's "Live
-  // Preview" tab has no order context at all, and the public store-wide "/rate/store"
-  // flow (a separate page, not this component) is the same idea. The real
-  // "/customer-review/:orderId" page binds a real order id here.
+  // Preview" tab has no order context at all, and PublicSurveyPageComponent leaves it
+  // null too when its ?orderId= query param is absent (a general store-wide review).
   readonly orderId = input<number | null>(null);
+
+  protected readonly title = computed(() =>
+    this.orderId() !== null ? 'شاركنا رأيك في طلبك' : 'شاركنا رأيك معنا'
+  );
 
   protected readonly starPositions = [1, 2, 3, 4, 5];
 

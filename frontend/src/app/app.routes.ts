@@ -51,27 +51,24 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/auth/email-login/email-login.component').then((m) => m.EmailLoginComponent)
   },
-  // Fully public, chrome-free store-wide rating page reached via
-  // SendLoyaltyWalletUpdateAsync's WhatsApp link - no guard, no admin/storefront layout
-  // (see AppComponent's isBarePage check).
+  // The single fully public, chrome-free rating page - reached via both
+  // SendLoyaltyWalletUpdateAsync's general link (no query param) and
+  // SendPostDeliveryPointsNotificationAsync's per-order link (?orderId=<id>). A page
+  // shell (PublicSurveyPageComponent) wrapping the shared SurveyFormComponent - the same
+  // component embedded in the admin's "Live Preview" tab. No guard, no admin/storefront
+  // layout (see AppComponent's isBarePage check).
   {
     path: 'rate/store',
-    loadComponent: () =>
-      import('./features/public/customer-survey/customer-survey.component').then(
-        (m) => m.CustomerSurveyComponent
-      )
-  },
-  // Fully public, chrome-free per-order review page reached via
-  // SendPostDeliveryPointsNotificationAsync's WhatsApp link - a page shell wrapping the
-  // shared SurveyFormComponent (the same component embedded in the admin's "Live
-  // Preview" tab), since this route is always order-specific and never needs the "no
-  // orderId" store-wide branch CustomerSurveyComponent above handles.
-  {
-    path: 'customer-review/:orderId',
     loadComponent: () =>
       import('./features/public/public-survey-page/public-survey-page.component').then(
         (m) => m.PublicSurveyPageComponent
       )
+  },
+  // Backward-compat redirect for any already-sent WhatsApp message using the old
+  // path-param link shape, before the per-order link moved to "/rate/store?orderId=".
+  {
+    path: 'customer-review/:orderId',
+    redirectTo: ({ params }) => `/rate/store?orderId=${params['orderId']}`
   },
   {
     path: 'admin',

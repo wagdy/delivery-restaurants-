@@ -17,6 +17,15 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
 {
     private const string EgyptCountryCode = "20";
 
+    // Hardcoded per explicit instruction (rather than derived from
+    // GreenApiOptions.FrontendBaseUrl, as these two links briefly were) - both link
+    // templates below now point at this literal production URL regardless of
+    // environment. Trade-off: a future domain change (e.g. a custom domain going live)
+    // means editing this constant and redeploying, rather than just updating the
+    // GreenApi__FrontendBaseUrl environment variable. Update this in one place if that
+    // ever changes.
+    private const string RatingBaseUrl = "https://web-production-1bacf.up.railway.app";
+
     private readonly HttpClient _httpClient;
     private readonly GreenApiOptions _options;
     private readonly ILogger<WhatsAppNotificationService> _logger;
@@ -83,41 +92,37 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         // currency-per-point formula rounds down to nothing) - "🎉 تم إضافة 0 نقطة" would
         // read as broken rather than encouraging, so this touchpoint simply doesn't fire
         // for it. SendOrderConfirmationAsync already covers that order regardless.
-        //
-        // The rating link is this message's entire call to action (unlike
-        // SendWelcomeMessageAsync's optional wallet-card link) - with no FrontendBaseUrl
-        // configured there's nothing sensible to send, so this skips entirely rather than
-        // going out with a dangling "...عبر الرابط التالي:" and nothing after it.
-        if (earnedPoints <= 0 || string.IsNullOrWhiteSpace(_options.FrontendBaseUrl))
+        if (earnedPoints <= 0)
         {
             return Task.CompletedTask;
         }
 
+        // orderId is a query param (?orderId=), not a path segment - the public survey
+        // page (SurveyFormComponent, embedded by PublicSurveyPageComponent) reads it from
+        // there to attach the review to this specific order rather than submitting a
+        // general store-wide review.
         var message =
-            $"مرحباً {customerName}، نتمنى أن تكون قد استمتعت بوجبتك من أوتانتيك! 🧡\n\n" +
-            $"🎉 تم إضافة {earnedPoints} نقطة إلى كارت الولاء الخاص بك بنجاح.\n" +
-            "رأيك يهمنا جداً! شاركنا تقييمك للطلب لمساعدتنا على تقديم الأفضل لك دائماً عبر الرابط التالي: " +
-            $"{_options.FrontendBaseUrl.TrimEnd('/')}/customer-review/{orderId}";
+            $"مرحباً {customerName}، 🌟\n" +
+            "سعداء بخدمتكم في مطعم أوتانتيك!\n\n" +
+            $"🎉 تم إضافة {earnedPoints} نقطة إلى كارت الولاء الخاص بك بنجاح.\n\n" +
+            "في انتظار تقييمكم لطلبكم لمساعدتنا على تقديم الأفضل دائماً عبر الرابط التالي:\n" +
+            $"{RatingBaseUrl}/rate/store?orderId={orderId}\n\n" +
+            "شكراً لثقتكم بنا! 🧡";
 
         return SendMessageAsync(phoneNumber, message);
     }
 
     public Task SendLoyaltyWalletUpdateAsync(string phoneNumber, string customerName, bool isRedemption, int transactionPoints, int totalBalance)
     {
-        // Same reasoning as SendPostDeliveryPointsNotificationAsync above - the rating
-        // link is this message's entire call to action, so this skips entirely rather
-        // than sending a dangling link with no FrontendBaseUrl configured.
-        if (string.IsNullOrWhiteSpace(_options.FrontendBaseUrl))
-        {
-            return Task.CompletedTask;
-        }
-
         var actionText = isRedemption ? "🔻 تم استبدال" : "✅ تم إضافة";
 
         var message =
             $"مرحباً {customerName}،\n\n" +
-            $"💳 تحديث جديد لمحفظة نقاط أوتانتيك الخاصة بك: {actionText} {transactionPoints} نقطة. رصيدك الحالي هو: {totalBalance} نقطة.\n" +
-            $"يسعدنا دائماً خدمتك! شاركنا تقييمك لتجربتك اليوم عبر الرابط التالي: {_options.FrontendBaseUrl.TrimEnd('/')}/rate/store";
+            "💳 تحديث جديد لمحفظة نقاط أوتانتيك الخاصة بك:\n" +
+            $"{actionText} {transactionPoints} نقطة.\n" +
+            $"رصيدك الحالي هو: {totalBalance} نقطة.\n\n" +
+            "يسعدنا دائماً خدمتك! شاركنا تقييمك لتجربتك اليوم عبر الرابط التالي:\n" +
+            $"{RatingBaseUrl}/rate/store";
 
         return SendMessageAsync(phoneNumber, message);
     }
