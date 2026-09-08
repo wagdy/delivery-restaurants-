@@ -25,6 +25,9 @@
           </button>
         }
       </div>
+      @if (overallRating() > 0) {
+        <p class="rating-label">{{ ratingLabel(overallRating()) }}</p>
+      }
     </div>
 
     @for (question of questions(); track question.id) {
@@ -49,6 +52,9 @@
                 </button>
               }
             </div>
+            @if (getQuestionRating(question.id) > 0) {
+              <p class="rating-label">{{ ratingLabel(getQuestionRating(question.id)) }}</p>
+            }
           }
           @case ('ShortText') {
             <input

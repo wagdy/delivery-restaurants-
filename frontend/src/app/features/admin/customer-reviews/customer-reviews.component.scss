@@ -89,6 +89,82 @@
   width: 100%;
 }
 
+.choice-builder {
+  margin-bottom: 4px;
+}
+
+.choice-input-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+
+  button[mat-stroked-button] {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    // Aligns the button's vertical center with the outlined field's text row rather
+    // than the field's full height (which includes room for a hint/error line).
+    margin-top: 4px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+.choice-input-field {
+  flex: 1 1 auto;
+}
+
+.choice-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.choice-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+  padding: 6px 8px 6px 14px;
+  font-size: 0.825rem;
+  color: #374151;
+}
+
+.choice-chip-remove {
+  appearance: none;
+  border: none;
+  background: rgba(0, 0, 0, 0.08);
+  color: #6b7280;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  line-height: 1;
+  font-size: 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+
+  &:hover {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+}
+
+.choice-empty-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.45);
+}
+
 .question-footer {
   display: flex;
   align-items: center;

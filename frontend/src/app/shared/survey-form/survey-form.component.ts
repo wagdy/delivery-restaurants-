@@ -13,6 +13,18 @@ import { SubmitReviewAnswer, SurveyQuestion } from '../../core/models/review.mod
 // surrounding page chrome (brand header, background, card shell) differs, and that lives
 // in each host, not here. Arabic throughout (dir="rtl" on the host) regardless of which
 // host embeds it, since the copy itself doesn't change between contexts.
+
+// 1-5 -> the Arabic word describing that rating, shown under the stars once a value is
+// picked. Applies to both the Overall Rating block and any per-question StarRating -
+// same 5-point scale, same meaning either way.
+const RATING_LABELS: Record<number, string> = {
+  1: 'ضعيف',
+  2: 'مقبول',
+  3: 'جيد',
+  4: 'جيد جداً',
+  5: 'ممتاز'
+};
+
 @Component({
   selector: 'app-survey-form',
   standalone: true,
@@ -80,7 +92,15 @@ export class SurveyFormComponent implements OnInit {
   }
 
   isQuestionStarFilled(questionId: number, position: number): boolean {
-    return position <= Number(this.answers()[questionId] ?? 0);
+    return position <= this.getQuestionRating(questionId);
+  }
+
+  getQuestionRating(questionId: number): number {
+    return Number(this.answers()[questionId] ?? 0);
+  }
+
+  ratingLabel(rating: number): string {
+    return RATING_LABELS[rating] ?? '';
   }
 
   setAnswerText(questionId: number, value: string): void {

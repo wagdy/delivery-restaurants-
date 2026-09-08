@@ -43,11 +43,43 @@
                 </div>
 
                 @if (isSingleChoice(i)) {
-                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
-                    <mat-label>Options (comma-separated)</mat-label>
-                    <input matInput formControlName="optionsText" placeholder="e.g. Excellent, Good, Average, Poor" />
-                    <mat-hint>Shown to the customer as single-choice buttons.</mat-hint>
-                  </mat-form-field>
+                  <div class="choice-builder">
+                    <div class="choice-input-row">
+                      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="choice-input-field">
+                        <mat-label>Add a choice</mat-label>
+                        <input
+                          matInput
+                          formControlName="newOptionText"
+                          placeholder="e.g. Excellent"
+                          (keydown.enter)="$event.preventDefault(); addChoiceOption(i)"
+                        />
+                      </mat-form-field>
+                      <button mat-stroked-button type="button" (click)="addChoiceOption(i)">
+                        <mat-icon>add</mat-icon>
+                        Add Choice
+                      </button>
+                    </div>
+
+                    @if (questions.at(i).controls.options.value.length > 0) {
+                      <div class="choice-chip-list">
+                        @for (option of questions.at(i).controls.options.value; track option; let optionIndex = $index) {
+                          <span class="choice-chip">
+                            {{ option }}
+                            <button
+                              type="button"
+                              class="choice-chip-remove"
+                              (click)="removeChoiceOption(i, optionIndex)"
+                              [attr.aria-label]="'Remove ' + option"
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        }
+                      </div>
+                    } @else {
+                      <p class="choice-empty-hint">No choices added yet - shown to the customer as clickable pills.</p>
+                    }
+                  </div>
                 }
 
                 <div class="question-footer">

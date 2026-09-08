@@ -75,6 +75,16 @@
   fill: #f59e0b;
 }
 
+// The word describing the currently-picked star value (e.g. "جيد جداً") - shown under
+// the stars, both for the Overall Rating block and any per-question StarRating.
+.rating-label {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--app-primary-color, #ea580c);
+  text-align: center;
+}
+
 .question-block {
   margin-bottom: 24px;
 }
@@ -113,9 +123,11 @@
   border: 1px solid #d1d5db;
   border-radius: 999px;
   background: white;
-  padding: 8px 16px;
+  min-height: 40px;
+  padding: 8px 18px;
   font: inherit;
   font-size: 0.875rem;
+  text-align: center;
   color: #374151;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -128,6 +140,7 @@
     background: var(--app-primary-color, #ea580c);
     border-color: var(--app-primary-color, #ea580c);
     color: white;
+    font-weight: 600;
   }
 }
 

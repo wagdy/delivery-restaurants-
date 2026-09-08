@@ -23,7 +23,10 @@ const QUESTION_TYPE_OPTIONS: { value: SurveyQuestionType; label: string }[] = [
   { value: 'StarRating', label: 'Star Rating' },
   { value: 'ShortText', label: 'Short Text' },
   { value: 'LongText', label: 'Long Text' },
-  { value: 'SingleChoice', label: 'Single Choice' }
+  // Display label only - the underlying value stays 'SingleChoice' to match the C#
+  // SurveyQuestionType enum unchanged, so no backend/schema change is needed for this
+  // rename.
+  { value: 'SingleChoice', label: 'Choice' }
 ];
 
 @Component({
@@ -111,7 +114,15 @@ export class CustomerReviewsComponent implements OnInit {
       id: this.fb.control<number | null>(question?.id ?? null),
       text: this.fb.nonNullable.control(question?.text ?? '', [Validators.required, Validators.maxLength(500)]),
       type: this.fb.nonNullable.control<SurveyQuestionType>(question?.type ?? 'StarRating'),
-      optionsText: this.fb.nonNullable.control((question?.options ?? []).join(', ')),
+      // The Choice builder's live list of options - SurveyQuestion.options is already a
+      // string[] (the comma-separated <-> array conversion happens entirely server-side,
+      // see SurveyQuestionResponse.Options / ReviewService.SerializeOptions), so this
+      // just carries that array straight through with no join/split needed at this layer.
+      options: this.fb.nonNullable.control<string[]>(question?.options ?? []),
+      // Scratch input for "type a choice, click Add Choice" - never sent to the API
+      // (excluded in toRequest below), just holds whatever the admin is currently typing
+      // for this row.
+      newOptionText: this.fb.nonNullable.control(''),
       isActive: this.fb.nonNullable.control(question?.isActive ?? true)
     });
   }
@@ -124,20 +135,33 @@ export class CustomerReviewsComponent implements OnInit {
     return this.questions.at(index).getRawValue().type === 'SingleChoice';
   }
 
+  // Ignores an empty/whitespace-only entry and a duplicate of an option already added -
+  // silently, rather than an error toast, since mis-clicking "Add Choice" on a blank or
+  // repeated value isn't a mistake worth interrupting the admin over.
+  addChoiceOption(index: number): void {
+    const controls = this.questions.at(index).controls;
+    const value = controls.newOptionText.value.trim();
+    if (!value || controls.options.value.includes(value)) {
+      controls.newOptionText.setValue('');
+      return;
+    }
+
+    controls.options.setValue([...controls.options.value, value]);
+    controls.newOptionText.setValue('');
+  }
+
+  removeChoiceOption(index: number, optionIndex: number): void {
+    const controls = this.questions.at(index).controls;
+    controls.options.setValue(controls.options.value.filter((_, i) => i !== optionIndex));
+  }
+
   private toRequest(index: number): SurveyQuestionRequest {
     const raw = this.questions.at(index).getRawValue();
-    const options =
-      raw.type === 'SingleChoice'
-        ? raw.optionsText
-            .split(',')
-            .map((o) => o.trim())
-            .filter((o) => o.length > 0)
-        : null;
 
     return {
       text: raw.text.trim(),
       type: raw.type,
-      options,
+      options: raw.type === 'SingleChoice' ? raw.options : null,
       isActive: raw.isActive,
       displayOrder: index
     };
@@ -152,7 +176,7 @@ export class CustomerReviewsComponent implements OnInit {
 
     const request = this.toRequest(index);
     if (request.type === 'SingleChoice' && (!request.options || request.options.length < 2)) {
-      this.snackBar.open('A Single Choice question needs at least 2 comma-separated options.', 'Dismiss', {
+      this.snackBar.open('A Choice question needs at least 2 options.', 'Dismiss', {
         duration: 4000
       });
       return;
