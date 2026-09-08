@@ -1,0 +1,119 @@
+<div class="survey-page">
+  <div class="survey-card">
+    <div class="brand-header">
+      @if (settingsService.settings().centerLogoUrl || settingsService.settings().logoUrl) {
+        <img
+          class="brand-logo"
+          [src]="settingsService.settings().centerLogoUrl || settingsService.settings().logoUrl"
+          [alt]="settingsService.settings().restaurantName || 'Otantik'"
+        />
+      } @else {
+        <div class="brand-fallback">{{ settingsService.settings().restaurantName || 'Otantik' }}</div>
+      }
+    </div>
+
+    @if (loading()) {
+      <p class="state-message">Loading...</p>
+    } @else if (loadError()) {
+      <p class="state-message error">{{ loadError() }}</p>
+    } @else if (submitted()) {
+      <div class="thank-you">
+        <div class="thank-you-icon">✓</div>
+        <h1>Thank you!</h1>
+        <p>We appreciate you taking the time to share your feedback.</p>
+      </div>
+    } @else {
+      <h1 class="survey-title">
+        {{ orderId() ? 'How was your order?' : 'How was your experience?' }}
+      </h1>
+      <p class="survey-subtitle">Your feedback helps us serve you better.</p>
+
+      <div class="overall-rating-block">
+        <span class="field-label">Overall Rating</span>
+        <div class="stars stars-lg">
+          @for (position of starPositions; track position) {
+            <button
+              type="button"
+              class="star-button"
+              (click)="setOverallRating(position)"
+              [attr.aria-label]="'Rate ' + position + ' out of 5 stars'"
+            >
+              <svg viewBox="0 0 24 24" class="star-icon" [class.filled]="isFilledStar(position)">
+                <path
+                  d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"
+                />
+              </svg>
+            </button>
+          }
+        </div>
+      </div>
+
+      @for (question of questions(); track question.id) {
+        <div class="question-block">
+          <label class="field-label">{{ question.text }}</label>
+
+          @switch (question.type) {
+            @case ('StarRating') {
+              <div class="stars">
+                @for (position of starPositions; track position) {
+                  <button
+                    type="button"
+                    class="star-button"
+                    (click)="setQuestionRating(question.id, position)"
+                    [attr.aria-label]="'Rate ' + position + ' out of 5 stars'"
+                  >
+                    <svg viewBox="0 0 24 24" class="star-icon" [class.filled]="isQuestionStarFilled(question.id, position)">
+                      <path
+                        d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"
+                      />
+                    </svg>
+                  </button>
+                }
+              </div>
+            }
+            @case ('ShortText') {
+              <input
+                type="text"
+                class="text-input"
+                [value]="getAnswerText(question.id)"
+                (input)="setAnswerText(question.id, $any($event.target).value)"
+                placeholder="Type your answer..."
+              />
+            }
+            @case ('LongText') {
+              <textarea
+                class="textarea-input"
+                rows="4"
+                [value]="getAnswerText(question.id)"
+                (input)="setAnswerText(question.id, $any($event.target).value)"
+                placeholder="Type your answer..."
+              ></textarea>
+            }
+            @case ('SingleChoice') {
+              <div class="option-list">
+                @for (option of question.options ?? []; track option) {
+                  <button
+                    type="button"
+                    class="option-button"
+                    [class.selected]="isOptionSelected(question.id, option)"
+                    (click)="selectOption(question.id, option)"
+                  >
+                    {{ option }}
+                  </button>
+                }
+              </div>
+            }
+          }
+        </div>
+      }
+
+      @if (submitError()) {
+        <p class="submit-error">{{ submitError() }}</p>
+      }
+
+      <button type="button" class="submit-button" [disabled]="submitting()" (click)="submit()">
+        {{ submitting() ? 'Submitting...' : 'Submit Feedback' }}
+      </button>
+    }
+  </div>
+</div>

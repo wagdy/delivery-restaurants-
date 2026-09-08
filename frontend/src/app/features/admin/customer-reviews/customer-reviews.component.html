@@ -14,6 +14,22 @@
 @switch (activeTab()) {
   @case ('survey') {
     <div class="tab-panel survey-panel">
+      <div class="publish-bar">
+        <div class="publish-bar-text">
+          <strong>Public survey link</strong>
+          <span class="publish-link-preview">{{ publicStoreReviewUrl }}</span>
+        </div>
+        <div class="publish-bar-actions">
+          <button mat-flat-button color="primary" type="button" (click)="openPublicPreview()">
+            <mat-icon>open_in_new</mat-icon>
+            Publish &amp; Get Link
+          </button>
+          <button mat-icon-button type="button" (click)="copyPublicLink()" aria-label="Copy public survey link">
+            <mat-icon>content_copy</mat-icon>
+          </button>
+        </div>
+      </div>
+
       @if (loadingQuestions()) {
         <div class="loading-state">
           <mat-spinner diameter="40"></mat-spinner>
@@ -118,7 +134,7 @@
             <tbody>
               @for (review of reviews(); track review.id) {
                 <tr>
-                  <td>#{{ review.orderId }}</td>
+                  <td>{{ review.orderId !== null ? '#' + review.orderId : 'Store Review' }}</td>
                   <td>{{ review.customerName }}</td>
                   <td>
                     <div class="stars">

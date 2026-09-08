@@ -51,6 +51,23 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/auth/email-login/email-login.component').then((m) => m.EmailLoginComponent)
   },
+  // Fully public, chrome-free survey page reached via a WhatsApp rating link - no guard,
+  // no admin/storefront layout (see AppComponent's isBarePage check). Both routes render
+  // the same component; "store" has no orderId route param at all.
+  {
+    path: 'rate/store',
+    loadComponent: () =>
+      import('./features/public/customer-survey/customer-survey.component').then(
+        (m) => m.CustomerSurveyComponent
+      )
+  },
+  {
+    path: 'rate/order/:orderId',
+    loadComponent: () =>
+      import('./features/public/customer-survey/customer-survey.component').then(
+        (m) => m.CustomerSurveyComponent
+      )
+  },
   {
     path: 'admin',
     canActivate: [adminGuard],

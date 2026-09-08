@@ -4,7 +4,7 @@
   @if (review(); as r) {
     <div class="review-header">
       <div>
-        <p class="review-order">Order #{{ r.orderId }}</p>
+        <p class="review-order">{{ r.orderId !== null ? 'Order #' + r.orderId : 'Store Review' }}</p>
         <p class="review-customer">{{ r.customerName }}</p>
         <p class="review-date">{{ r.createdAt | date: 'medium' }}</p>
       </div>

@@ -3,12 +3,19 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { PagedResult } from '../models/order.model';
-import { OrderReview, OrderReviewDetail, SurveyQuestion, SurveyQuestionRequest } from '../models/review.model';
+import {
+  OrderReview,
+  OrderReviewDetail,
+  SubmitReviewRequest,
+  SurveyQuestion,
+  SurveyQuestionRequest
+} from '../models/review.model';
 
 @Injectable({ providedIn: 'root' })
 export class ReviewService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/reviews`;
+  private readonly publicBaseUrl = `${environment.apiUrl}/public/reviews`;
 
   // activeOnly is omitted (not just passed false) by the admin builder, which needs to
   // see and re-activate retired questions too - only a future public survey page would
@@ -37,5 +44,15 @@ export class ReviewService {
 
   getById(id: number): Observable<OrderReviewDetail> {
     return this.http.get<OrderReviewDetail>(`${this.baseUrl}/${id}`);
+  }
+
+  // --- Public survey page (/rate/store, /rate/order/:orderId) - no auth required. ---
+
+  getPublicQuestions(): Observable<SurveyQuestion[]> {
+    return this.http.get<SurveyQuestion[]>(`${this.publicBaseUrl}/questions`);
+  }
+
+  submit(request: SubmitReviewRequest): Observable<OrderReviewDetail> {
+    return this.http.post<OrderReviewDetail>(`${this.publicBaseUrl}/submit`, request);
   }
 }

@@ -1,3 +1,6 @@
+@if (isBarePage()) {
+  <router-outlet></router-outlet>
+} @else {
 <mat-sidenav-container class="app-shell">
   <mat-sidenav #drawer mode="over" class="category-drawer">
     <div class="drawer-header">
@@ -111,3 +114,4 @@
     <!-- <app-footer></app-footer> -->
   </mat-sidenav-content>
 </mat-sidenav-container>
+}

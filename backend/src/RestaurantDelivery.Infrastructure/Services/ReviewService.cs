@@ -94,6 +94,7 @@ public class ReviewService : IReviewService
 
         var query = _context.OrderReviews
             .Include(r => r.Order)
+            .Include(r => r.Customer)
             .OrderByDescending(r => r.CreatedAt)
             .AsQueryable();
 
@@ -113,6 +114,7 @@ public class ReviewService : IReviewService
     {
         var review = await _context.OrderReviews
             .Include(r => r.Order)
+            .Include(r => r.Customer)
             .Include(r => r.Answers)
                 .ThenInclude(a => a.SurveyQuestion)
             .FirstOrDefaultAsync(r => r.Id == id);
@@ -127,20 +129,26 @@ public class ReviewService : IReviewService
 
     public async Task<ServiceResult<OrderReviewDetailResponse>> SubmitReviewAsync(SubmitReviewRequest request, string? customerId)
     {
-        var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == request.OrderId);
-        if (order is null)
+        // Order-specific link (SendPostDeliveryPointsNotificationAsync's "/rate/order/{id}")
+        // vs. general store-wide link (SendLoyaltyWalletUpdateAsync's "/rate/store", which
+        // has no order context at all) - only the former has an order to validate/dedupe.
+        if (request.OrderId is { } orderId)
         {
-            return ServiceResult<OrderReviewDetailResponse>.Failure("Order not found.");
-        }
+            var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == orderId);
+            if (order is null)
+            {
+                return ServiceResult<OrderReviewDetailResponse>.Failure("Order not found.");
+            }
 
-        if (order.Status != OrderStatus.Delivered)
-        {
-            return ServiceResult<OrderReviewDetailResponse>.Failure("Only a delivered order can be reviewed.");
-        }
+            if (order.Status != OrderStatus.Delivered)
+            {
+                return ServiceResult<OrderReviewDetailResponse>.Failure("Only a delivered order can be reviewed.");
+            }
 
-        if (await _context.OrderReviews.AnyAsync(r => r.OrderId == request.OrderId))
-        {
-            return ServiceResult<OrderReviewDetailResponse>.Failure("This order has already been reviewed.");
+            if (await _context.OrderReviews.AnyAsync(r => r.OrderId == orderId))
+            {
+                return ServiceResult<OrderReviewDetailResponse>.Failure("This order has already been reviewed.");
+            }
         }
 
         // Silently drops an answer for a question that's since been deactivated or
@@ -153,7 +161,7 @@ public class ReviewService : IReviewService
 
         var review = new OrderReview
         {
-            OrderId = order.Id,
+            OrderId = request.OrderId,
             CustomerId = customerId,
             OverallRating = request.OverallRating,
             Answers = request.Answers
@@ -191,11 +199,17 @@ public class ReviewService : IReviewService
         DisplayOrder = question.DisplayOrder
     };
 
+    // Order.CustomerName first (a guest's snapshot name at order time), then
+    // Customer.FullName (a signed-in customer's order-less store review), then a static
+    // placeholder (a fully anonymous store review - no order, no account).
+    private static string ResolveCustomerName(OrderReview review) =>
+        review.Order?.CustomerName ?? review.Customer?.FullName ?? "Anonymous Customer";
+
     private static OrderReviewResponse MapReviewResponse(OrderReview review) => new()
     {
         Id = review.Id,
         OrderId = review.OrderId,
-        CustomerName = review.Order.CustomerName,
+        CustomerName = ResolveCustomerName(review),
         OverallRating = review.OverallRating,
         CreatedAt = review.CreatedAt
     };
@@ -204,7 +218,7 @@ public class ReviewService : IReviewService
     {
         Id = review.Id,
         OrderId = review.OrderId,
-        CustomerName = review.Order.CustomerName,
+        CustomerName = ResolveCustomerName(review),
         OverallRating = review.OverallRating,
         CreatedAt = review.CreatedAt,
         Answers = review.Answers.Select(a => new ReviewAnswerResponse

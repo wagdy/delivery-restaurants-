@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
-import { Router, RouterLink, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -50,11 +51,23 @@ export class AppComponent {
   // reasoning as StorefrontComponent's own category fetch.
   readonly categories = signal<Category[]>([]);
 
+  // True for the fully public, chrome-free customer survey page ("/rate/store",
+  // "/rate/order/:orderId") - this app-wide toolbar/sidenav (cart, login, admin link,
+  // category drawer) would look completely out of place on a page reached from a WhatsApp
+  // link by a customer who may not even be logged in. Initialized from the current URL
+  // (not just NavigationEnd) so a hard-reload directly on a /rate/ URL starts bare too,
+  // rather than flashing the full chrome for one frame before the first navigation event.
+  protected readonly isBarePage = signal(this.router.url.startsWith('/rate/'));
+
   constructor() {
     this.categoryService.getAll().subscribe({
       next: (categories) => {
         this.categories.set([...categories].sort((a, b) => a.displayOrder - b.displayOrder));
       }
+    });
+
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => {
+      this.isBarePage.set((event as NavigationEnd).urlAfterRedirects.startsWith('/rate/'));
     });
   }
 

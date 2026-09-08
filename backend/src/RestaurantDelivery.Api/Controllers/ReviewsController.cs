@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantDelivery.Core.DTOs.Reviews;
@@ -6,8 +5,14 @@ using RestaurantDelivery.Core.Interfaces;
 
 namespace RestaurantDelivery.Api.Controllers;
 
+// Every action here is staff-only (Module.Reviews) - the two anonymous/public actions
+// (the active question list and review submission, used by the customer-facing survey
+// page at /rate/store and /rate/order/:orderId) live separately in
+// PublicReviewsController, so a glance at this controller's attributes alone is enough to
+// confirm nothing here is reachable without the Reviews permission.
 [ApiController]
 [Route("api/reviews")]
+[Authorize(Policy = "Module.Reviews")]
 public class ReviewsController : ControllerBase
 {
     private readonly IReviewService _service;
@@ -17,16 +22,15 @@ public class ReviewsController : ControllerBase
         _service = service;
     }
 
-    // Public: the future customer-facing survey page needs the active question list
-    // without being logged in (a guest order can be reviewed too). The admin builder
-    // calls this same endpoint with activeOnly=false to also see retired questions.
+    // Admin builder only - activeOnly=false (the default) also returns retired questions
+    // so they can be re-activated. The public survey page uses
+    // PublicReviewsController.GetQuestions instead, which always forces activeOnly=true.
     [HttpGet("questions")]
     public async Task<ActionResult<List<SurveyQuestionResponse>>> GetQuestions([FromQuery] bool activeOnly = false)
     {
         return Ok(await _service.GetQuestionsAsync(activeOnly));
     }
 
-    [Authorize(Policy = "Module.Reviews")]
     [HttpPost("questions")]
     public async Task<ActionResult<SurveyQuestionResponse>> CreateQuestion(SurveyQuestionRequest request)
     {
@@ -39,7 +43,6 @@ public class ReviewsController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, result.Data);
     }
 
-    [Authorize(Policy = "Module.Reviews")]
     [HttpPut("questions/{id:int}")]
     public async Task<ActionResult<SurveyQuestionResponse>> UpdateQuestion(int id, SurveyQuestionRequest request)
     {
@@ -55,7 +58,6 @@ public class ReviewsController : ControllerBase
         return Ok(result.Data);
     }
 
-    [Authorize(Policy = "Module.Reviews")]
     [HttpDelete("questions/{id:int}")]
     public async Task<IActionResult> DeleteQuestion(int id)
     {
@@ -71,14 +73,12 @@ public class ReviewsController : ControllerBase
         return NoContent();
     }
 
-    [Authorize(Policy = "Module.Reviews")]
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         return Ok(await _service.GetReviewsAsync(page, pageSize));
     }
 
-    [Authorize(Policy = "Module.Reviews")]
     [HttpGet("{id:int}")]
     public async Task<ActionResult<OrderReviewDetailResponse>> GetById(int id)
     {
@@ -89,24 +89,5 @@ public class ReviewsController : ControllerBase
         }
 
         return Ok(result.Data);
-    }
-
-    // Public, same reasoning as GetQuestions above - if the caller happens to be signed
-    // in, their own id is captured as the reviewer; an anonymous/guest submission leaves
-    // it null rather than being rejected.
-    [HttpPost]
-    public async Task<ActionResult<OrderReviewDetailResponse>> Submit(SubmitReviewRequest request)
-    {
-        var customerId = User.Identity?.IsAuthenticated == true
-            ? User.FindFirstValue(ClaimTypes.NameIdentifier)
-            : null;
-
-        var result = await _service.SubmitReviewAsync(request, customerId);
-        if (!result.Succeeded)
-        {
-            return BadRequest(new { errors = result.Errors });
-        }
-
-        return StatusCode(StatusCodes.Status201Created, result.Data);
     }
 }

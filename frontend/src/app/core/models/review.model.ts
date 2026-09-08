@@ -22,7 +22,8 @@ export interface SurveyQuestionRequest {
 // OrderReviewResponse on the backend.
 export interface OrderReview {
   id: number;
-  orderId: number;
+  // Null for a general store-wide review submitted via /rate/store (no specific order).
+  orderId: number | null;
   customerName: string;
   overallRating: number;
   createdAt: string;
@@ -37,4 +38,19 @@ export interface ReviewAnswer {
 
 export interface OrderReviewDetail extends OrderReview {
   answers: ReviewAnswer[];
+}
+
+// Public survey page payload - matches the backend's SubmitReviewRequest exactly. No
+// customerId field: attribution comes only from the caller's own JWT when they happen to
+// be signed in (see PublicReviewsController.Submit) - a client-supplied customer id would
+// let anyone attribute a fabricated review to any real customer's account.
+export interface SubmitReviewRequest {
+  orderId: number | null;
+  overallRating: number;
+  answers: SubmitReviewAnswer[];
+}
+
+export interface SubmitReviewAnswer {
+  surveyQuestionId: number;
+  answerValue: string;
 }
