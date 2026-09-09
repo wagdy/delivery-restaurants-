@@ -42,6 +42,13 @@
                   </mat-form-field>
                 </div>
 
+                @if (isStarRating(i)) {
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="category-field">
+                    <mat-label>Matrix section (e.g. Service, Food)</mat-label>
+                    <input matInput formControlName="category" placeholder="Leave blank for a general section" />
+                  </mat-form-field>
+                }
+
                 @if (isSingleChoice(i)) {
                   <div class="choice-builder">
                     <div class="choice-input-row">

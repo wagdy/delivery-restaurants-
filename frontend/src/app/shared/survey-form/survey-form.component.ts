@@ -1,7 +1,17 @@
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReviewService } from '../../core/services/review.service';
-import { SubmitReviewAnswer, SurveyQuestion } from '../../core/models/review.model';
+import { RATING_SCALE, SubmitReviewAnswer, SurveyQuestion } from '../../core/models/review.model';
+
+// Fallback bucket label for a StarRating question with no Category assigned yet (existing
+// questions from before this field existed, or one an admin just hasn't categorized) - so
+// the matrix always has a real section header instead of a blank bar.
+const UNCATEGORIZED_LABEL = 'التقييم العام';
+
+interface RatingCategoryGroup {
+  category: string;
+  questions: SurveyQuestion[];
+}
 
 // The actual survey UI - fetching active questions, rendering the right control per
 // QuestionType, and submitting - with no opinion about the page it's dropped into. Used
@@ -46,15 +56,41 @@ export class SurveyFormComponent implements OnInit {
   );
 
   protected readonly starPositions = [1, 2, 3, 4, 5];
+  protected readonly ratingScale = RATING_SCALE;
 
   protected readonly loading = signal(true);
   protected readonly loadError = signal<string | null>(null);
   protected readonly questions = signal<SurveyQuestion[]>([]);
 
+  // StarRating questions only, grouped into the ratings matrix's category sections - in
+  // first-occurrence order, so an admin controls section order the same way they already
+  // control in-section question order: via each question's own DisplayOrder (the array
+  // this groups over is already sorted that way by GetQuestionsAsync).
+  protected readonly starRatingCategories = computed<RatingCategoryGroup[]>(() => {
+    const groups: RatingCategoryGroup[] = [];
+    for (const question of this.questions()) {
+      if (question.type !== 'StarRating') {
+        continue;
+      }
+      const category = question.category?.trim() || UNCATEGORIZED_LABEL;
+      let group = groups.find((g) => g.category === category);
+      if (!group) {
+        group = { category, questions: [] };
+        groups.push(group);
+      }
+      group.questions.push(question);
+    }
+    return groups;
+  });
+
+  // Every other question type - rendered individually, exactly as before, either side of
+  // the new matrix.
+  protected readonly otherQuestions = computed(() => this.questions().filter((q) => q.type !== 'StarRating'));
+
   protected readonly overallRating = signal(0);
   // questionId -> raw answer value. A StarRating answer is stored as a plain digit
   // string (e.g. "4"), matching the convention already established for ReviewAnswer -
-  // parsed back to a number only for rendering (see isQuestionStarFilled).
+  // parsed back to a number only for rendering (see getQuestionRating).
   protected readonly answers = signal<Record<number, string>>({});
 
   protected readonly submitting = signal(false);
@@ -91,14 +127,12 @@ export class SurveyFormComponent implements OnInit {
     this.answers.update((current) => ({ ...current, [questionId]: String(value) }));
   }
 
-  isQuestionStarFilled(questionId: number, position: number): boolean {
-    return position <= this.getQuestionRating(questionId);
-  }
-
   getQuestionRating(questionId: number): number {
     return Number(this.answers()[questionId] ?? 0);
   }
 
+  // Overall Rating block only - its own separate 1-5 star scale, unrelated to the
+  // per-question ratings matrix's 4-point scale below.
   ratingLabel(rating: number): string {
     return RATING_LABELS[rating] ?? '';
   }

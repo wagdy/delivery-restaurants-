@@ -123,6 +123,9 @@ export class CustomerReviewsComponent implements OnInit {
       // (excluded in toRequest below), just holds whatever the admin is currently typing
       // for this row.
       newOptionText: this.fb.nonNullable.control(''),
+      // Only meaningful for StarRating - which ratings-matrix section (e.g. "Service",
+      // "Food") this question is grouped under on the public survey.
+      category: this.fb.nonNullable.control(question?.category ?? ''),
       isActive: this.fb.nonNullable.control(question?.isActive ?? true)
     });
   }
@@ -133,6 +136,10 @@ export class CustomerReviewsComponent implements OnInit {
 
   isSingleChoice(index: number): boolean {
     return this.questions.at(index).getRawValue().type === 'SingleChoice';
+  }
+
+  isStarRating(index: number): boolean {
+    return this.questions.at(index).getRawValue().type === 'StarRating';
   }
 
   // Ignores an empty/whitespace-only entry and a duplicate of an option already added -
@@ -162,6 +169,7 @@ export class CustomerReviewsComponent implements OnInit {
       text: raw.text.trim(),
       type: raw.type,
       options: raw.type === 'SingleChoice' ? raw.options : null,
+      category: raw.type === 'StarRating' ? raw.category.trim() || null : null,
       isActive: raw.isActive,
       displayOrder: index
     };

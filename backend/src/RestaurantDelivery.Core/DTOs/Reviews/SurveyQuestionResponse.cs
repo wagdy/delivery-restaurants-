@@ -15,6 +15,9 @@ public class SurveyQuestionResponse
     // when Type is SingleChoice.
     public List<string>? Options { get; set; }
 
+    // Only meaningful when Type is StarRating - see SurveyQuestion.Category.
+    public string? Category { get; set; }
+
     public bool IsActive { get; set; }
     public int DisplayOrder { get; set; }
 }

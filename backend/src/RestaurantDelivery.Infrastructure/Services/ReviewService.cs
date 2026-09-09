@@ -41,6 +41,7 @@ public class ReviewService : IReviewService
             Text = request.Text.Trim(),
             Type = request.Type,
             Options = SerializeOptions(request),
+            Category = NormalizeCategory(request),
             IsActive = request.IsActive,
             DisplayOrder = request.DisplayOrder
         };
@@ -62,6 +63,7 @@ public class ReviewService : IReviewService
         question.Text = request.Text.Trim();
         question.Type = request.Type;
         question.Options = SerializeOptions(request);
+        question.Category = NormalizeCategory(request);
         question.IsActive = request.IsActive;
         question.DisplayOrder = request.DisplayOrder;
 
@@ -193,12 +195,20 @@ public class ReviewService : IReviewService
             ? string.Join(",", request.Options.Select(o => o.Trim()).Where(o => o.Length > 0))
             : null;
 
+    // Only meaningful for StarRating - trimmed to null (never an empty string) for every
+    // other type, same "blank means absent" convention SerializeOptions already uses.
+    private static string? NormalizeCategory(SurveyQuestionRequest request) =>
+        request.Type == SurveyQuestionType.StarRating && !string.IsNullOrWhiteSpace(request.Category)
+            ? request.Category.Trim()
+            : null;
+
     private static SurveyQuestionResponse MapQuestionResponse(SurveyQuestion question) => new()
     {
         Id = question.Id,
         Text = question.Text,
         Type = question.Type,
         Options = question.Options?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
+        Category = question.Category,
         IsActive = question.IsActive,
         DisplayOrder = question.DisplayOrder
     };

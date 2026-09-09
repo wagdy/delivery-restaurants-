@@ -6,6 +6,10 @@ export interface SurveyQuestion {
   type: SurveyQuestionType;
   // Only meaningful (and only ever populated) when type is 'SingleChoice'.
   options: string[] | null;
+  // Only meaningful (and only ever populated) when type is 'StarRating' - the ratings
+  // matrix section this question is grouped under (e.g. "Service", "Food"). Null/blank
+  // falls back to a generic bucket - see SurveyFormComponent's starRatingCategories.
+  category: string | null;
   isActive: boolean;
   displayOrder: number;
 }
@@ -14,8 +18,31 @@ export interface SurveyQuestionRequest {
   text: string;
   type: SurveyQuestionType;
   options: string[] | null;
+  category: string | null;
   isActive: boolean;
   displayOrder: number;
+}
+
+// The public survey's per-question rating matrix scale (StarRating questions only) - a
+// deliberate 4-point scale, distinct from the Overall Rating block's own 1-5 stars, which
+// stays a separate, unchanged widget. Ordered best-to-worst so it reads naturally
+// right-to-left in the dir="rtl" survey/admin views (ممتاز sits first/rightmost).
+// Exported so SurveyFormComponent (rendering) and ReviewDetailsDialogComponent (reading
+// back a past answer) can never define two independently-drifting copies of this mapping.
+export const RATING_SCALE: { value: number; label: string }[] = [
+  { value: 4, label: 'ممتاز / Excellent' },
+  { value: 3, label: 'جيد / Good' },
+  { value: 2, label: 'مقبول / Fair' },
+  { value: 1, label: 'ضعيف / Poor' }
+];
+
+// A past answer stored under the old 5-point scale (value 4 = "جيد جداً", 5 = "ممتاز")
+// collapses onto this new 4-point scale by clamping to 4 - both old top-end values read
+// as the new top label, and 1-3 map through unchanged. This is the one place that mapping
+// happens, so a historical review's stars/labels never look "off the scale" post-redesign.
+export function ratingScaleLabel(rawValue: number): string {
+  const clamped = Math.min(Math.max(Math.round(rawValue), 1), 4);
+  return RATING_SCALE.find((r) => r.value === clamped)?.label ?? '';
 }
 
 // The "Submitted Reviews" table row shape - deliberately light (no answers), matching

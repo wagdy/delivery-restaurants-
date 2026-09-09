@@ -15,6 +15,13 @@ public class SurveyQuestion
     // and only ever set, when Type is SingleChoice.
     public string? Options { get; set; }
 
+    // Free-text section label (e.g. "Service", "Food", "Atmosphere") - only meaningful for
+    // Type == StarRating, which the public survey renders as a single grouped ratings
+    // matrix (see SurveyFormComponent). Null/blank falls back to a generic "General
+    // Rating" bucket rather than leaving a blank section header. Unused by every other
+    // question type, which still render as their own individual field.
+    public string? Category { get; set; }
+
     // An inactive question is kept (and its historical ReviewAnswers stay intact) but no
     // longer offered on the survey form - the same "soft off-switch" convention as
     // PromoCode.IsActive/LoyaltyCampaign.IsActive elsewhere in this app, so retiring a

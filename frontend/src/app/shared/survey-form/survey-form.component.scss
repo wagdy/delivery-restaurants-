@@ -89,6 +89,110 @@
   margin-bottom: 24px;
 }
 
+// The ratings matrix (StarRating questions grouped into categories) - a table rather than
+// CSS Grid so each category's full-width colored header row can naturally span every
+// column via colspan, and so column widths stay aligned across every category's rows
+// without manually recomputing a grid-template per section.
+//
+// Equivalent to Tailwind's `overflow-x-auto` - this project has no Tailwind installed, so
+// plain CSS instead, matching every other component's substitution pattern. A real
+// min-width on the table (rather than letting columns crush down to nothing) is what
+// actually forces the scrollbar to appear on a narrow phone instead of producing an
+// unreadably cramped table - this is the "horizontal scroll on mobile" option the design
+// asked for, chosen over reflowing into stacked cards for reliability: a table's alignment
+// guarantees (every row's 4th column lines up under the same header) are exactly what a
+// rating matrix needs, and stacking loses that at the same breakpoint it's meant to help.
+.ratings-matrix-scroll {
+  overflow-x: auto;
+  margin-bottom: 28px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+}
+
+.ratings-matrix {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+}
+
+.matrix-question-header {
+  width: 40%;
+}
+
+.matrix-scale-header {
+  padding: 12px 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #374151;
+  text-align: center;
+  white-space: nowrap;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+// The full-width colored section bar (e.g. "Service", "Food") - one per category,
+// spanning every column via colspan in the template.
+.matrix-category-row td {
+  background: var(--app-primary-color, #ea580c);
+  color: white;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 8px 14px;
+  text-align: start;
+}
+
+.matrix-question-row {
+  &:nth-child(even) {
+    background: rgba(0, 0, 0, 0.02);
+  }
+}
+
+.matrix-question-cell {
+  padding: 12px 14px;
+  font-size: 0.875rem;
+  color: #374151;
+  text-align: start;
+  white-space: normal;
+}
+
+.matrix-scale-cell {
+  padding: 10px 6px;
+  text-align: center;
+}
+
+// The custom circular "radio button" - a plain button (not a native input) so the
+// checkmark-filled selected state can be styled consistently across browsers, matching
+// this component's own pre-existing pattern of button-based star/option selection rather
+// than native form controls.
+.matrix-radio {
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #d1d5db;
+  background: white;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    border-color: var(--app-primary-color, #ea580c);
+  }
+
+  &.selected {
+    background: var(--app-primary-color, #ea580c);
+    border-color: var(--app-primary-color, #ea580c);
+  }
+}
+
+.matrix-check {
+  width: 16px;
+  height: 16px;
+}
+
 .text-input,
 .textarea-input {
   width: 100%;

@@ -5,7 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ReviewService } from '../../../../core/services/review.service';
-import { OrderReviewDetail } from '../../../../core/models/review.model';
+import { OrderReviewDetail, ratingScaleLabel } from '../../../../core/models/review.model';
 
 export interface ReviewDetailsDialogData {
   reviewId: number;
@@ -58,5 +58,14 @@ export class ReviewDetailsDialogComponent {
   // parsed back to a number just for rendering it the same way as the overall rating.
   answerAsRating(answerValue: string): number {
     return Number(answerValue) || 0;
+  }
+
+  // The per-question ratings matrix's 4-point label (ممتاز/جيد/مقبول/ضعيف) matching what
+  // the customer actually saw and picked on the survey - not the 5-star row this dialog
+  // still (correctly) uses for the separate Overall Rating field above. Shared with
+  // SurveyFormComponent so old and new can never independently drift - see
+  // ratingScaleLabel's own doc comment for how a pre-redesign 5-point answer maps in.
+  questionRatingLabel(answerValue: string): string {
+    return ratingScaleLabel(this.answerAsRating(answerValue));
   }
 }

@@ -30,32 +30,63 @@
       }
     </div>
 
-    @for (question of questions(); track question.id) {
+    @if (starRatingCategories().length > 0) {
+      <div class="ratings-matrix-scroll">
+        <table class="ratings-matrix">
+          <thead>
+            <tr>
+              <th class="matrix-question-header"></th>
+              @for (scale of ratingScale; track scale.value) {
+                <th class="matrix-scale-header">{{ scale.label }}</th>
+              }
+            </tr>
+          </thead>
+          @for (group of starRatingCategories(); track group.category) {
+            <tbody>
+              <tr class="matrix-category-row">
+                <td [attr.colspan]="ratingScale.length + 1">{{ group.category }}</td>
+              </tr>
+              @for (question of group.questions; track question.id) {
+                <tr class="matrix-question-row">
+                  <td class="matrix-question-cell">{{ question.text }}</td>
+                  @for (scale of ratingScale; track scale.value) {
+                    <td class="matrix-scale-cell">
+                      <button
+                        type="button"
+                        class="matrix-radio"
+                        [class.selected]="getQuestionRating(question.id) === scale.value"
+                        [attr.aria-label]="question.text + ': ' + scale.label"
+                        [attr.aria-pressed]="getQuestionRating(question.id) === scale.value"
+                        (click)="setQuestionRating(question.id, scale.value)"
+                      >
+                        @if (getQuestionRating(question.id) === scale.value) {
+                          <svg viewBox="0 0 20 20" class="matrix-check">
+                            <path
+                              d="M4 10.5l3.5 3.5L16 5"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2.5"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        }
+                      </button>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          }
+        </table>
+      </div>
+    }
+
+    @for (question of otherQuestions(); track question.id) {
       <div class="question-block">
         <label class="field-label">{{ question.text }}</label>
 
         @switch (question.type) {
-          @case ('StarRating') {
-            <div class="stars">
-              @for (position of starPositions; track position) {
-                <button
-                  type="button"
-                  class="star-button"
-                  (click)="setQuestionRating(question.id, position)"
-                  [attr.aria-label]="'تقييم ' + position + ' من 5 نجوم'"
-                >
-                  <svg viewBox="0 0 24 24" class="star-icon" [class.filled]="isQuestionStarFilled(question.id, position)">
-                    <path
-                      d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"
-                    />
-                  </svg>
-                </button>
-              }
-            </div>
-            @if (getQuestionRating(question.id) > 0) {
-              <p class="rating-label">{{ ratingLabel(getQuestionRating(question.id)) }}</p>
-            }
-          }
           @case ('ShortText') {
             <input
               type="text"

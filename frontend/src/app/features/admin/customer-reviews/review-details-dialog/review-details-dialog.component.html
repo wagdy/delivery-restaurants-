@@ -28,11 +28,7 @@
             <p class="answer-question">{{ answer.questionText }}</p>
 
             @if (answer.questionType === 'StarRating') {
-              <div class="stars">
-                @for (position of stars; track position) {
-                  <mat-icon [class.filled]="isFilledStar(answerAsRating(answer.answerValue), position)">star</mat-icon>
-                }
-              </div>
+              <p class="answer-value">{{ questionRatingLabel(answer.answerValue) }}</p>
             } @else {
               <p class="answer-value">{{ answer.answerValue }}</p>
             }
