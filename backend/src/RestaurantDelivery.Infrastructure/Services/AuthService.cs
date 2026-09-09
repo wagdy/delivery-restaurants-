@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RestaurantDelivery.Core.Common;
 using RestaurantDelivery.Core.DTOs.Auth;
+using RestaurantDelivery.Core.DTOs.Customers;
 using RestaurantDelivery.Core.Entities;
 using RestaurantDelivery.Core.Enums;
 using RestaurantDelivery.Core.Interfaces;
@@ -65,21 +66,7 @@ public class AuthService : IAuthService
             return ServiceResult<AuthResponse>.Failure(createResult.Errors.Select(e => e.Description).ToArray());
         }
 
-        // Never allowed to fail registration - see IWhatsAppNotificationService's contract.
-        await _whatsAppNotificationService.SendWelcomeMessageAsync(user.PhoneNumber!, user.FullName);
-
-        // Same "never fail the caller" contract: the account has already been committed by
-        // _userManager.CreateAsync above, so a hiccup awarding the signup bonus must not
-        // turn an otherwise-successful registration into a 500 the client would retry
-        // against a phone number that's now already taken.
-        try
-        {
-            await _loyaltyService.AwardWelcomeBonusAsync(user.Id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to award welcome bonus to new customer {UserId}.", user.Id);
-        }
+        await AwardWelcomeBonusAndNotifyAsync(user);
 
         return ServiceResult<AuthResponse>.Success(await BuildAuthResponseAsync(user));
     }
@@ -197,7 +184,7 @@ public class AuthService : IAuthService
         return ServiceResult<UserProfileResponse>.Success(MapProfile(user, modules, permissions));
     }
 
-    public async Task<ServiceResult<string>> FindOrCreateCustomerByPhoneAsync(string fullName, string phoneNumber, string? address)
+    public async Task<ServiceResult<FindOrCreateCustomerResult>> FindOrCreateCustomerByPhoneAsync(string fullName, string phoneNumber, string? address)
     {
         // Matches a soft-deleted account too, same reasoning as IsPhoneTakenAsync above:
         // treating a deleted row as "no match" would fall through to _userManager.CreateAsync
@@ -209,7 +196,8 @@ public class AuthService : IAuthService
         var existing = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
         if (existing is not null)
         {
-            return ServiceResult<string>.Success(existing.Id);
+            return ServiceResult<FindOrCreateCustomerResult>.Success(
+                new FindOrCreateCustomerResult { CustomerId = existing.Id, IsNewCustomer = false });
         }
 
         // Identity requires a unique Email/UserName even though customers log in by phone -
@@ -239,10 +227,50 @@ public class AuthService : IAuthService
         var createResult = await _userManager.CreateAsync(user, generatedPassword);
         if (!createResult.Succeeded)
         {
-            return ServiceResult<string>.Failure(createResult.Errors.Select(e => e.Description).ToArray());
+            return ServiceResult<FindOrCreateCustomerResult>.Failure(createResult.Errors.Select(e => e.Description).ToArray());
         }
 
-        return ServiceResult<string>.Success(user.Id);
+        // Same welcome treatment RegisterAsync's self-service path gives a brand-new
+        // customer - a staff-registered customer (Scanner's New Customer tab, Create
+        // Order's New Customer section) gets the 100-point bonus and welcome WhatsApp
+        // message too, not just whoever happened to register themselves.
+        await AwardWelcomeBonusAndNotifyAsync(user);
+
+        return ServiceResult<FindOrCreateCustomerResult>.Success(
+            new FindOrCreateCustomerResult { CustomerId = user.Id, IsNewCustomer = true });
+    }
+
+    // Shared by RegisterAsync and FindOrCreateCustomerByPhoneAsync's create branch, so a
+    // brand-new customer's welcome bonus/notification can never drift out of sync between
+    // the two paths that create one, the way FindOrCreateCustomerByPhoneAsync used to
+    // silently skip both entirely before this method existed.
+    private async Task AwardWelcomeBonusAndNotifyAsync(AppUser user)
+    {
+        // Never allowed to fail the caller: the account has already been committed by
+        // _userManager.CreateAsync, so a hiccup awarding the signup bonus must not turn an
+        // otherwise-successful registration into a 500 the client would retry against a
+        // phone number that's now already taken.
+        var bonusAwarded = true;
+        try
+        {
+            await _loyaltyService.AwardWelcomeBonusAsync(user.Id);
+        }
+        catch (Exception ex)
+        {
+            bonusAwarded = false;
+            _logger.LogError(ex, "Failed to award welcome bonus to new customer {UserId}.", user.Id);
+        }
+
+        // SendWelcomeMessageAsync's template states a specific "100 points" balance as
+        // fact - only send it once that's actually true, rather than telling a customer
+        // they have a bonus balance that a swallowed failure above just meant they don't.
+        if (!bonusAwarded)
+        {
+            return;
+        }
+
+        // Never allowed to fail the caller either - see IWhatsAppNotificationService's contract.
+        await _whatsAppNotificationService.SendWelcomeMessageAsync(user.PhoneNumber!, user.FullName);
     }
 
     // Empty for Customer/CaptainOrder. For Admin: every module when no custom Role is

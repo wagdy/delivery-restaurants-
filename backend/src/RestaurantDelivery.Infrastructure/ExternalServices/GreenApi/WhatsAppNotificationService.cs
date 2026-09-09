@@ -38,15 +38,19 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
 
     public Task SendWelcomeMessageAsync(string phoneNumber, string customerName)
     {
-        var cardLink = string.IsNullOrWhiteSpace(_options.FrontendBaseUrl)
-            ? null
-            : $"{_options.FrontendBaseUrl.TrimEnd('/')}/?tab=rewards";
-
-        var message = $"مرحباً {customerName}، أهلاً بك في نظام ولاء Otantik! تم تسجيل حسابك بنجاح.";
-        if (cardLink is not null)
-        {
-            message += $"\nشاهد بطاقة الولاء الرقمية الخاصة بك هنا: {cardLink}";
-        }
+        // Exact specified template - the "100 نقطة" figures are deliberately literal, not
+        // an interpolated balance parameter, since the caller (AuthService's
+        // AwardWelcomeBonusAndNotifyAsync) only ever sends this once, immediately after
+        // successfully awarding exactly WelcomeBonusPoints (100) to a brand-new profile
+        // whose balance was 0 beforehand - "100" is always the true current balance at
+        // the moment this fires, for a customer registered from any page.
+        var message =
+            $"مرحباً {customerName}، 🌟\n" +
+            "أهلاً بك في عائلة أوتانتيك! سعداء بانضمامك لبرنامج الولاء الخاص بنا.\n\n" +
+            "🎉 بمناسبة تسجيلك، تم إهداؤك 100 نقطة ترحيبية في محفظتك!\n" +
+            "رصيدك الحالي هو: 100 نقطة.\n\n" +
+            "نتمنى لك تجربة سعيدة ومميزة معنا دائماً. شاركنا تقييمك لزيارتك اليوم عبر الرابط التالي:\n" +
+            $"{RatingBaseUrl}/rate/store";
 
         return SendMessageAsync(phoneNumber, message);
     }

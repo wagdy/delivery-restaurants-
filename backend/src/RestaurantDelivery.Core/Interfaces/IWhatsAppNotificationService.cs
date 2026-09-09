@@ -8,6 +8,10 @@ namespace RestaurantDelivery.Core.Interfaces;
 // outage must never fail a registration or a captain's "mark delivered" tap.
 public interface IWhatsAppNotificationService
 {
+    // The single, unified welcome touchpoint every brand-new customer gets, regardless of
+    // which page created their account (self-service Register, the Scanner's New Customer
+    // tab, or the Create Order page's New Customer section) - see
+    // AuthService.AwardWelcomeBonusAndNotifyAsync, the one place this is called from.
     Task SendWelcomeMessageAsync(string phoneNumber, string customerName);
 
     // The immediate "we got your order" touchpoint on order CREATION, plus the same

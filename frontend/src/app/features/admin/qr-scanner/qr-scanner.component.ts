@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -12,7 +12,10 @@ import { ZXingScannerModule } from '@zxing/ngx-scanner';
 import { BarcodeFormat } from '@zxing/library';
 import { LoyaltyService } from '../../../core/services/loyalty.service';
 import { CampaignService } from '../../../core/services/campaign.service';
+import { CustomerService } from '../../../core/services/customer.service';
 import { ScannerCustomer } from '../../../core/models/loyalty.model';
+
+type ScannerTab = 'find' | 'new';
 
 @Component({
   selector: 'app-qr-scanner',
@@ -20,6 +23,7 @@ import { ScannerCustomer } from '../../../core/models/loyalty.model';
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
     MatToolbarModule,
     MatButtonModule,
     MatIconModule,
@@ -34,9 +38,61 @@ import { ScannerCustomer } from '../../../core/models/loyalty.model';
 export class QrScannerComponent {
   private readonly loyaltyService = inject(LoyaltyService);
   private readonly campaignService = inject(CampaignService);
+  private readonly customerService = inject(CustomerService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly fb = inject(FormBuilder);
 
   readonly allowedFormats = [BarcodeFormat.QR_CODE];
+
+  readonly activeTab = signal<ScannerTab>('find');
+
+  switchTab(tab: ScannerTab): void {
+    this.activeTab.set(tab);
+  }
+
+  // --- Tab 2: New Customer ---
+
+  readonly registeringCustomer = signal(false);
+
+  readonly newCustomerForm = this.fb.nonNullable.group({
+    customerName: ['', [Validators.required, Validators.maxLength(200)]],
+    phone: ['', [Validators.required, Validators.maxLength(20)]]
+  });
+
+  registerCustomer(): void {
+    if (this.newCustomerForm.invalid) {
+      this.newCustomerForm.markAllAsTouched();
+      return;
+    }
+
+    this.registeringCustomer.set(true);
+    const raw = this.newCustomerForm.getRawValue();
+
+    this.customerService.registerCustomer(raw).subscribe({
+      next: (result) => {
+        this.registeringCustomer.set(false);
+        this.newCustomerForm.reset({ customerName: '', phone: '' });
+
+        this.snackBar.open(
+          result.isNewCustomer
+            ? 'Customer registered - 100 welcome points awarded.'
+            : 'This phone number is already registered to an existing customer.',
+          'Dismiss',
+          { duration: 5000 }
+        );
+
+        // Jump straight to their loyalty card, on either branch - confirms the bonus
+        // (or shows the existing balance) without staff needing a second lookup.
+        this.activeTab.set('find');
+        this.scanningEnabled.set(false);
+        this.loadCustomer(result.customerId);
+      },
+      error: (err) => {
+        this.registeringCustomer.set(false);
+        this.snackBar.open(err.error?.errors?.[0] ?? 'Failed to register customer.', 'Dismiss', { duration: 6000 });
+      }
+    });
+  }
 
   // Scanning is paused (enable = false) once a customer is loaded, so the camera stops
   // decoding frames while staff is reviewing/acting on the result.

@@ -2,8 +2,48 @@
   <h1>Scanner</h1>
 </mat-toolbar>
 
+<nav class="tabs-nav">
+  <button type="button" class="tab-button" [class.active]="activeTab() === 'find'" (click)="switchTab('find')">
+    Find Customer
+  </button>
+  <button type="button" class="tab-button" [class.active]="activeTab() === 'new'" (click)="switchTab('new')">
+    New Customer
+  </button>
+</nav>
+
 <div class="page-content">
-  @if (!customer()) {
+  @if (activeTab() === 'new') {
+    <div class="new-customer-card">
+      <form [formGroup]="newCustomerForm" (ngSubmit)="registerCustomer()">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Customer name</mat-label>
+          <input matInput formControlName="customerName" maxlength="200" />
+          @if (newCustomerForm.controls.customerName.hasError('required') && newCustomerForm.controls.customerName.touched) {
+            <mat-error>Customer name is required.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Phone</mat-label>
+          <input matInput type="tel" inputmode="tel" formControlName="phone" maxlength="20" />
+          @if (newCustomerForm.controls.phone.hasError('required') && newCustomerForm.controls.phone.touched) {
+            <mat-error>Phone number is required.</mat-error>
+          }
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" type="submit" class="register-button" [disabled]="registeringCustomer()">
+          @if (registeringCustomer()) {
+            <mat-spinner diameter="18"></mat-spinner>
+          } @else {
+            <ng-container>
+              <mat-icon>person_add</mat-icon>
+              Register
+            </ng-container>
+          }
+        </button>
+      </form>
+    </div>
+  } @else if (!customer()) {
     <div class="phone-search-card">
       <p class="phone-search-label">Can't scan? Find them by phone number</p>
       <div class="phone-search-row">

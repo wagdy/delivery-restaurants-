@@ -59,7 +59,7 @@ public class OrderService : IOrderService
                 return ServiceResult<OrderResponse>.Failure(customerResult.Errors.ToArray());
             }
 
-            userId = customerResult.Data;
+            userId = customerResult.Data!.CustomerId;
         }
         // Covers both a normal customer's own (already-trustworthy) JWT-derived id and
         // an admin-supplied CreateOrderRequest.CustomerId from the "Create Order" POS
