@@ -1,0 +1,14 @@
+.full-width {
+  width: 100%;
+  display: block;
+}
+
+.error-text {
+  color: var(--mat-sys-error, #b3261e);
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+}
+
+mat-spinner {
+  display: inline-block;
+}

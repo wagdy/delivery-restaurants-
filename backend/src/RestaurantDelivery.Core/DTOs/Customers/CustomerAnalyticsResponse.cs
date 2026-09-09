@@ -14,6 +14,11 @@ public class CustomerAnalyticsResponse
     // rare account that somehow has none.
     public string ContactInfo { get; set; } = string.Empty;
 
+    // The raw phone number (may be null for the rare account with only an email) - kept
+    // distinct from ContactInfo (which falls back to email for display) so the Edit
+    // dialog always prefills the real, editable field rather than a display fallback.
+    public string? PhoneNumber { get; set; }
+
     public int TotalPoints { get; set; }
     public int TotalOrders { get; set; }
     public decimal AverageCheck { get; set; }

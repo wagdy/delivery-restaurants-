@@ -16,6 +16,8 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
         builder.Property(u => u.Address)
             .HasMaxLength(500);
 
+        builder.Property(u => u.IsDeleted).HasDefaultValue(false);
+
         builder.Property(u => u.Role)
             .HasConversion<string>()
             .HasMaxLength(20)

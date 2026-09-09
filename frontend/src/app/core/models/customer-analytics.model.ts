@@ -5,6 +5,10 @@ export interface CustomerAnalytics {
   id: string;
   fullName: string;
   contactInfo: string;
+  // Raw phone number (may be null for the rare account with only an email) - distinct
+  // from contactInfo, which falls back to email for display. The Edit dialog prefills
+  // from this field, never from contactInfo.
+  phoneNumber: string | null;
   totalPoints: number;
   currentPoints: number;
   membershipTier: string;
@@ -20,3 +24,8 @@ export interface CustomerAnalytics {
 // than stored - it's a live classification of the same fetched fields, not a fact about
 // the customer that the backend needs to persist or query by.
 export type CustomerStatus = 'Active' | 'AtRisk' | 'VIP';
+
+export interface UpdateCustomerRequest {
+  fullName: string;
+  phoneNumber: string;
+}

@@ -156,6 +156,17 @@ table {
   }
 }
 
+// Equivalent to Tailwind's `text-red-600 hover:text-red-800` on the delete icon button -
+// this project has no Tailwind installed, so plain CSS instead, matching every other
+// component's substitution pattern.
+.delete-action {
+  color: #dc2626;
+
+  &:hover {
+    color: #b91c1c;
+  }
+}
+
 .pagination {
   display: flex;
   align-items: center;

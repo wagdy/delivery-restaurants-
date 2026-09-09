@@ -61,8 +61,8 @@ public class OrderRepository : GenericRepository<Order>, IOrderRepository
             .ToListAsync();
 
     public Task<AppUser?> GetCustomerByPhoneAsync(string phoneNumber) =>
-        Context.Set<AppUser>().FirstOrDefaultAsync(u => u.Role == UserRole.Customer && u.PhoneNumber == phoneNumber);
+        Context.Set<AppUser>().FirstOrDefaultAsync(u => u.Role == UserRole.Customer && !u.IsDeleted && u.PhoneNumber == phoneNumber);
 
     public Task<AppUser?> GetCustomerByIdAsync(string customerId) =>
-        Context.Set<AppUser>().FirstOrDefaultAsync(u => u.Role == UserRole.Customer && u.Id == customerId);
+        Context.Set<AppUser>().FirstOrDefaultAsync(u => u.Role == UserRole.Customer && !u.IsDeleted && u.Id == customerId);
 }

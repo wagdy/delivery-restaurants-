@@ -105,7 +105,7 @@ public class LoyaltyController : ControllerBase
     public async Task<ActionResult<ScannerCustomerResponse>> GetScannerCustomer(string customerId, CancellationToken ct)
     {
         var appUser = await _context.Users.FindAsync([customerId], ct);
-        if (appUser is null)
+        if (appUser is null || appUser.IsDeleted)
         {
             return NotFound(new { error = "Customer not found." });
         }
@@ -127,7 +127,7 @@ public class LoyaltyController : ControllerBase
         }
 
         var appUser = await _context.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phone.Trim(), ct);
-        if (appUser is null)
+        if (appUser is null || appUser.IsDeleted)
         {
             return NotFound(new { error = "Customer not found." });
         }

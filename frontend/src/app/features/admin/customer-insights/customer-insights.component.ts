@@ -8,11 +8,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { saveAs } from 'file-saver';
 import { CustomerAnalyticsService } from '../../../core/services/customer-analytics.service';
 import { CustomerAnalytics, CustomerStatus } from '../../../core/models/customer-analytics.model';
 import { tierStyleClass } from '../../../shared/utils/tier-style.util';
+import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { CustomerEditDialogComponent } from '../customer-edit-dialog/customer-edit-dialog.component';
 
 const PAGE_SIZE = 10;
 // A customer is "At Risk" once this many days pass with no order - a plain, documented
@@ -45,6 +48,7 @@ const MID_LIFETIME_VALUE = 150;
 export class CustomerInsightsComponent {
   private readonly customerAnalyticsService = inject(CustomerAnalyticsService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
 
   readonly loading = signal(true);
   readonly exporting = signal(false);
@@ -62,7 +66,8 @@ export class CustomerInsightsComponent {
     'averageCheck',
     'totalLifetimeValue',
     'punchCard',
-    'status'
+    'status',
+    'actions'
   ];
 
   readonly totalPages = computed(() => Math.max(1, Math.ceil(this.totalCount() / PAGE_SIZE)));
@@ -174,6 +179,53 @@ export class CustomerInsightsComponent {
         this.exporting.set(false);
         this.snackBar.open('Failed to export customer insights.', 'Dismiss', { duration: 4000 });
       }
+    });
+  }
+
+  editCustomer(customer: CustomerAnalytics): void {
+    const dialogRef = this.dialog.open(CustomerEditDialogComponent, {
+      width: '420px',
+      data: { customer }
+    });
+
+    dialogRef.afterClosed().subscribe((updated: CustomerAnalytics | undefined) => {
+      if (!updated) {
+        return;
+      }
+
+      this.customers.set(this.customers().map((c) => (c.id === updated.id ? updated : c)));
+      this.snackBar.open('Customer updated.', 'Dismiss', { duration: 3000 });
+    });
+  }
+
+  // Uses the app's own Material ConfirmDialogComponent (the same one every other delete
+  // flow in this admin area already uses - Roles, Survey Questions) rather than a plain
+  // browser window.confirm(), so this screen doesn't look out of place next to them.
+  deleteCustomer(customer: CustomerAnalytics): void {
+    const confirmRef = this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Delete customer',
+        message: `Delete "${customer.fullName}"? Their orders, reviews and loyalty history are kept - they'll just no longer be able to sign in or show up here.`,
+        confirmLabel: 'Delete',
+        danger: true
+      }
+    });
+
+    confirmRef.afterClosed().subscribe((confirmed: boolean) => {
+      if (!confirmed) {
+        return;
+      }
+
+      this.customerAnalyticsService.delete(customer.id).subscribe({
+        next: () => {
+          this.customers.set(this.customers().filter((c) => c.id !== customer.id));
+          this.totalCount.set(this.totalCount() - 1);
+          this.snackBar.open('Customer deleted.', 'Dismiss', { duration: 3000 });
+        },
+        error: (err) => {
+          this.snackBar.open(err.error?.errors?.[0] ?? 'Failed to delete customer.', 'Dismiss', { duration: 6000 });
+        }
+      });
     });
   }
 }

@@ -38,4 +38,20 @@ public class CrmController : ControllerBase
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             "customer-insights.xlsx");
     }
+
+    [HttpPut("customers/{id}")]
+    public async Task<ActionResult<CustomerAnalyticsResponse>> UpdateCustomer(string id, UpdateCustomerRequest request)
+    {
+        var result = await _customerService.UpdateCustomerAsync(id, request);
+        return result.Succeeded ? Ok(result.Data) : BadRequest(new { errors = result.Errors });
+    }
+
+    // Soft delete - see AppUser.IsDeleted. The customer disappears from this list and every
+    // other lookup, but their Orders/OrderReviews/LoyaltyProfile history is untouched.
+    [HttpDelete("customers/{id}")]
+    public async Task<IActionResult> DeleteCustomer(string id)
+    {
+        var result = await _customerService.DeleteCustomerAsync(id);
+        return result.Succeeded ? Ok() : BadRequest(new { errors = result.Errors });
+    }
 }

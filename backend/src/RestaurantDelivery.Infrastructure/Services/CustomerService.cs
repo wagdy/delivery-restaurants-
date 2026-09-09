@@ -1,7 +1,10 @@
 using ClosedXML.Excel;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using RestaurantDelivery.Core.Common;
 using RestaurantDelivery.Core.DTOs.Common;
 using RestaurantDelivery.Core.DTOs.Customers;
+using RestaurantDelivery.Core.Entities;
 using RestaurantDelivery.Core.Enums;
 using RestaurantDelivery.Core.Interfaces;
 using RestaurantDelivery.Infrastructure.Data;
@@ -11,10 +14,12 @@ namespace RestaurantDelivery.Infrastructure.Services;
 public class CustomerService : ICustomerService
 {
     private readonly ApplicationDbContext _context;
+    private readonly UserManager<AppUser> _userManager;
 
-    public CustomerService(ApplicationDbContext context)
+    public CustomerService(ApplicationDbContext context, UserManager<AppUser> userManager)
     {
         _context = context;
+        _userManager = userManager;
     }
 
     public async Task<PagedResult<CustomerAnalyticsResponse>> GetAnalyticsPagedAsync(int page, int pageSize, string? search)
@@ -104,7 +109,7 @@ public class CustomerService : ICustomerService
     {
         var query =
             from u in _context.Users
-            where u.Role == UserRole.Customer
+            where u.Role == UserRole.Customer && !u.IsDeleted
             join p in _context.LoyaltyProfiles on u.Id equals p.AppUserId into profileJoin
             from profile in profileJoin.DefaultIfEmpty()
             select new CustomerAnalyticsResponse
@@ -112,6 +117,7 @@ public class CustomerService : ICustomerService
                 Id = u.Id,
                 FullName = u.FullName,
                 ContactInfo = !string.IsNullOrEmpty(u.PhoneNumber) ? u.PhoneNumber! : (u.Email ?? "—"),
+                PhoneNumber = u.PhoneNumber,
                 TotalPoints = profile != null ? profile.TotalLifetimePoints : 0,
                 CurrentPoints = profile != null ? profile.CurrentPoints : 0,
                 MembershipTier = profile != null ? (profile.MembershipTier ?? "Unranked") : "Unranked",
@@ -131,5 +137,50 @@ public class CustomerService : ICustomerService
         }
 
         return query.OrderByDescending(c => c.TotalOrders);
+    }
+
+    public async Task<ServiceResult<CustomerAnalyticsResponse>> UpdateCustomerAsync(string id, UpdateCustomerRequest request)
+    {
+        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == id && u.Role == UserRole.Customer && !u.IsDeleted);
+        if (user is null)
+        {
+            return ServiceResult<CustomerAnalyticsResponse>.Failure("Customer not found.");
+        }
+
+        var phone = request.PhoneNumber.Trim();
+        if (!string.Equals(user.PhoneNumber, phone, StringComparison.Ordinal) &&
+            await _userManager.Users.AnyAsync(u => u.Id != id && u.PhoneNumber == phone))
+        {
+            return ServiceResult<CustomerAnalyticsResponse>.Failure("An account with this phone number already exists.");
+        }
+
+        user.FullName = request.FullName.Trim();
+        user.PhoneNumber = phone;
+
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            return ServiceResult<CustomerAnalyticsResponse>.Failure(updateResult.Errors.Select(e => e.Description).ToArray());
+        }
+
+        var updated = await BuildAnalyticsQuery(null).FirstAsync(c => c.Id == id);
+        return ServiceResult<CustomerAnalyticsResponse>.Success(updated);
+    }
+
+    public async Task<ServiceResult<bool>> DeleteCustomerAsync(string id)
+    {
+        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == id && u.Role == UserRole.Customer && !u.IsDeleted);
+        if (user is null)
+        {
+            return ServiceResult<bool>.Failure("Customer not found.");
+        }
+
+        // Soft delete, not Remove() - see AppUser.IsDeleted for why (Orders/OrderReviews/
+        // LoyaltyProfile FKs, plus this needing to also block login and hide the account
+        // from the Scanner and the "Registered Customer" order search - not just this list).
+        user.IsDeleted = true;
+        await _userManager.UpdateAsync(user);
+
+        return ServiceResult<bool>.Success(true);
     }
 }

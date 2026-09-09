@@ -96,7 +96,10 @@ public class AuthService : IAuthService
             ? await _userManager.FindByEmailAsync(identifier)
             : await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == identifier);
 
-        if (user is null || !await _userManager.CheckPasswordAsync(user, request.Password))
+        // A soft-deleted account fails the same generic message as a wrong password - not
+        // a distinct "this account was deleted" error, to avoid leaking account status to
+        // whoever's typing (see AppUser.IsDeleted).
+        if (user is null || user.IsDeleted || !await _userManager.CheckPasswordAsync(user, request.Password))
         {
             return ServiceResult<AuthResponse>.Failure(
                 isEmail ? "Invalid email or password." : "Invalid phone number or password.");
@@ -108,13 +111,25 @@ public class AuthService : IAuthService
     // Phone number is the universal login identifier now (customers and staff alike), so
     // uniqueness is enforced globally rather than scoped to a role - two accounts sharing a
     // phone would otherwise make LoginByPhoneAsync's lookup ambiguous.
+    //
+    // Deliberately NOT excluding IsDeleted accounts here: RegisterAsync's synthetic email
+    // (customer+{phone}@internal.otantik) is deterministic from the phone number alone, so
+    // even if this check let a deleted account's number through, _userManager.CreateAsync
+    // would still reject the new account on that email/username colliding with the
+    // deleted row's still-normalized Identity columns - a confusing "Username already
+    // taken" error in place of this method's own clear "account already exists" message.
+    // Freeing a deleted customer's phone number for reuse would need the delete flow to
+    // also rewrite that account's Email/UserName (and their normalized columns via
+    // UserManager.SetEmailAsync/SetUserNameAsync) - a real but separate follow-up.
     private Task<bool> IsPhoneTakenAsync(string phoneNumber) =>
         _userManager.Users.AnyAsync(u => u.PhoneNumber == phoneNumber);
 
     public async Task<ServiceResult<UserProfileResponse>> GetProfileAsync(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
-        if (user is null)
+        // A soft-deleted customer with a still-valid JWT loses access on their next profile
+        // refresh, rather than staying fully functional until the token naturally expires.
+        if (user is null || user.IsDeleted)
         {
             return ServiceResult<UserProfileResponse>.Failure("User not found.");
         }
@@ -184,6 +199,13 @@ public class AuthService : IAuthService
 
     public async Task<ServiceResult<string>> FindOrCreateCustomerByPhoneAsync(string fullName, string phoneNumber, string? address)
     {
+        // Matches a soft-deleted account too, same reasoning as IsPhoneTakenAsync above:
+        // treating a deleted row as "no match" would fall through to _userManager.CreateAsync
+        // with the same deterministic synthetic email, which would fail on that stale
+        // account's still-normalized Identity columns. Reattaching a new order to the
+        // existing (deactivated) AppUser id is a narrow, pre-existing edge case - it costs
+        // nothing (no data is lost or corrupted) and is far better than a broken order
+        // creation flow.
         var existing = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
         if (existing is not null)
         {
