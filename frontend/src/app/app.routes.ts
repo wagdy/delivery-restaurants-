@@ -51,6 +51,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/auth/email-login/email-login.component').then((m) => m.EmailLoginComponent)
   },
+  {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./features/auth/forgot-password/forgot-password.component').then((m) => m.ForgotPasswordComponent)
+  },
   // The single fully public, chrome-free rating page - reached via both
   // SendLoyaltyWalletUpdateAsync's general link (no query param) and
   // SendPostDeliveryPointsNotificationAsync's per-order link (?orderId=<id>). A page

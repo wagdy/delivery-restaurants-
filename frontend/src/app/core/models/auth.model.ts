@@ -11,6 +11,9 @@ export interface AuthResponse {
 export interface LoginRequest {
   identifier: string;
   password: string;
+  // Omitted (undefined) keeps the backend's existing config-driven session length
+  // unchanged - only true/false opts into AuthService.LoginAsync's 30-day/1-day override.
+  rememberMe?: boolean;
 }
 
 export interface RegisterRequest {

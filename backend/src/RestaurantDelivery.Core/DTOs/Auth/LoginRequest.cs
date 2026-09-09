@@ -13,4 +13,9 @@ public class LoginRequest
 
     [Required]
     public string Password { get; set; } = string.Empty;
+
+    // Null (omitted) keeps the existing config-driven session length unchanged - only
+    // true/false opts into AuthService.LoginAsync's 30-day/1-day override. See
+    // JwtTokenService.CreateToken's expiryOverride parameter.
+    public bool? RememberMe { get; set; }
 }

@@ -14,6 +14,7 @@ namespace RestaurantDelivery.Infrastructure.Services;
 public class AuthService : IAuthService
 {
     private readonly UserManager<AppUser> _userManager;
+    private readonly IPasswordHasher<AppUser> _passwordHasher;
     private readonly ITokenService _tokenService;
     private readonly IRoleRepository _roleRepository;
     private readonly IWhatsAppNotificationService _whatsAppNotificationService;
@@ -22,6 +23,7 @@ public class AuthService : IAuthService
 
     public AuthService(
         UserManager<AppUser> userManager,
+        IPasswordHasher<AppUser> passwordHasher,
         ITokenService tokenService,
         IRoleRepository roleRepository,
         IWhatsAppNotificationService whatsAppNotificationService,
@@ -29,6 +31,7 @@ public class AuthService : IAuthService
         ILogger<AuthService> logger)
     {
         _userManager = userManager;
+        _passwordHasher = passwordHasher;
         _tokenService = tokenService;
         _roleRepository = roleRepository;
         _whatsAppNotificationService = whatsAppNotificationService;
@@ -66,7 +69,10 @@ public class AuthService : IAuthService
             return ServiceResult<AuthResponse>.Failure(createResult.Errors.Select(e => e.Description).ToArray());
         }
 
-        await AwardWelcomeBonusAndNotifyAsync(user, isReactivation: false);
+        // The customer's own just-chosen password, recited back in the welcome WhatsApp
+        // message as a login receipt - see AwardWelcomeBonusAndNotifyAsync/
+        // SendWelcomeMessageAsync's template, which now always shows phone+password.
+        await AwardWelcomeBonusAndNotifyAsync(user, request.Password, isReactivation: false);
 
         return ServiceResult<AuthResponse>.Success(await BuildAuthResponseAsync(user));
     }
@@ -92,7 +98,18 @@ public class AuthService : IAuthService
                 isEmail ? "Invalid email or password." : "Invalid phone number or password.");
         }
 
-        return ServiceResult<AuthResponse>.Success(await BuildAuthResponseAsync(user));
+        // RememberMe is nullable and opt-in: an older/other client that never sends it
+        // (e.g. EmailLoginComponent's staff sign-in) falls through to null, which keeps
+        // JwtTokenService's own Jwt:ExpiryMinutes config default completely unchanged -
+        // only a client that explicitly sends true/false gets the new 30-day/1-day session.
+        TimeSpan? expiryOverride = request.RememberMe switch
+        {
+            true => TimeSpan.FromDays(30),
+            false => TimeSpan.FromDays(1),
+            null => null
+        };
+
+        return ServiceResult<AuthResponse>.Success(await BuildAuthResponseAsync(user, expiryOverride));
     }
 
     // Phone number is the universal login identifier now (customers and staff alike), so
@@ -215,13 +232,20 @@ public class AuthService : IAuthService
                 existing.Address = address;
             }
 
+            // A fresh default password too, same as a brand-new signup below - whatever
+            // they logged in with before is gone the moment they're soft-deleted, so
+            // reactivation needs to hand them a new, working one rather than leave
+            // PasswordHash pointing at a password nobody (customer or staff) still knows.
+            var reactivationPassword = GenerateDefaultPassword();
+            existing.PasswordHash = _passwordHasher.HashPassword(existing, reactivationPassword);
+
             var reactivateResult = await _userManager.UpdateAsync(existing);
             if (!reactivateResult.Succeeded)
             {
                 return ServiceResult<FindOrCreateCustomerResult>.Failure(reactivateResult.Errors.Select(e => e.Description).ToArray());
             }
 
-            await AwardWelcomeBonusAndNotifyAsync(existing, isReactivation: true);
+            await AwardWelcomeBonusAndNotifyAsync(existing, reactivationPassword, isReactivation: true);
 
             return ServiceResult<FindOrCreateCustomerResult>.Success(
                 new FindOrCreateCustomerResult { CustomerId = existing.Id, IsNewCustomer = true });
@@ -244,24 +268,38 @@ public class AuthService : IAuthService
         };
 
         // The customer isn't present to choose a password - a cashier is typing their
-        // details into the POS, not the customer themselves. This value is never shown to
-        // or used by anyone; it only satisfies Identity's requirement that every account
-        // have one. A real login (password reset, or a future OTP flow) would be a
-        // separate, explicit follow-up - this account exists for CRM/loyalty tracking and
-        // phone-based recognition on a future visit, not for the customer to sign into yet.
-        var generatedPassword = $"Aa1{Guid.NewGuid():N}{Guid.NewGuid():N}";
+        // details into the POS, not the customer themselves. A real, working default
+        // password (sent to them via the welcome WhatsApp message below) so they can log
+        // in and manage their own account afterward, rather than the old permanently-
+        // unusable placeholder this used to generate.
+        var defaultPassword = GenerateDefaultPassword();
 
-        var createResult = await _userManager.CreateAsync(user, generatedPassword);
+        // CreateAsync(user) - the no-password overload - deliberately skips Identity's
+        // PasswordValidator pipeline (Program.cs's Password.RequiredLength = 8, plus the
+        // still-default RequireUppercase/RequireLowercase) which a plain 6-digit numeric
+        // password would fail outright. IUserValidator (the Email/UserName uniqueness
+        // checks) still runs. The hash is set directly via IPasswordHasher afterward,
+        // bypassing only the password-complexity policy for this one system-generated
+        // value - every customer- or staff-chosen password elsewhere in the app still
+        // goes through CreateAsync(user, password)/AddPasswordAsync and is fully validated.
+        var createResult = await _userManager.CreateAsync(user);
         if (!createResult.Succeeded)
         {
             return ServiceResult<FindOrCreateCustomerResult>.Failure(createResult.Errors.Select(e => e.Description).ToArray());
+        }
+
+        user.PasswordHash = _passwordHasher.HashPassword(user, defaultPassword);
+        var setPasswordResult = await _userManager.UpdateAsync(user);
+        if (!setPasswordResult.Succeeded)
+        {
+            return ServiceResult<FindOrCreateCustomerResult>.Failure(setPasswordResult.Errors.Select(e => e.Description).ToArray());
         }
 
         // Same welcome treatment RegisterAsync's self-service path gives a brand-new
         // customer - a staff-registered customer (Scanner's New Customer tab, Create
         // Order's New Customer section) gets the 100-point bonus and welcome WhatsApp
         // message too, not just whoever happened to register themselves.
-        await AwardWelcomeBonusAndNotifyAsync(user, isReactivation: false);
+        await AwardWelcomeBonusAndNotifyAsync(user, defaultPassword, isReactivation: false);
 
         return ServiceResult<FindOrCreateCustomerResult>.Success(
             new FindOrCreateCustomerResult { CustomerId = user.Id, IsNewCustomer = true });
@@ -275,7 +313,7 @@ public class AuthService : IAuthService
     // AwardWelcomeBonusAsync (a plain += on a fresh, always-zero profile) - using the
     // latter for a reactivation would incorrectly stack on top of whatever balance the
     // account still had from before it was soft-deleted.
-    private async Task AwardWelcomeBonusAndNotifyAsync(AppUser user, bool isReactivation)
+    private async Task AwardWelcomeBonusAndNotifyAsync(AppUser user, string password, bool isReactivation)
     {
         // Never allowed to fail the caller: the account has already been committed (or, for
         // a reactivation, already saved undeleted) above, so a hiccup awarding the bonus
@@ -309,8 +347,14 @@ public class AuthService : IAuthService
         }
 
         // Never allowed to fail the caller either - see IWhatsAppNotificationService's contract.
-        await _whatsAppNotificationService.SendWelcomeMessageAsync(user.PhoneNumber!, user.FullName);
+        await _whatsAppNotificationService.SendWelcomeMessageAsync(user.PhoneNumber!, user.FullName, password);
     }
+
+    // A plain 6-digit numeric string (e.g. "482915") - simple enough for a customer to
+    // read off WhatsApp and type on a phone keypad. Never passed through Identity's own
+    // password validators (see the two call sites above) - it would fail this app's
+    // configured length/complexity policy outright.
+    private static string GenerateDefaultPassword() => Random.Shared.Next(100000, 1000000).ToString();
 
     // Empty for Customer/CaptainOrder. For Admin: every module when no custom Role is
     // assigned (the default, backward-compatible "full access" superuser behavior), else
@@ -359,11 +403,11 @@ public class AuthService : IAuthService
         return JsonSerializer.Deserialize<List<string>>(role.GranularPermissionsJson) ?? new List<string>();
     }
 
-    private async Task<AuthResponse> BuildAuthResponseAsync(AppUser user)
+    private async Task<AuthResponse> BuildAuthResponseAsync(AppUser user, TimeSpan? expiryOverride = null)
     {
         var modules = await ResolveAdminModuleNamesAsync(user);
         var permissions = await ResolveGranularPermissionNamesAsync(user);
-        var (token, expiresAtUtc) = _tokenService.CreateToken(user, modules, permissions);
+        var (token, expiresAtUtc) = _tokenService.CreateToken(user, modules, permissions, expiryOverride);
         return new AuthResponse
         {
             Token = token,

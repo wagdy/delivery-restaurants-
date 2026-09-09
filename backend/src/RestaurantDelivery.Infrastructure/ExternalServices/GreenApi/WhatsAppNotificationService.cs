@@ -36,19 +36,25 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         _logger = logger;
     }
 
-    public Task SendWelcomeMessageAsync(string phoneNumber, string customerName)
+    public Task SendWelcomeMessageAsync(string phoneNumber, string customerName, string password)
     {
         // Exact specified template - the "100 نقطة" figures are deliberately literal, not
         // an interpolated balance parameter, since the caller (AuthService's
         // AwardWelcomeBonusAndNotifyAsync) only ever sends this once, immediately after
-        // successfully awarding exactly WelcomeBonusPoints (100) to a brand-new profile
-        // whose balance was 0 beforehand - "100" is always the true current balance at
-        // the moment this fires, for a customer registered from any page.
+        // successfully awarding/resetting to exactly WelcomeBonusPoints (100) - "100" is
+        // always the true current balance at the moment this fires, for a customer
+        // registered (or reactivated) from any page. phoneNumber is shown in its plain,
+        // customer-recognizable local form (e.g. "01012345678"), not the Green
+        // API-normalized chatId ToChatId builds separately for the API payload below.
         var message =
             $"مرحباً {customerName}، 🌟\n" +
             "أهلاً بك في عائلة أوتانتيك! سعداء بانضمامك لبرنامج الولاء الخاص بنا.\n\n" +
             "🎉 بمناسبة تسجيلك، تم إهداؤك 100 نقطة ترحيبية في محفظتك!\n" +
             "رصيدك الحالي هو: 100 نقطة.\n\n" +
+            "🔐 بيانات الدخول لحسابك:\n" +
+            $"رقم الهاتف: {phoneNumber}\n" +
+            $"كلمة المرور: {password}\n" +
+            "(يمكنك تغيير كلمة المرور في أي وقت من إعدادات حسابك)\n\n" +
             "نتمنى لك تجربة سعيدة ومميزة معنا دائماً. شاركنا تقييمك لزيارتك اليوم عبر الرابط التالي:\n" +
             $"{RatingBaseUrl}/rate/store";
 

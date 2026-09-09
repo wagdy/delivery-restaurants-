@@ -23,6 +23,33 @@
   width: 100%;
 }
 
+// Equivalent to Tailwind's `flex items-center justify-between` - this project has no
+// Tailwind installed, so plain CSS instead, matching every other component's substitution
+// pattern. Wraps on narrow screens rather than truncating either side.
+.login-options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 12px;
+
+  ::ng-deep .mat-mdc-checkbox label {
+    font-size: 0.85rem;
+  }
+}
+
+.forgot-password-link {
+  font-size: 0.85rem;
+  color: var(--app-primary-color, #3f51b5);
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .actions {
   display: flex;
   align-items: center;

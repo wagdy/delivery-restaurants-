@@ -21,7 +21,8 @@ public class JwtTokenService : ITokenService
     public (string Token, DateTime ExpiresAtUtc) CreateToken(
         AppUser user,
         IReadOnlyList<string> adminModules,
-        IReadOnlyList<string> granularPermissions)
+        IReadOnlyList<string> granularPermissions,
+        TimeSpan? expiryOverride = null)
     {
         var jwtSection = _configuration.GetSection("Jwt");
         var key = jwtSection["Key"]
@@ -43,7 +44,7 @@ public class JwtTokenService : ITokenService
         claims.AddRange(adminModules.Select(m => new Claim(AdminModuleClaims.ClaimType, m)));
         claims.AddRange(granularPermissions.Select(p => new Claim(GranularPermissionClaims.ClaimType, p)));
 
-        var expiresAtUtc = DateTime.UtcNow.AddMinutes(expiryMinutes);
+        var expiresAtUtc = DateTime.UtcNow.Add(expiryOverride ?? TimeSpan.FromMinutes(expiryMinutes));
 
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
         var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
