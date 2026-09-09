@@ -41,9 +41,55 @@ public class AuthService : IAuthService
 
     public async Task<ServiceResult<AuthResponse>> RegisterAsync(RegisterRequest request)
     {
-        if (await IsPhoneTakenAsync(request.PhoneNumber))
+        // A direct entity lookup, not IsPhoneTakenAsync's plain bool - reactivating a
+        // soft-deleted match needs the actual row, and IsPhoneTakenAsync stays reserved
+        // for CreateStaffUserAsync (staff/admin accounts are never soft-deleted, so it has
+        // no reactivation branch to consider).
+        var existing = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == request.PhoneNumber);
+        if (existing is not null)
         {
-            return ServiceResult<AuthResponse>.Failure("An account with this phone number already exists.");
+            if (!existing.IsDeleted)
+            {
+                return ServiceResult<AuthResponse>.Failure("An account with this phone number already exists.");
+            }
+
+            // Reactivation: a previously soft-deleted customer signing themselves back up
+            // under the same phone number - same treatment as
+            // FindOrCreateCustomerByPhoneAsync's reactivation branch (the Scanner/Create
+            // Order staff path): name/address updated from the form, points reset to the
+            // flat welcome bonus, welcome WhatsApp resent, every historical Order/
+            // OrderReview/LoyaltyPointTransaction row left untouched. Unlike that path,
+            // the customer IS present and just typed their own new password - it goes
+            // through RemovePasswordAsync/AddPasswordAsync (Identity's fully validated
+            // password-change flow, same length/complexity policy CreateAsync(user,
+            // password) would enforce for a fresh signup) rather than the direct
+            // IPasswordHasher bypass used for a staff-generated 6-digit password that
+            // could never pass that policy in the first place.
+            existing.IsDeleted = false;
+            existing.FullName = request.FullName;
+            existing.Address = request.Address;
+
+            var reactivateResult = await _userManager.UpdateAsync(existing);
+            if (!reactivateResult.Succeeded)
+            {
+                return ServiceResult<AuthResponse>.Failure(reactivateResult.Errors.Select(e => e.Description).ToArray());
+            }
+
+            var removePasswordResult = await _userManager.RemovePasswordAsync(existing);
+            if (!removePasswordResult.Succeeded)
+            {
+                return ServiceResult<AuthResponse>.Failure(removePasswordResult.Errors.Select(e => e.Description).ToArray());
+            }
+
+            var addPasswordResult = await _userManager.AddPasswordAsync(existing, request.Password);
+            if (!addPasswordResult.Succeeded)
+            {
+                return ServiceResult<AuthResponse>.Failure(addPasswordResult.Errors.Select(e => e.Description).ToArray());
+            }
+
+            await AwardWelcomeBonusAndNotifyAsync(existing, request.Password, isReactivation: true);
+
+            return ServiceResult<AuthResponse>.Success(await BuildAuthResponseAsync(existing));
         }
 
         // Identity requires a unique Email/UserName (RequireUniqueEmail=true) even though
@@ -112,19 +158,15 @@ public class AuthService : IAuthService
         return ServiceResult<AuthResponse>.Success(await BuildAuthResponseAsync(user, expiryOverride));
     }
 
-    // Phone number is the universal login identifier now (customers and staff alike), so
+    // Used by CreateStaffUserAsync only - RegisterAsync now does its own phone lookup
+    // above so it can reactivate a soft-deleted match instead of just rejecting it. Phone
+    // number is the universal login identifier now (customers and staff alike), so
     // uniqueness is enforced globally rather than scoped to a role - two accounts sharing a
-    // phone would otherwise make LoginByPhoneAsync's lookup ambiguous.
-    //
-    // Deliberately NOT excluding IsDeleted accounts here: RegisterAsync's synthetic email
-    // (customer+{phone}@internal.otantik) is deterministic from the phone number alone, so
-    // even if this check let a deleted account's number through, _userManager.CreateAsync
-    // would still reject the new account on that email/username colliding with the
-    // deleted row's still-normalized Identity columns - a confusing "Username already
-    // taken" error in place of this method's own clear "account already exists" message.
-    // Freeing a deleted customer's phone number for reuse would need the delete flow to
-    // also rewrite that account's Email/UserName (and their normalized columns via
-    // UserManager.SetEmailAsync/SetUserNameAsync) - a real but separate follow-up.
+    // phone would otherwise make LoginByPhoneAsync's lookup ambiguous. Matches a
+    // soft-deleted customer's number too, which is fine here: staff/admin accounts are
+    // never soft-deleted (see AppUser.IsDeleted), so there's no reactivation concept for
+    // this method to consider - leaving a deleted customer's old number blocked for a
+    // brand-new STAFF account is just the conservative, harmless default.
     private Task<bool> IsPhoneTakenAsync(string phoneNumber) =>
         _userManager.Users.AnyAsync(u => u.PhoneNumber == phoneNumber);
 
