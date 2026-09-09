@@ -131,6 +131,28 @@ public class LoyaltyService : ILoyaltyService
         await _context.SaveChangesAsync(ct);
     }
 
+    public async Task ResetToWelcomeBonusAsync(string customerId, CancellationToken ct = default)
+    {
+        // A reactivated customer's profile already exists (it was never deleted, only the
+        // AppUser row was hidden) - GetOrCreateProfileEntityAsync fetches that same row
+        // rather than creating a second one.
+        var profile = await GetOrCreateProfileEntityAsync(customerId, ct);
+
+        profile.CurrentPoints = WelcomeBonusPoints;
+        profile.TotalLifetimePoints = WelcomeBonusPoints;
+        profile.LastActivityDate = DateTime.UtcNow;
+        profile.MembershipTier = await ResolveTierNameAsync(profile.TotalLifetimePoints, ct);
+
+        _context.LoyaltyPointTransactions.Add(new LoyaltyPointTransaction
+        {
+            CustomerId = profile.AppUserId,
+            PointsTransacted = WelcomeBonusPoints,
+            TransactionType = LoyaltyTransactionType.WelcomeBonus
+        });
+
+        await _context.SaveChangesAsync(ct);
+    }
+
     public async Task<ServiceResult<LoyaltyTransactionResponse>> RedeemPointsAsync(string actorId, RedeemPointsRequest request, CancellationToken ct = default)
     {
         var customer = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.CustomerId, ct);

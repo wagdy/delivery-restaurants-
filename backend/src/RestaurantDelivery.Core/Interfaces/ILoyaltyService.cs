@@ -18,6 +18,14 @@ public interface ILoyaltyService
     // from EarnPointsAsync's ratio-based staff-scanned earn.
     Task AwardWelcomeBonusAsync(string customerId, CancellationToken ct = default);
 
+    // Called only when reactivating a previously soft-deleted customer (see
+    // AuthService.FindOrCreateCustomerByPhoneAsync) - resets CurrentPoints/TotalLifetimePoints
+    // to exactly the welcome bonus amount rather than adding to it, since a reactivated
+    // customer is explicitly treated as a brand-new welcome, not a returning one with a
+    // carried-over balance. Never touches past LoyaltyPointTransaction/LoyaltyPunchTransaction
+    // rows - those stay exactly as they were, same as every other soft-delete guarantee here.
+    Task ResetToWelcomeBonusAsync(string customerId, CancellationToken ct = default);
+
     // Called once from OrderService.UpdateStatusAsync when an order first transitions to
     // Delivered. No-op (PointsEarned = 0) if order.UserId is null (guest checkout).
     Task<OrderLoyaltyResult> ProcessOrderDeliveredAsync(Order order, CancellationToken ct = default);

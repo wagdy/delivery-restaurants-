@@ -4,8 +4,9 @@ public class FindOrCreateCustomerResult
 {
     public string CustomerId { get; set; } = string.Empty;
 
-    // False when this phone number was already registered and the existing account was
-    // returned instead of creating a new one - see AuthService.FindOrCreateCustomerByPhoneAsync.
-    // Only a true IsNewCustomer got the welcome bonus/WhatsApp notification just now.
+    // True for a brand-new account AND for a reactivated (previously soft-deleted) one -
+    // both got the welcome bonus/WhatsApp notification just now. False only when this
+    // phone number matched an existing, still-active account, which was returned as-is
+    // with no bonus/notification re-sent. See AuthService.FindOrCreateCustomerByPhoneAsync.
     public bool IsNewCustomer { get; set; }
 }

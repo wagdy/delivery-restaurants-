@@ -66,7 +66,7 @@ public class AuthService : IAuthService
             return ServiceResult<AuthResponse>.Failure(createResult.Errors.Select(e => e.Description).ToArray());
         }
 
-        await AwardWelcomeBonusAndNotifyAsync(user);
+        await AwardWelcomeBonusAndNotifyAsync(user, isReactivation: false);
 
         return ServiceResult<AuthResponse>.Success(await BuildAuthResponseAsync(user));
     }
@@ -189,15 +189,42 @@ public class AuthService : IAuthService
         // Matches a soft-deleted account too, same reasoning as IsPhoneTakenAsync above:
         // treating a deleted row as "no match" would fall through to _userManager.CreateAsync
         // with the same deterministic synthetic email, which would fail on that stale
-        // account's still-normalized Identity columns. Reattaching a new order to the
-        // existing (deactivated) AppUser id is a narrow, pre-existing edge case - it costs
-        // nothing (no data is lost or corrupted) and is far better than a broken order
-        // creation flow.
+        // account's still-normalized Identity columns.
         var existing = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
         if (existing is not null)
         {
+            if (!existing.IsDeleted)
+            {
+                return ServiceResult<FindOrCreateCustomerResult>.Success(
+                    new FindOrCreateCustomerResult { CustomerId = existing.Id, IsNewCustomer = false });
+            }
+
+            // Reactivation: re-registering a previously soft-deleted customer's phone
+            // number brings the same account back rather than silently handing back a
+            // still-hidden id (which would then 404 out of every Scanner/Registered-
+            // Customer lookup that filters on IsDeleted) or colliding on the deterministic
+            // synthetic email if this fell through to CreateAsync below. Treated exactly
+            // like a brand-new signup for welcome purposes - name updates, points reset to
+            // the flat welcome bonus, welcome WhatsApp resent - while every historical
+            // Order/OrderReview/LoyaltyPointTransaction row tied to this AppUser id, from
+            // both before AND after this reactivation, stays intact throughout.
+            existing.IsDeleted = false;
+            existing.FullName = fullName;
+            if (address is not null)
+            {
+                existing.Address = address;
+            }
+
+            var reactivateResult = await _userManager.UpdateAsync(existing);
+            if (!reactivateResult.Succeeded)
+            {
+                return ServiceResult<FindOrCreateCustomerResult>.Failure(reactivateResult.Errors.Select(e => e.Description).ToArray());
+            }
+
+            await AwardWelcomeBonusAndNotifyAsync(existing, isReactivation: true);
+
             return ServiceResult<FindOrCreateCustomerResult>.Success(
-                new FindOrCreateCustomerResult { CustomerId = existing.Id, IsNewCustomer = false });
+                new FindOrCreateCustomerResult { CustomerId = existing.Id, IsNewCustomer = true });
         }
 
         // Identity requires a unique Email/UserName even though customers log in by phone -
@@ -234,31 +261,43 @@ public class AuthService : IAuthService
         // customer - a staff-registered customer (Scanner's New Customer tab, Create
         // Order's New Customer section) gets the 100-point bonus and welcome WhatsApp
         // message too, not just whoever happened to register themselves.
-        await AwardWelcomeBonusAndNotifyAsync(user);
+        await AwardWelcomeBonusAndNotifyAsync(user, isReactivation: false);
 
         return ServiceResult<FindOrCreateCustomerResult>.Success(
             new FindOrCreateCustomerResult { CustomerId = user.Id, IsNewCustomer = true });
     }
 
-    // Shared by RegisterAsync and FindOrCreateCustomerByPhoneAsync's create branch, so a
-    // brand-new customer's welcome bonus/notification can never drift out of sync between
-    // the two paths that create one, the way FindOrCreateCustomerByPhoneAsync used to
-    // silently skip both entirely before this method existed.
-    private async Task AwardWelcomeBonusAndNotifyAsync(AppUser user)
+    // Shared by RegisterAsync, FindOrCreateCustomerByPhoneAsync's create branch, and its
+    // reactivation branch, so a customer's welcome bonus/notification can never drift out
+    // of sync between the paths that grant it. isReactivation picks
+    // ResetToWelcomeBonusAsync (a hard reset to the flat welcome amount, since a
+    // reactivated customer is explicitly treated as a brand-new welcome) over
+    // AwardWelcomeBonusAsync (a plain += on a fresh, always-zero profile) - using the
+    // latter for a reactivation would incorrectly stack on top of whatever balance the
+    // account still had from before it was soft-deleted.
+    private async Task AwardWelcomeBonusAndNotifyAsync(AppUser user, bool isReactivation)
     {
-        // Never allowed to fail the caller: the account has already been committed by
-        // _userManager.CreateAsync, so a hiccup awarding the signup bonus must not turn an
-        // otherwise-successful registration into a 500 the client would retry against a
-        // phone number that's now already taken.
+        // Never allowed to fail the caller: the account has already been committed (or, for
+        // a reactivation, already saved undeleted) above, so a hiccup awarding the bonus
+        // must not turn an otherwise-successful registration into a 500 the client would
+        // retry against a phone number that's now already taken/reactivated.
         var bonusAwarded = true;
         try
         {
-            await _loyaltyService.AwardWelcomeBonusAsync(user.Id);
+            if (isReactivation)
+            {
+                await _loyaltyService.ResetToWelcomeBonusAsync(user.Id);
+            }
+            else
+            {
+                await _loyaltyService.AwardWelcomeBonusAsync(user.Id);
+            }
         }
         catch (Exception ex)
         {
             bonusAwarded = false;
-            _logger.LogError(ex, "Failed to award welcome bonus to new customer {UserId}.", user.Id);
+            _logger.LogError(ex, "Failed to award welcome bonus to {Context} customer {UserId}.",
+                isReactivation ? "reactivated" : "new", user.Id);
         }
 
         // SendWelcomeMessageAsync's template states a specific "100 points" balance as
