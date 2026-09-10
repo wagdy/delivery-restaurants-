@@ -76,8 +76,15 @@ public class AuthService : IAuthService
             // password-change flow, same length/complexity policy CreateAsync(user,
             // password) would enforce for a fresh signup) rather than the direct
             // IPasswordHasher bypass used for a staff-generated 6-digit password that
-            // could never pass that policy in the first place.
+            // could never pass that policy in the first place. Role is force-reset to
+            // Customer too, not just IsDeleted - the phone-number lookup above has no Role
+            // scope, so this could in principle be reactivating a row whose Role drifted
+            // away from Customer for some other reason. Without this, the row comes back
+            // non-deleted but still invisible to CrmController's Role == Customer filter
+            // (Customer Insights), while still matching a Role-unscoped lookup elsewhere
+            // (the Scanner's phone search) - exactly the split-visibility bug this fixes.
             existing.IsDeleted = false;
+            existing.Role = UserRole.Customer;
             existing.FullName = request.FullName;
             existing.Address = request.Address;
 
@@ -278,8 +285,14 @@ public class AuthService : IAuthService
             // like a brand-new signup for welcome purposes - name updates, points reset to
             // the flat welcome bonus, welcome WhatsApp resent - while every historical
             // Order/OrderReview/LoyaltyPointTransaction row tied to this AppUser id, from
-            // both before AND after this reactivation, stays intact throughout.
+            // both before AND after this reactivation, stays intact throughout. Role is
+            // force-reset to Customer for the same reason IsDeleted is: the phone lookup
+            // above has no Role scope, so without this the row can come back non-deleted
+            // yet still excluded from CrmController's Role == Customer filter (Customer
+            // Insights) while a Role-unscoped lookup (the Scanner's phone search) still
+            // finds it - the exact split-visibility bug this fixes.
             existing.IsDeleted = false;
+            existing.Role = UserRole.Customer;
             existing.FullName = fullName;
             if (address is not null)
             {

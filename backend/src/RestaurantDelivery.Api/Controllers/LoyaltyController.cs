@@ -7,6 +7,7 @@ using RestaurantDelivery.Api.Configuration;
 using RestaurantDelivery.Api.Services.Loyalty;
 using RestaurantDelivery.Core.DTOs.Loyalty;
 using RestaurantDelivery.Core.Entities;
+using RestaurantDelivery.Core.Enums;
 using RestaurantDelivery.Core.Interfaces;
 using RestaurantDelivery.Infrastructure.Data;
 
@@ -105,7 +106,11 @@ public class LoyaltyController : ControllerBase
     public async Task<ActionResult<ScannerCustomerResponse>> GetScannerCustomer(string customerId, CancellationToken ct)
     {
         var appUser = await _context.Users.FindAsync([customerId], ct);
-        if (appUser is null || appUser.IsDeleted)
+        // Role == Customer, not just !IsDeleted - a Scanner lookup should only ever surface
+        // an actual customer, never a staff (Admin/CaptainOrder) row that happens to share
+        // an id/phone by coincidence or stale data. See AuthService.FindOrCreateCustomerByPhoneAsync's
+        // reactivation branch, which is what this filter exists to stay consistent with.
+        if (appUser is null || appUser.IsDeleted || appUser.Role != UserRole.Customer)
         {
             return NotFound(new { error = "Customer not found." });
         }
@@ -127,7 +132,10 @@ public class LoyaltyController : ControllerBase
         }
 
         var appUser = await _context.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phone.Trim(), ct);
-        if (appUser is null || appUser.IsDeleted)
+        // Role == Customer for the same reason as GetScannerCustomer above - a phone number
+        // isn't unique across roles in this schema, so without this a staff row sharing this
+        // number would incorrectly surface here as a loyalty customer.
+        if (appUser is null || appUser.IsDeleted || appUser.Role != UserRole.Customer)
         {
             return NotFound(new { error = "Customer not found." });
         }
