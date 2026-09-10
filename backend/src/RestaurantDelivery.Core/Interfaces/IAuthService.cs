@@ -26,8 +26,11 @@ public interface IAuthService
     // WhatsApp notification - the exact same side effects RegisterAsync's self-service path
     // gets, so a customer's welcome treatment never depends on which page created them.
     // Unlike RegisterAsync, the customer never chooses their own password - see the
-    // implementation's own doc comment for that trade-off.
-    Task<ServiceResult<FindOrCreateCustomerResult>> FindOrCreateCustomerByPhoneAsync(string fullName, string phoneNumber, string? address);
+    // implementation's own doc comment for that trade-off. isPastCustomer swaps the
+    // welcome WhatsApp for SendPastCustomerWelcomeAsync's no-review-link variant (Customer
+    // Insights' "Register Past Customer" dialog, see CrmController.RegisterPastCustomer)
+    // - everything else (bonus, reactivation, auto-generated password) is identical.
+    Task<ServiceResult<FindOrCreateCustomerResult>> FindOrCreateCustomerByPhoneAsync(string fullName, string phoneNumber, string? address, bool isPastCustomer = false);
 
     // Customer accounts only (see ResetPasswordAsync's own doc comment for why staff
     // accounts are deliberately excluded from this whole flow). Always succeeds from the

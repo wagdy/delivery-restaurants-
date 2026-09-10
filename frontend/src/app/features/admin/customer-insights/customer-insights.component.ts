@@ -16,6 +16,8 @@ import { CustomerAnalytics, CustomerStatus } from '../../../core/models/customer
 import { tierStyleClass } from '../../../shared/utils/tier-style.util';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CustomerEditDialogComponent } from '../customer-edit-dialog/customer-edit-dialog.component';
+import { RegisterPastCustomerDialogComponent } from '../register-past-customer-dialog/register-past-customer-dialog.component';
+import { FindOrCreateCustomerResult } from '../../../core/models/customer-analytics.model';
 
 const PAGE_SIZE = 10;
 // A customer is "At Risk" once this many days pass with no order - a plain, documented
@@ -179,6 +181,26 @@ export class CustomerInsightsComponent {
         this.exporting.set(false);
         this.snackBar.open('Failed to export customer insights.', 'Dismiss', { duration: 4000 });
       }
+    });
+  }
+
+  // Opens the "Register Past Customer" dialog for a branch visitor who never placed a
+  // delivery order (see RegisterPastCustomerDialogComponent/CrmController.RegisterPastCustomer).
+  // Reloads the table on success so the new/reactivated customer shows up immediately,
+  // rather than trying to splice a full CustomerAnalytics row together client-side from
+  // the dialog's minimal FindOrCreateCustomerResult response.
+  registerPastCustomer(): void {
+    const dialogRef = this.dialog.open(RegisterPastCustomerDialogComponent, {
+      width: '420px'
+    });
+
+    dialogRef.afterClosed().subscribe((result: FindOrCreateCustomerResult | undefined) => {
+      if (!result) {
+        return;
+      }
+
+      this.load();
+      this.snackBar.open('Customer registered and welcomed via WhatsApp.', 'Dismiss', { duration: 4000 });
     });
   }
 

@@ -1,0 +1,44 @@
+<h2 mat-dialog-title>Register Past Customer</h2>
+
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-dialog-content>
+    <p class="dialog-subtitle">For a branch visitor who never placed a delivery order - they'll get the 100-point welcome bonus and their login details via WhatsApp.</p>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="customerName" maxlength="200" autocomplete="name" />
+      @if (form.controls.customerName.hasError('required') && form.controls.customerName.touched) {
+        <mat-error>Name is required</mat-error>
+      }
+      @if (form.controls.customerName.hasError('pattern') && form.controls.customerName.touched) {
+        <mat-error>Please enter a valid name without numbers/symbols</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Phone number</mat-label>
+      <input matInput formControlName="phone" autocomplete="tel" />
+      @if (form.controls.phone.hasError('required') && form.controls.phone.touched) {
+        <mat-error>Phone number is required</mat-error>
+      }
+      @if (form.controls.phone.hasError('pattern') && form.controls.phone.touched) {
+        <mat-error>Please enter a valid 11-digit Egyptian mobile number starting with 01</mat-error>
+      }
+    </mat-form-field>
+
+    @if (errorMessage()) {
+      <p class="error-text">{{ errorMessage() }}</p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button type="button" mat-button (click)="cancel()">Cancel</button>
+    <button type="submit" mat-flat-button color="primary" [disabled]="saving()">
+      @if (saving()) {
+        <mat-spinner diameter="18"></mat-spinner>
+      } @else {
+        Register
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

@@ -1,0 +1,20 @@
+.full-width {
+  width: 100%;
+  display: block;
+}
+
+.dialog-subtitle {
+  margin: 0 0 16px;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+  font-size: 0.85rem;
+}
+
+.error-text {
+  color: var(--mat-sys-error, #b3261e);
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+}
+
+mat-spinner {
+  display: inline-block;
+}

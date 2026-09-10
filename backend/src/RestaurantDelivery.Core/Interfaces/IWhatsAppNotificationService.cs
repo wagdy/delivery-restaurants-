@@ -17,6 +17,14 @@ public interface IWhatsAppNotificationService
     // fresh system-generated default for every staff-created/reactivated path.
     Task SendWelcomeMessageAsync(string phoneNumber, string customerName, string password);
 
+    // The welcome touchpoint for AuthService.FindOrCreateCustomerByPhoneAsync's
+    // isPastCustomer branch (Customer Insights' "Register Past Customer" dialog) - a
+    // customer who visited the branch before delivery/loyalty existed, being enrolled for
+    // the first time. Unlike SendWelcomeMessageAsync, never mentions "زيارتك اليوم" or a
+    // review link (there's no delivery order to review) - it links to the main app/menu
+    // instead. Same "never throw" contract as every other method here.
+    Task SendPastCustomerWelcomeAsync(string phoneNumber, string customerName, string password);
+
     // Fired from AuthService.ForgotPasswordAsync - the one-time delivery channel for a
     // password-reset OTP. Fire-and-forget from the caller's side like every other method
     // here, but ForgotPasswordAsync only ever calls this after already persisting the

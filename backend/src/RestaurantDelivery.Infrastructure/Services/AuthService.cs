@@ -255,7 +255,7 @@ public class AuthService : IAuthService
         return ServiceResult<UserProfileResponse>.Success(MapProfile(user, modules, permissions));
     }
 
-    public async Task<ServiceResult<FindOrCreateCustomerResult>> FindOrCreateCustomerByPhoneAsync(string fullName, string phoneNumber, string? address)
+    public async Task<ServiceResult<FindOrCreateCustomerResult>> FindOrCreateCustomerByPhoneAsync(string fullName, string phoneNumber, string? address, bool isPastCustomer = false)
     {
         // Matches a soft-deleted account too, same reasoning as IsPhoneTakenAsync above:
         // treating a deleted row as "no match" would fall through to _userManager.CreateAsync
@@ -299,7 +299,7 @@ public class AuthService : IAuthService
                 return ServiceResult<FindOrCreateCustomerResult>.Failure(reactivateResult.Errors.Select(e => e.Description).ToArray());
             }
 
-            await AwardWelcomeBonusAndNotifyAsync(existing, reactivationPassword, isReactivation: true);
+            await AwardWelcomeBonusAndNotifyAsync(existing, reactivationPassword, isReactivation: true, isPastCustomer: isPastCustomer);
 
             return ServiceResult<FindOrCreateCustomerResult>.Success(
                 new FindOrCreateCustomerResult { CustomerId = existing.Id, IsNewCustomer = true });
@@ -353,7 +353,7 @@ public class AuthService : IAuthService
         // customer - a staff-registered customer (Scanner's New Customer tab, Create
         // Order's New Customer section) gets the 100-point bonus and welcome WhatsApp
         // message too, not just whoever happened to register themselves.
-        await AwardWelcomeBonusAndNotifyAsync(user, defaultPassword, isReactivation: false);
+        await AwardWelcomeBonusAndNotifyAsync(user, defaultPassword, isReactivation: false, isPastCustomer: isPastCustomer);
 
         return ServiceResult<FindOrCreateCustomerResult>.Success(
             new FindOrCreateCustomerResult { CustomerId = user.Id, IsNewCustomer = true });
@@ -464,7 +464,7 @@ public class AuthService : IAuthService
     // AwardWelcomeBonusAsync (a plain += on a fresh, always-zero profile) - using the
     // latter for a reactivation would incorrectly stack on top of whatever balance the
     // account still had from before it was soft-deleted.
-    private async Task AwardWelcomeBonusAndNotifyAsync(AppUser user, string password, bool isReactivation)
+    private async Task AwardWelcomeBonusAndNotifyAsync(AppUser user, string password, bool isReactivation, bool isPastCustomer = false)
     {
         // Never allowed to fail the caller: the account has already been committed (or, for
         // a reactivation, already saved undeleted) above, so a hiccup awarding the bonus
@@ -497,8 +497,17 @@ public class AuthService : IAuthService
             return;
         }
 
-        // Never allowed to fail the caller either - see IWhatsAppNotificationService's contract.
-        await _whatsAppNotificationService.SendWelcomeMessageAsync(user.PhoneNumber!, user.FullName, password);
+        // Never allowed to fail the caller either - see IWhatsAppNotificationService's
+        // contract. isPastCustomer picks the no-review-link variant, since a past-visit
+        // customer registered from Customer Insights has no delivery order to review.
+        if (isPastCustomer)
+        {
+            await _whatsAppNotificationService.SendPastCustomerWelcomeAsync(user.PhoneNumber!, user.FullName, password);
+        }
+        else
+        {
+            await _whatsAppNotificationService.SendWelcomeMessageAsync(user.PhoneNumber!, user.FullName, password);
+        }
     }
 
     // A plain 6-digit numeric string (e.g. "482915") - simple enough for a customer to

@@ -51,6 +51,26 @@ public class OpenWaWhatsAppNotificationService : IWhatsAppNotificationService
         return SendMessageAsync(phoneNumber, message);
     }
 
+    public Task SendPastCustomerWelcomeAsync(string phoneNumber, string customerName, string password)
+    {
+        // Exact same template as WhatsAppNotificationService's own
+        // SendPastCustomerWelcomeAsync - a past-visit welcome with no review link, since
+        // there's no delivery order to review yet.
+        var message =
+            $"مرحباً {customerName}، 🌟\n" +
+            "سعداء جداً بزياراتك لفرع أوتانتيك! عشان إنت عميل مميز، ضفناك لبرنامج الولاء الخاص بينا.\n\n" +
+            "🎉 تم إهداؤك 100 نقطة ترحيبية في محفظتك!\n\n" +
+            "تقدر دلوقتي تشوف المنيو وتتابع نقاطك وعروضك من هنا:\n" +
+            $"{RatingBaseUrl}/\n\n" +
+            "🔐 بيانات الدخول لحسابك:\n" +
+            $"رقم الهاتف: {phoneNumber}\n" +
+            $"كلمة المرور: {password}\n" +
+            "(يمكنك تغيير كلمة المرور في أي وقت من إعدادات حسابك)\n\n" +
+            "في انتظارك تنورنا مرة تانية قريباً!";
+
+        return SendMessageAsync(phoneNumber, message);
+    }
+
     public Task SendPasswordResetOtpAsync(string phoneNumber, string otpCode)
     {
         var message =

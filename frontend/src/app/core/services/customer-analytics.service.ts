@@ -2,7 +2,12 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { CustomerAnalytics, UpdateCustomerRequest } from '../models/customer-analytics.model';
+import {
+  CustomerAnalytics,
+  FindOrCreateCustomerResult,
+  RegisterPastCustomerRequest,
+  UpdateCustomerRequest
+} from '../models/customer-analytics.model';
 import { PagedResult } from '../models/order.model';
 
 @Injectable({ providedIn: 'root' })
@@ -33,5 +38,12 @@ export class CustomerAnalyticsService {
   // Soft delete server-side - see AppUser.IsDeleted.
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  // Registers a walk-in/branch customer who never placed a delivery order - awards the
+  // 100-point welcome bonus and sends the no-review-link welcome WhatsApp variant. See
+  // CrmController.RegisterPastCustomer.
+  registerPastCustomer(request: RegisterPastCustomerRequest): Observable<FindOrCreateCustomerResult> {
+    return this.http.post<FindOrCreateCustomerResult>(`${this.baseUrl}/register-past`, request);
   }
 }

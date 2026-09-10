@@ -29,3 +29,16 @@ export interface UpdateCustomerRequest {
   fullName: string;
   phoneNumber: string;
 }
+
+// For the Customer Insights "Register Past Customer" dialog - a walk-in/branch customer
+// who never placed a delivery order. Mirrors backend's RegisterCustomerRequest.
+export interface RegisterPastCustomerRequest {
+  customerName: string;
+  phone: string;
+}
+
+// Mirrors backend's FindOrCreateCustomerResult.
+export interface FindOrCreateCustomerResult {
+  customerId: string;
+  isNewCustomer: boolean;
+}

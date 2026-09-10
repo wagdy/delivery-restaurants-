@@ -16,10 +16,12 @@ namespace RestaurantDelivery.Api.Controllers;
 public class CrmController : ControllerBase
 {
     private readonly ICustomerService _customerService;
+    private readonly IAuthService _authService;
 
-    public CrmController(ICustomerService customerService)
+    public CrmController(ICustomerService customerService, IAuthService authService)
     {
         _customerService = customerService;
+        _authService = authService;
     }
 
     [HttpGet("customers")]
@@ -53,5 +55,24 @@ public class CrmController : ControllerBase
     {
         var result = await _customerService.DeleteCustomerAsync(id);
         return result.Succeeded ? Ok() : BadRequest(new { errors = result.Errors });
+    }
+
+    // The "Register Past Customer" dialog on this same Customer Insights page - for a
+    // walk-in/branch customer who never placed a delivery order, so there's no Scanner/
+    // Create Order context to register them from. Shares
+    // AuthService.FindOrCreateCustomerByPhoneAsync with those two flows (100-point bonus,
+    // auto-generated password, reactivation of a soft-deleted match), but with
+    // isPastCustomer: true so the welcome WhatsApp is SendPastCustomerWelcomeAsync's
+    // no-review-link variant instead. A separate action from CustomersController.Register
+    // rather than a body flag on that one, since this page is gated by
+    // Module.CustomerInsights, not Module.Scanner, and ASP.NET Core combines (ANDs) a
+    // class-level [Authorize] with an action-level one rather than overriding it - putting
+    // this here, in the controller already gated the way this page needs, is what actually
+    // lets a Crm/Customers-only admin (with no Scanner grant) use it.
+    [HttpPost("customers/register-past")]
+    public async Task<ActionResult<FindOrCreateCustomerResult>> RegisterPastCustomer(RegisterCustomerRequest request)
+    {
+        var result = await _authService.FindOrCreateCustomerByPhoneAsync(request.CustomerName, request.Phone, address: null, isPastCustomer: true);
+        return result.Succeeded ? Ok(result.Data) : BadRequest(new { errors = result.Errors });
     }
 }

@@ -19,6 +19,11 @@
     }
     Download Excel
   </button>
+
+  <button mat-flat-button color="accent" (click)="registerPastCustomer()">
+    <mat-icon>person_add</mat-icon>
+    New Customer
+  </button>
 </mat-toolbar>
 
 @if (loading()) {
