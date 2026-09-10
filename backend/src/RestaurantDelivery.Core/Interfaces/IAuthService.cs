@@ -28,4 +28,17 @@ public interface IAuthService
     // Unlike RegisterAsync, the customer never chooses their own password - see the
     // implementation's own doc comment for that trade-off.
     Task<ServiceResult<FindOrCreateCustomerResult>> FindOrCreateCustomerByPhoneAsync(string fullName, string phoneNumber, string? address);
+
+    // Customer accounts only (see ResetPasswordAsync's own doc comment for why staff
+    // accounts are deliberately excluded from this whole flow). Always succeeds from the
+    // caller's perspective regardless of whether the phone number is actually registered
+    // - see the implementation for the anti-enumeration reasoning.
+    Task<ServiceResult<bool>> ForgotPasswordAsync(ForgotPasswordRequest request);
+
+    // Deliberately scoped to Role == Customer, unlike LoginAsync/FindOrCreateCustomerByPhoneAsync's
+    // "phone number is universal" treatment - this is a public, unauthenticated endpoint
+    // that ends in a full password takeover, and Admin/CaptainOrder accounts are a much
+    // higher-value target than a customer account. Staff password recovery still has no
+    // self-service path (matches CreateStaffUserAsync's own admin-gated-only provisioning).
+    Task<ServiceResult<bool>> ResetPasswordAsync(ResetPasswordRequest request);
 }

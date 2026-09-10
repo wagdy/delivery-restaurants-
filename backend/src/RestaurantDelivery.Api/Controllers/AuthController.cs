@@ -29,6 +29,28 @@ public class AuthController : ControllerBase
         return Ok(result.Data);
     }
 
+    // Always 200 with the same generic message, whether or not this phone number is
+    // actually registered - see AuthService.ForgotPasswordAsync's anti-enumeration
+    // reasoning. There is deliberately no error branch here to report back.
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
+    {
+        await _authService.ForgotPasswordAsync(request);
+        return Ok(new { message = "If this phone number is registered, a verification code has been sent." });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
+    {
+        var result = await _authService.ResetPasswordAsync(request);
+        if (!result.Succeeded)
+        {
+            return BadRequest(new { errors = result.Errors });
+        }
+
+        return Ok(new { message = "Password reset successfully." });
+    }
+
     // Single sign-in entry point for every account - customers and staff alike. See
     // LoginRequest.Identifier and AuthService.LoginAsync for the email-vs-phone detection.
     [HttpPost("login")]

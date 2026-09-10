@@ -17,6 +17,13 @@ public interface IWhatsAppNotificationService
     // fresh system-generated default for every staff-created/reactivated path.
     Task SendWelcomeMessageAsync(string phoneNumber, string customerName, string password);
 
+    // Fired from AuthService.ForgotPasswordAsync - the one-time delivery channel for a
+    // password-reset OTP. Fire-and-forget from the caller's side like every other method
+    // here, but ForgotPasswordAsync only ever calls this after already persisting the
+    // OTP's hash, so a delivery failure here just means the customer never receives a
+    // code they could have used anyway - it doesn't leave any state inconsistent.
+    Task SendPasswordResetOtpAsync(string phoneNumber, string otpCode);
+
     // The immediate "we got your order" touchpoint on order CREATION, plus the same
     // detailed alert sent to every configured manager number (up to the 3 Site Settings
     // slots - RestaurantSettings.ManagerWhatsApp1/2/3). Entries are individually

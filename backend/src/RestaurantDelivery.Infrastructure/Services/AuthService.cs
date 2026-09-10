@@ -8,17 +8,27 @@ using RestaurantDelivery.Core.DTOs.Customers;
 using RestaurantDelivery.Core.Entities;
 using RestaurantDelivery.Core.Enums;
 using RestaurantDelivery.Core.Interfaces;
+using RestaurantDelivery.Infrastructure.Data;
 
 namespace RestaurantDelivery.Infrastructure.Services;
 
 public class AuthService : IAuthService
 {
+    // A 6-digit OTP's expiry window (ForgotPasswordAsync) - matches the exact wording of
+    // SendPasswordResetOtpAsync's WhatsApp template ("صالح لمدة 10 دقائق").
+    private const int OtpExpiryMinutes = 10;
+
+    // Brute-force guard on ResetPasswordAsync - a 6-digit code only has 1,000,000
+    // possibilities, too few to leave unlimited guesses against within the expiry window.
+    private const int MaxOtpAttempts = 5;
+
     private readonly UserManager<AppUser> _userManager;
     private readonly IPasswordHasher<AppUser> _passwordHasher;
     private readonly ITokenService _tokenService;
     private readonly IRoleRepository _roleRepository;
     private readonly IWhatsAppNotificationService _whatsAppNotificationService;
     private readonly ILoyaltyService _loyaltyService;
+    private readonly ApplicationDbContext _context;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
@@ -28,6 +38,7 @@ public class AuthService : IAuthService
         IRoleRepository roleRepository,
         IWhatsAppNotificationService whatsAppNotificationService,
         ILoyaltyService loyaltyService,
+        ApplicationDbContext context,
         ILogger<AuthService> logger)
     {
         _userManager = userManager;
@@ -36,6 +47,7 @@ public class AuthService : IAuthService
         _roleRepository = roleRepository;
         _whatsAppNotificationService = whatsAppNotificationService;
         _loyaltyService = loyaltyService;
+        _context = context;
         _logger = logger;
     }
 
@@ -278,7 +290,7 @@ public class AuthService : IAuthService
             // they logged in with before is gone the moment they're soft-deleted, so
             // reactivation needs to hand them a new, working one rather than leave
             // PasswordHash pointing at a password nobody (customer or staff) still knows.
-            var reactivationPassword = GenerateDefaultPassword();
+            var reactivationPassword = GenerateSixDigitCode();
             existing.PasswordHash = _passwordHasher.HashPassword(existing, reactivationPassword);
 
             var reactivateResult = await _userManager.UpdateAsync(existing);
@@ -314,7 +326,7 @@ public class AuthService : IAuthService
         // password (sent to them via the welcome WhatsApp message below) so they can log
         // in and manage their own account afterward, rather than the old permanently-
         // unusable placeholder this used to generate.
-        var defaultPassword = GenerateDefaultPassword();
+        var defaultPassword = GenerateSixDigitCode();
 
         // CreateAsync(user) - the no-password overload - deliberately skips Identity's
         // PasswordValidator pipeline (Program.cs's Password.RequiredLength = 8, plus the
@@ -345,6 +357,103 @@ public class AuthService : IAuthService
 
         return ServiceResult<FindOrCreateCustomerResult>.Success(
             new FindOrCreateCustomerResult { CustomerId = user.Id, IsNewCustomer = true });
+    }
+
+    // Always succeeds from the caller's perspective, regardless of whether this phone
+    // number is actually registered - same anti-enumeration reasoning as LoginAsync's
+    // generic "Invalid phone number or password" message, just applied at the "does an
+    // account exist" question instead of "is this the right password". Only a real,
+    // non-deleted Customer account actually gets an OTP generated and a WhatsApp sent.
+    public async Task<ServiceResult<bool>> ForgotPasswordAsync(ForgotPasswordRequest request)
+    {
+        var user = await _userManager.Users.FirstOrDefaultAsync(
+            u => u.PhoneNumber == request.PhoneNumber && u.Role == UserRole.Customer);
+
+        if (user is not null && !user.IsDeleted)
+        {
+            // Any still-active token from an earlier request is superseded - otherwise
+            // two independently-valid codes could exist for the same account at once,
+            // which is confusing (which one is "the" real code?) even though it isn't
+            // itself a security hole.
+            var supersededTokens = await _context.PasswordResetTokens
+                .Where(t => t.AppUserId == user.Id && !t.IsUsed)
+                .ToListAsync();
+            foreach (var superseded in supersededTokens)
+            {
+                superseded.IsUsed = true;
+            }
+
+            var otp = GenerateSixDigitCode();
+            _context.PasswordResetTokens.Add(new PasswordResetToken
+            {
+                AppUserId = user.Id,
+                OtpHash = _passwordHasher.HashPassword(user, otp),
+                ExpiresAtUtc = DateTime.UtcNow.AddMinutes(OtpExpiryMinutes)
+            });
+            await _context.SaveChangesAsync();
+
+            // Never allowed to fail the caller - see IWhatsAppNotificationService's contract.
+            await _whatsAppNotificationService.SendPasswordResetOtpAsync(user.PhoneNumber!, otp);
+        }
+
+        return ServiceResult<bool>.Success(true);
+    }
+
+    // Every rejection reason - no such account, no active token, expired, already used,
+    // wrong code, too many attempts - returns the exact same generic message. Specific
+    // reasons are deliberately never distinguished in the response, so this endpoint can't
+    // be used to enumerate registered phone numbers or probe which OTPs are still valid.
+    // A weak NewPassword is a different concern (real, actionable feedback the customer
+    // needs to fix their own input) and still returns Identity's actual validation errors.
+    public async Task<ServiceResult<bool>> ResetPasswordAsync(ResetPasswordRequest request)
+    {
+        const string genericError = "Invalid or expired code. Please request a new one.";
+
+        var user = await _userManager.Users.FirstOrDefaultAsync(
+            u => u.PhoneNumber == request.PhoneNumber && u.Role == UserRole.Customer);
+
+        if (user is null || user.IsDeleted)
+        {
+            return ServiceResult<bool>.Failure(genericError);
+        }
+
+        var token = await _context.PasswordResetTokens
+            .Where(t => t.AppUserId == user.Id && !t.IsUsed && t.ExpiresAtUtc > DateTime.UtcNow)
+            .OrderByDescending(t => t.CreatedAtUtc)
+            .FirstOrDefaultAsync();
+
+        if (token is null || token.FailedAttempts >= MaxOtpAttempts)
+        {
+            return ServiceResult<bool>.Failure(genericError);
+        }
+
+        if (_passwordHasher.VerifyHashedPassword(user, token.OtpHash, request.Otp) == PasswordVerificationResult.Failed)
+        {
+            token.FailedAttempts++;
+            await _context.SaveChangesAsync();
+            return ServiceResult<bool>.Failure(genericError);
+        }
+
+        // The customer's own real, chosen password - fully validated (length/complexity),
+        // same as self-service registration's reactivation branch, not the direct
+        // IPasswordHasher bypass used for a staff-generated code that could never pass
+        // that policy in the first place.
+        var removePasswordResult = await _userManager.RemovePasswordAsync(user);
+        if (!removePasswordResult.Succeeded)
+        {
+            return ServiceResult<bool>.Failure(removePasswordResult.Errors.Select(e => e.Description).ToArray());
+        }
+
+        var addPasswordResult = await _userManager.AddPasswordAsync(user, request.NewPassword);
+        if (!addPasswordResult.Succeeded)
+        {
+            return ServiceResult<bool>.Failure(addPasswordResult.Errors.Select(e => e.Description).ToArray());
+        }
+
+        token.IsUsed = true;
+        await _context.SaveChangesAsync();
+
+        return ServiceResult<bool>.Success(true);
     }
 
     // Shared by RegisterAsync, FindOrCreateCustomerByPhoneAsync's create branch, and its
@@ -393,10 +502,12 @@ public class AuthService : IAuthService
     }
 
     // A plain 6-digit numeric string (e.g. "482915") - simple enough for a customer to
-    // read off WhatsApp and type on a phone keypad. Never passed through Identity's own
-    // password validators (see the two call sites above) - it would fail this app's
-    // configured length/complexity policy outright.
-    private static string GenerateDefaultPassword() => Random.Shared.Next(100000, 1000000).ToString();
+    // read off WhatsApp and type on a phone keypad. Shared by every staff-generated
+    // default password (never passed through Identity's own password validators - see
+    // those call sites - since it would fail this app's configured length/complexity
+    // policy outright) and by ForgotPasswordAsync's OTP generation below (hashed and
+    // verified separately, never validated as a password at all).
+    private static string GenerateSixDigitCode() => Random.Shared.Next(100000, 1000000).ToString();
 
     // Empty for Customer/CaptainOrder. For Admin: every module when no custom Role is
     // assigned (the default, backward-compatible "full access" superuser behavior), else

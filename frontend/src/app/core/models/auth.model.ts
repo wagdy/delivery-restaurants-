@@ -23,6 +23,16 @@ export interface RegisterRequest {
   address?: string;
 }
 
+export interface ForgotPasswordRequest {
+  phoneNumber: string;
+}
+
+export interface ResetPasswordRequest {
+  phoneNumber: string;
+  otp: string;
+  newPassword: string;
+}
+
 // Admin-only — creates an Admin or CaptainOrder account. Customer role is intentionally
 // not selectable here: customers always self-register via RegisterRequest. Staff log in
 // by phone number, not email — see LoginRequest.

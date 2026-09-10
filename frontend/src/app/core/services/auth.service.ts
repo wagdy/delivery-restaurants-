@@ -3,7 +3,14 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AuthResponse, CreateStaffUserRequest, LoginRequest, RegisterRequest } from '../models/auth.model';
+import {
+  AuthResponse,
+  CreateStaffUserRequest,
+  ForgotPasswordRequest,
+  LoginRequest,
+  RegisterRequest,
+  ResetPasswordRequest
+} from '../models/auth.model';
 import { AdminModuleName } from '../models/role.model';
 import { UserProfile } from '../models/user.model';
 
@@ -59,6 +66,19 @@ export class AuthService {
   // Admin-only — does not affect the calling admin's own session (no token returned/set).
   createStaffUser(request: CreateStaffUserRequest): Observable<UserProfile> {
     return this.http.post<UserProfile>(`${environment.apiUrl}/auth/staff`, request);
+  }
+
+  // Always resolves with the same generic message whether or not the phone number is
+  // actually registered - the backend deliberately never reveals that (see
+  // AuthService.ForgotPasswordAsync). No session side effect either way.
+  forgotPassword(request: ForgotPasswordRequest): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${environment.apiUrl}/auth/forgot-password`, request);
+  }
+
+  // No session side effect - the customer still has to sign in with their new password
+  // afterward via the normal login form.
+  resetPassword(request: ResetPasswordRequest): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${environment.apiUrl}/auth/reset-password`, request);
   }
 
   logout(): void {

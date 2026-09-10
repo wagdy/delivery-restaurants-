@@ -39,6 +39,8 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<OrderReview> OrderReviews => Set<OrderReview>();
     public DbSet<ReviewAnswer> ReviewAnswers => Set<ReviewAnswer>();
 
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

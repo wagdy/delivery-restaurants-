@@ -61,6 +61,19 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         return SendMessageAsync(phoneNumber, message);
     }
 
+    public Task SendPasswordResetOtpAsync(string phoneNumber, string otpCode)
+    {
+        // Exact specified template.
+        var message =
+            "مرحباً، 🔐\n" +
+            "طلبنا تغيير كلمة المرور لحسابك في أوتانتيك.\n\n" +
+            $"كود التحقق الخاص بك هو: {otpCode}\n" +
+            "(هذا الكود صالح لمدة 10 دقائق)\n\n" +
+            "إذا لم تطلب هذا التغيير، يرجى تجاهل هذه الرسالة.";
+
+        return SendMessageAsync(phoneNumber, message);
+    }
+
     public Task SendPostDeliveryPointsNotificationAsync(string phoneNumber, string customerName, int earnedPoints, int newTotalPoints)
     {
         // A 0-point delivery is possible (e.g. an order small enough that the
