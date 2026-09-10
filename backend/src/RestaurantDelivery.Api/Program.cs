@@ -20,6 +20,7 @@ using RestaurantDelivery.Infrastructure.Data;
 using RestaurantDelivery.Infrastructure.Data.Seed;
 using RestaurantDelivery.Infrastructure.ExternalServices.Dgtera;
 using RestaurantDelivery.Infrastructure.ExternalServices.GreenApi;
+using RestaurantDelivery.Infrastructure.ExternalServices.OpenWa;
 using RestaurantDelivery.Infrastructure.Repositories;
 using RestaurantDelivery.Infrastructure.Services;
 
@@ -205,8 +206,23 @@ builder.Services.Configure<DgteraOptions>(builder.Configuration.GetSection("Dgte
 builder.Services.AddHttpClient<IDgteraClient, DgteraClient>();
 builder.Services.AddScoped<IDgteraSyncService, DgteraSyncService>();
 
-builder.Services.Configure<GreenApiOptions>(builder.Configuration.GetSection("GreenApi"));
-builder.Services.AddHttpClient<IWhatsAppNotificationService, WhatsAppNotificationService>();
+// WhatsApp:UseOpenWa is a plain config toggle (appsettings.json / WhatsApp__UseOpenWa on
+// Railway) - not a runtime feature flag, since IWhatsAppNotificationService's implementation
+// is fixed for the lifetime of the process once DI is built. Flip it and redeploy to switch
+// providers; only ONE of the two branches below ever registers, so there's exactly one
+// implementation behind IWhatsAppNotificationService at a time - registering both would leave
+// whichever call happened to run second silently shadowing the first for every caller
+// (AuthService, LoyaltyService, OrderService) with no error to signal the conflict.
+if (builder.Configuration.GetValue<bool>("WhatsApp:UseOpenWa"))
+{
+    builder.Services.Configure<OpenWaSettings>(builder.Configuration.GetSection("OpenWa"));
+    builder.Services.AddHttpClient<IWhatsAppNotificationService, OpenWaWhatsAppNotificationService>();
+}
+else
+{
+    builder.Services.Configure<GreenApiOptions>(builder.Configuration.GetSection("GreenApi"));
+    builder.Services.AddHttpClient<IWhatsAppNotificationService, WhatsAppNotificationService>();
+}
 
 var vapidSection = builder.Configuration.GetSection("Vapid");
 var vapidPublicKey = vapidSection["PublicKey"] ?? throw new InvalidOperationException("Vapid:PublicKey is not configured.");
