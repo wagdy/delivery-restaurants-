@@ -25,6 +25,14 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
     // ever changes.
     private const string RatingBaseUrl = "https://web-production-1bacf.up.railway.app";
 
+    // Appended to every outgoing message by SendMessageAsync itself, regardless of type -
+    // a single seam here rather than pasted into each template above, so a future new
+    // touchpoint can never forget it. Exact specified text; reuses RatingBaseUrl rather
+    // than a second copy of the same literal URL.
+    private const string PromotionalFooter =
+        "تقدر دلوقتي تشوف المنيو وتتابع نقاطك وعروضك من هنا:\n" +
+        RatingBaseUrl + "/";
+
     private readonly HttpClient _httpClient;
     private readonly GreenApiOptions _options;
     private readonly ILogger<WhatsAppNotificationService> _logger;
@@ -66,13 +74,13 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         // Exact specified template - a past-visit welcome for a customer who never placed
         // a delivery order, so (unlike SendWelcomeMessageAsync) there's no "شاركنا تقييمك
         // لزيارتك اليوم" review-link line - just the loyalty enrollment, the 100-point
-        // bonus, login credentials, and a link into the app itself.
+        // bonus, and login credentials. No longer includes its own menu-link line -
+        // SendMessageAsync's PromotionalFooter now appends that exact same line to every
+        // outgoing message, so keeping a second copy here would show it twice.
         var message =
             $"مرحباً {customerName}، 🌟\n" +
             "سعداء جداً بزياراتك لفرع أوتانتيك! عشان إنت عميل مميز، ضفناك لبرنامج الولاء الخاص بينا.\n\n" +
             "🎉 تم إهداؤك 100 نقطة ترحيبية في محفظتك!\n\n" +
-            "تقدر دلوقتي تشوف المنيو وتتابع نقاطك وعروضك من هنا:\n" +
-            $"{RatingBaseUrl}/\n\n" +
             "🔐 بيانات الدخول لحسابك:\n" +
             $"رقم الهاتف: {phoneNumber}\n" +
             $"كلمة المرور: {password}\n" +
@@ -227,10 +235,14 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
             return;
         }
 
+        // Every outgoing message gets the promotional footer appended here, right before
+        // it goes out - the one place every SendXxxAsync method above funnels through.
+        var fullMessage = $"{message}\n\n{PromotionalFooter}";
+
         try
         {
             var url = $"{_options.ApiUrl}/waInstance{_options.IdInstance}/sendMessage/{_options.ApiTokenInstance}";
-            var payload = new GreenApiSendMessageRequest(ToChatId(phoneNumber), message);
+            var payload = new GreenApiSendMessageRequest(ToChatId(phoneNumber), fullMessage);
 
             using var response = await _httpClient.PostAsJsonAsync(url, payload);
             if (!response.IsSuccessStatusCode)

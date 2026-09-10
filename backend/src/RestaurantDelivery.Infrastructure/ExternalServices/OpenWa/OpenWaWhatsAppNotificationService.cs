@@ -21,6 +21,12 @@ public class OpenWaWhatsAppNotificationService : IWhatsAppNotificationService
     private const string EgyptCountryCode = "20";
     private const string RatingBaseUrl = "https://web-production-1bacf.up.railway.app";
 
+    // Same footer, same reasoning as WhatsAppNotificationService's own PromotionalFooter -
+    // appended by SendMessageAsync itself below, regardless of message type.
+    private const string PromotionalFooter =
+        "تقدر دلوقتي تشوف المنيو وتتابع نقاطك وعروضك من هنا:\n" +
+        RatingBaseUrl + "/";
+
     private readonly HttpClient _httpClient;
     private readonly OpenWaSettings _settings;
     private readonly ILogger<OpenWaWhatsAppNotificationService> _logger;
@@ -55,13 +61,13 @@ public class OpenWaWhatsAppNotificationService : IWhatsAppNotificationService
     {
         // Exact same template as WhatsAppNotificationService's own
         // SendPastCustomerWelcomeAsync - a past-visit welcome with no review link, since
-        // there's no delivery order to review yet.
+        // there's no delivery order to review yet. No longer includes its own menu-link
+        // line - SendMessageAsync's PromotionalFooter now appends that exact same line to
+        // every outgoing message, so keeping a second copy here would show it twice.
         var message =
             $"مرحباً {customerName}، 🌟\n" +
             "سعداء جداً بزياراتك لفرع أوتانتيك! عشان إنت عميل مميز، ضفناك لبرنامج الولاء الخاص بينا.\n\n" +
             "🎉 تم إهداؤك 100 نقطة ترحيبية في محفظتك!\n\n" +
-            "تقدر دلوقتي تشوف المنيو وتتابع نقاطك وعروضك من هنا:\n" +
-            $"{RatingBaseUrl}/\n\n" +
             "🔐 بيانات الدخول لحسابك:\n" +
             $"رقم الهاتف: {phoneNumber}\n" +
             $"كلمة المرور: {password}\n" +
@@ -193,10 +199,14 @@ public class OpenWaWhatsAppNotificationService : IWhatsAppNotificationService
             return;
         }
 
+        // Every outgoing message gets the promotional footer appended here, right before
+        // it goes out - the one place every SendXxxAsync method above funnels through.
+        var fullMessage = $"{message}\n\n{PromotionalFooter}";
+
         try
         {
             var url = $"{_settings.ApiBaseUrl.TrimEnd('/')}/api/sessions/{_settings.SessionId}/messages/send-text";
-            var payload = new OpenWaSendTextRequest(ToChatId(phoneNumber), message);
+            var payload = new OpenWaSendTextRequest(ToChatId(phoneNumber), fullMessage);
 
             using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
