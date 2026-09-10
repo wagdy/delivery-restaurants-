@@ -17,7 +17,10 @@
       @for (order of orders(); track order.id) {
         <mat-expansion-panel>
           <mat-expansion-panel-header>
-            <mat-panel-title>Order #{{ order.id }}</mat-panel-title>
+            <!-- Status, not the order number/ID - customers never see an order ID
+                 anywhere in the app (see also WhatsAppNotificationService's order
+                 confirmation, which has the same guard). -->
+            <mat-panel-title>{{ order.status }}</mat-panel-title>
             <mat-panel-description>
               <span class="order-date">{{ order.createdAt | date: 'medium' }}</span>
             </mat-panel-description>

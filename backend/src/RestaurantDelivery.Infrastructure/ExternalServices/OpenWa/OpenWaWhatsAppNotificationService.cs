@@ -109,10 +109,14 @@ public class OpenWaWhatsAppNotificationService : IWhatsAppNotificationService
 
     public Task SendGuestDeliveryThankYouAsync(string phoneNumber, string customerName, int orderId)
     {
+        // No visible order number in the text (per explicit instruction - customers never
+        // see an order ID/number) - orderId is still passed through into the URL below so
+        // the rating page itself knows which order to attach the review to, but that's an
+        // invisible routing parameter, not a number displayed for the customer to read.
         var message =
             $"مرحباً {customerName}،\n" +
             "شكراً لطلبك من مطعم أوتانتيك، نتمنى أن تكون قد استمتعت بوجبتك! 🧡\n\n" +
-            $"شاركنا تقييمك لطلبك رقم #{orderId} لمساعدتنا على تقديم الأفضل دائماً عبر الرابط التالي:\n" +
+            "شاركنا تقييمك لمساعدتنا على تقديم الأفضل دائماً عبر الرابط التالي:\n" +
             $"{RatingBaseUrl}/rate/store?orderId={orderId}";
 
         return SendMessageAsync(phoneNumber, message);
@@ -135,8 +139,11 @@ public class OpenWaWhatsAppNotificationService : IWhatsAppNotificationService
 
     public async Task SendOrderNotificationsAsync(Order order, IEnumerable<string?> managerPhones)
     {
+        // No order number in the customer's own confirmation (per explicit instruction) -
+        // the manager alert below still includes it (BuildManagerMessage), since that's an
+        // internal staff notification, not something a customer ever sees.
         var customerMessage =
-            $"مرحباً {order.CustomerName}، تم استلام طلبك بنجاح. شكراً لطلبك من مطعم أوتانتيك! رقم الطلب: #{order.Id}";
+            $"مرحباً {order.CustomerName}، تم استلام طلبك بنجاح. شكراً لطلبك من مطعم أوتانتيك!";
         await SendMessageAsync(order.CustomerPhone, customerMessage);
 
         var validManagerPhones = managerPhones.Where(p => !string.IsNullOrWhiteSpace(p)).ToList();

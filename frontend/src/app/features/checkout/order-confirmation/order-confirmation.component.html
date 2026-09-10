@@ -3,12 +3,12 @@
     <div class="success-header">
       <mat-icon class="success-icon">check_circle</mat-icon>
       <h1>Order placed!</h1>
-      <p>Thanks{{ o.userId ? '' : ', ' + o.customerName }} — your order #{{ o.id }} has been received.</p>
+      <p>Thanks{{ o.userId ? '' : ', ' + o.customerName }} — your order has been received.</p>
     </div>
 
     <mat-card class="order-card">
       <mat-card-header>
-        <mat-card-title>Order #{{ o.id }}</mat-card-title>
+        <mat-card-title>Order Confirmation</mat-card-title>
         <mat-card-subtitle>Status: {{ o.status }}</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
