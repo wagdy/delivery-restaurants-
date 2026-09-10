@@ -20,6 +20,23 @@
   padding: 16px 0;
 }
 
+// The guest-checkout loyalty prompt (see CartDialogComponent.showGuestPrompt). Centered
+// like .empty-cart above, just with more vertical room for a two-line Arabic message.
+.guest-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px 8px;
+}
+
+.guest-prompt-message {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: rgba(0, 0, 0, 0.87);
+}
+
 .cart-lines {
   display: flex;
   flex-direction: column;

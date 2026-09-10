@@ -2,7 +2,11 @@
 
 <mat-dialog-content>
   <div class="cart-body">
-    @if (cart.lines().length === 0) {
+    @if (showGuestPrompt()) {
+      <div class="guest-prompt">
+        <p class="guest-prompt-message" dir="rtl">سجل حسابك دلوقتي عشان تكسب نقاط على طلبك وتستمتع بعروض أوتانتيك الحصرية! 🎁</p>
+      </div>
+    } @else if (cart.lines().length === 0) {
       <p class="empty-cart">Your cart is empty. Add something tasty from the menu!</p>
     } @else {
       <div class="cart-lines">
@@ -54,9 +58,16 @@
   </div>
 </mat-dialog-content>
 
-<mat-dialog-actions align="end">
-  <button mat-button (click)="close()">Continue shopping</button>
-  <button mat-flat-button color="primary" [disabled]="cart.lines().length === 0" (click)="checkout()">
-    Checkout
-  </button>
-</mat-dialog-actions>
+@if (showGuestPrompt()) {
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button (click)="continueAsGuest()">المتابعة كضيف</button>
+    <button mat-flat-button color="primary" (click)="registerNow()">تسجيل حساب</button>
+  </mat-dialog-actions>
+} @else {
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="close()">Continue shopping</button>
+    <button mat-flat-button color="primary" [disabled]="cart.lines().length === 0" (click)="checkout()">
+      Checkout
+    </button>
+  </mat-dialog-actions>
+}
