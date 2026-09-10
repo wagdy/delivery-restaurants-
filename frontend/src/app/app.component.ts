@@ -92,4 +92,12 @@ export class AppComponent {
     drawer.close();
     this.router.navigate(['/'], { queryParams: { category: name } });
   }
+
+  // The single header User icon's target - replaces the old separate Login/Register
+  // links for a guest. An authenticated (non-captain, non-admin-specific) user goes to
+  // their own orders rather than back through the auth form; /my-orders is itself
+  // authGuard-protected, so this is purely a shortcut, not the only thing enforcing it.
+  protected accountRoute(): string {
+    return this.authService.isAuthenticated() ? '/my-orders' : '/login';
+  }
 }

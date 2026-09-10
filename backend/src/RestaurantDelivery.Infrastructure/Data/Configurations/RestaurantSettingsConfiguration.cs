@@ -17,6 +17,7 @@ public class RestaurantSettingsConfiguration : IEntityTypeConfiguration<Restaura
         // singleton settings row with "" instead of a usable color.
         builder.Property(s => s.HeaderColor).HasMaxLength(7).IsRequired().HasDefaultValue("#3f51b5");
         builder.Property(s => s.BodyColor).HasMaxLength(7).IsRequired().HasDefaultValue("#fafafa");
+        builder.Property(s => s.IconColor).HasMaxLength(7).IsRequired().HasDefaultValue("#ffffff");
         builder.Property(s => s.BackgroundImageUrl).HasMaxLength(2048);
         builder.Property(s => s.CenterLogoUrl).HasMaxLength(2048);
         builder.Property(s => s.Address).HasMaxLength(500);

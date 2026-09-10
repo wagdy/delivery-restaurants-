@@ -5,6 +5,7 @@
   --app-accent-color: #ff4081;
   --app-header-color: #3f51b5;
   --app-body-color: #fafafa;
+  --app-icon-color: #ffffff;
   --app-body-image: none;
 
   // TEMP: app-footer is commented out in app.component.html. Its ResizeObserver
@@ -41,6 +42,15 @@ body {
 .mat-toolbar.mat-primary {
   background-color: var(--app-header-color) !important;
   color: #fff !important;
+}
+
+// Every icon in the storefront header (hamburger, logout, cart, admin, the auth/profile
+// icon, the restaurant fallback brand-mark) recolored independently of the toolbar's own
+// text color above - --app-icon-color, not #fff, is the source of truth for icons
+// specifically. Needs the extra .mat-icon class (three selectors total) to outrank
+// .mat-toolbar.mat-primary's own !important color by specificity, not just cascade order.
+.mat-toolbar.mat-primary .mat-icon {
+  color: var(--app-icon-color) !important;
 }
 
 // Material gives mat-sidenav-content `overflow: auto` unconditionally, even though

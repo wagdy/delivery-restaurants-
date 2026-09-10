@@ -254,6 +254,22 @@
                   </div>
 
                   <div class="color-field">
+                    <span class="field-label">Icon color</span>
+                    <p class="field-hint">Header icons - cart, menu, and account.</p>
+                    <div class="color-input-group">
+                      <input
+                        type="color"
+                        class="color-swatch"
+                        [value]="form.controls.iconColor.value"
+                        (input)="form.controls.iconColor.setValue($any($event.target).value)"
+                      />
+                      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="color-hex">
+                        <input matInput formControlName="iconColor" />
+                      </mat-form-field>
+                    </div>
+                  </div>
+
+                  <div class="color-field">
                     <span class="field-label">Body background color</span>
                     <p class="field-hint">Behind the page content.</p>
                     <div class="color-input-group">

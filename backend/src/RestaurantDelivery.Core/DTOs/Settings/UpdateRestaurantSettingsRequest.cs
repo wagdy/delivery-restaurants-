@@ -22,6 +22,9 @@ public class UpdateRestaurantSettingsRequest : IValidatableObject
     [Required, RegularExpression("^#[0-9A-Fa-f]{6}$", ErrorMessage = "Must be a hex color like #fafafa.")]
     public string BodyColor { get; set; } = "#fafafa";
 
+    [Required, RegularExpression("^#[0-9A-Fa-f]{6}$", ErrorMessage = "Must be a hex color like #ffffff.")]
+    public string IconColor { get; set; } = "#ffffff";
+
     [MaxLength(2048)]
     public string? BackgroundImageUrl { get; set; }
 

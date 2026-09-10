@@ -30,6 +30,7 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
   accentColor: '#ff4081',
   headerColor: '#3f51b5',
   bodyColor: '#fafafa',
+  iconColor: '#ffffff',
   backgroundImageUrl: null,
   centerLogoUrl: null,
   address: null,
@@ -109,6 +110,7 @@ export class SettingsService {
     root.style.setProperty('--app-accent-color', settings.accentColor);
     root.style.setProperty('--app-header-color', settings.headerColor);
     root.style.setProperty('--app-body-color', settings.bodyColor);
+    root.style.setProperty('--app-icon-color', settings.iconColor);
     root.style.setProperty(
       '--app-body-image',
       settings.backgroundImageUrl ? `url('${settings.backgroundImageUrl}')` : 'none'

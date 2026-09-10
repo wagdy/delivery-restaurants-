@@ -8,6 +8,7 @@ public class RestaurantSettingsResponse
     public string AccentColor { get; set; } = string.Empty;
     public string HeaderColor { get; set; } = string.Empty;
     public string BodyColor { get; set; } = string.Empty;
+    public string IconColor { get; set; } = string.Empty;
     public string? BackgroundImageUrl { get; set; }
     public string? CenterLogoUrl { get; set; }
     public string? Address { get; set; }

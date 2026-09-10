@@ -7,6 +7,10 @@ export interface RestaurantSettings {
   // storefront's top navbar and page background (see SettingsService.applyTheme).
   headerColor: string;
   bodyColor: string;
+  // Independent of the three colors above - paints every icon in the storefront header
+  // (hamburger, cart, the auth/profile icon, etc.), not the toolbar background itself.
+  // See SettingsService.applyTheme's --app-icon-color.
+  iconColor: string;
   // Overrides bodyColor as the page background when set.
   backgroundImageUrl?: string | null;
   // Prominent logo shown centered in the header; falls back to a solid headerColor

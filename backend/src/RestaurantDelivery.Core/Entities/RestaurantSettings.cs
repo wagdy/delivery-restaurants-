@@ -20,6 +20,13 @@ public class RestaurantSettings
     public string HeaderColor { get; set; } = "#3f51b5";
     public string BodyColor { get; set; } = "#fafafa";
 
+    // Independent of the three colors above - specifically paints every icon inside the
+    // storefront header (hamburger, cart, the auth/profile icon, etc.), not the toolbar
+    // background itself. Defaults to white, matching the hardcoded color the header's
+    // icons already had before this setting existed (styles.scss's
+    // .mat-toolbar.mat-primary rule) - see --app-icon-color there.
+    public string IconColor { get; set; } = "#ffffff";
+
     // When set, overrides BodyColor as the page background (see styles.scss).
     public string? BackgroundImageUrl { get; set; }
 

@@ -79,28 +79,26 @@
             }
           </button>
 
-          @if (authService.isAuthenticated()) {
-            @if (authService.isAdmin()) {
-              <a class="action-link" routerLink="/admin">
-                <mat-icon>admin_panel_settings</mat-icon>
-                <span class="action-label">Admin</span>
-              </a>
-            }
-          } @else {
-            <!-- Icon+label, same as every other header action, so a guest's row never
-                 grows wider than the compact icon-only footprint the mobile layout
-                 budget assumes (unlike the two full-text mat-buttons this replaced,
-                 which had no responsive handling and were the actual cause of the
-                 cart/logo overlap this was reported for). -->
-            <a class="action-link" routerLink="/login">
-              <mat-icon>login</mat-icon>
-              <span class="action-label">Login</span>
-            </a>
-            <a class="action-link" routerLink="/register">
-              <mat-icon>person_add</mat-icon>
-              <span class="action-label">Register</span>
+          @if (authService.isAuthenticated() && authService.isAdmin()) {
+            <a class="action-link" routerLink="/admin">
+              <mat-icon>admin_panel_settings</mat-icon>
+              <span class="action-label">Admin</span>
             </a>
           }
+
+          <!-- Single account icon, unconditional (replaces the old separate Login/Register
+               links): a guest lands on /login, an authenticated customer on their own
+               /my-orders - see AppComponent.accountRoute(). Icon-only like the cart/menu
+               buttons next to it, not the icon+label .action-link pattern - there's no
+               "Login"/"Register" text left to show. -->
+          <a
+            mat-icon-button
+            class="icon-hover"
+            [routerLink]="accountRoute()"
+            [attr.aria-label]="authService.isAuthenticated() ? 'My account' : 'Login'"
+          >
+            <mat-icon>person</mat-icon>
+          </a>
         </div>
       }
     </mat-toolbar>

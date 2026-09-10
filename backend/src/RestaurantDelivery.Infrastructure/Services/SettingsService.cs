@@ -32,6 +32,7 @@ public class SettingsService : ISettingsService
         settings.AccentColor = request.AccentColor;
         settings.HeaderColor = request.HeaderColor;
         settings.BodyColor = request.BodyColor;
+        settings.IconColor = request.IconColor;
         settings.BackgroundImageUrl = request.BackgroundImageUrl;
         settings.CenterLogoUrl = request.CenterLogoUrl;
         settings.Address = request.Address;
@@ -78,6 +79,7 @@ public class SettingsService : ISettingsService
         AccentColor = settings.AccentColor,
         HeaderColor = settings.HeaderColor,
         BodyColor = settings.BodyColor,
+        IconColor = settings.IconColor,
         BackgroundImageUrl = settings.BackgroundImageUrl,
         CenterLogoUrl = settings.CenterLogoUrl,
         Address = settings.Address,
