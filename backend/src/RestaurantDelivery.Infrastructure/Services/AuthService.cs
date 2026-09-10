@@ -262,6 +262,138 @@ public class AuthService : IAuthService
         return ServiceResult<UserProfileResponse>.Success(MapProfile(user, modules, permissions));
     }
 
+    public async Task<ServiceResult<List<StaffAccountResponse>>> GetStaffAccountsAsync()
+    {
+        var staff = await _userManager.Users
+            .Where(u => u.Role == UserRole.Admin || u.Role == UserRole.CaptainOrder)
+            .OrderBy(u => u.FullName)
+            .ToListAsync();
+
+        // One query for every custom Role rather than one lookup per staff row - this list
+        // is typically small (a handful of roles) so loading them all and joining in memory
+        // is simpler than N+1 GetByIdAsync calls.
+        var roleNamesById = (await _roleRepository.GetAllOrderedAsync()).ToDictionary(r => r.Id, r => r.Name);
+
+        return ServiceResult<List<StaffAccountResponse>>.Success(staff.Select(u => new StaffAccountResponse
+        {
+            Id = u.Id,
+            FullName = u.FullName,
+            PhoneNumber = u.PhoneNumber,
+            Role = u.Role,
+            RoleId = u.CustomRoleId,
+            RoleName = u.CustomRoleId.HasValue && roleNamesById.TryGetValue(u.CustomRoleId.Value, out var name) ? name : null
+        }).ToList());
+    }
+
+    public async Task<ServiceResult<StaffAccountResponse>> UpdateStaffUserAsync(string id, UpdateStaffUserRequest request)
+    {
+        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == id);
+        if (user is null || user.Role is not (UserRole.Admin or UserRole.CaptainOrder))
+        {
+            return ServiceResult<StaffAccountResponse>.Failure("Staff account not found.");
+        }
+
+        // Same three validation rules as CreateStaffUserAsync above - kept in sync
+        // deliberately rather than extracted into a shared helper, since the two methods'
+        // surrounding context (create vs. update-in-place) differs enough that a shared
+        // helper would need its own parameters threading the same three checks anyway.
+        if (request.Role is not (UserRole.Admin or UserRole.CaptainOrder))
+        {
+            return ServiceResult<StaffAccountResponse>.Failure(
+                "Only Admin or CaptainOrder accounts can be managed here.");
+        }
+
+        if (request.Role == UserRole.Admin)
+        {
+            if (request.RoleId is null)
+            {
+                return ServiceResult<StaffAccountResponse>.Failure("A role must be selected for an Admin account.");
+            }
+
+            if (await _roleRepository.GetByIdAsync(request.RoleId.Value) is null)
+            {
+                return ServiceResult<StaffAccountResponse>.Failure("The selected role was not found.");
+            }
+        }
+        else if (request.RoleId is not null)
+        {
+            return ServiceResult<StaffAccountResponse>.Failure("A role cannot be selected for a Captain Order account.");
+        }
+
+        // Phone uniqueness excludes this user's own row - editing every other field while
+        // leaving the phone number unchanged must not trip over itself.
+        if (await _userManager.Users.AnyAsync(u => u.PhoneNumber == request.PhoneNumber && u.Id != id))
+        {
+            return ServiceResult<StaffAccountResponse>.Failure("An account with this phone number already exists.");
+        }
+
+        user.FullName = request.FullName;
+        user.PhoneNumber = request.PhoneNumber;
+        user.Role = request.Role;
+        user.CustomRoleId = request.Role == UserRole.Admin ? request.RoleId : null;
+
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            return ServiceResult<StaffAccountResponse>.Failure(updateResult.Errors.Select(e => e.Description).ToArray());
+        }
+
+        var roleName = user.CustomRoleId.HasValue
+            ? (await _roleRepository.GetByIdAsync(user.CustomRoleId.Value))?.Name
+            : null;
+
+        return ServiceResult<StaffAccountResponse>.Success(new StaffAccountResponse
+        {
+            Id = user.Id,
+            FullName = user.FullName,
+            PhoneNumber = user.PhoneNumber,
+            Role = user.Role,
+            RoleId = user.CustomRoleId,
+            RoleName = roleName
+        });
+    }
+
+    public async Task<ServiceResult<bool>> DeleteStaffUserAsync(string id, string? requestingUserId)
+    {
+        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == id);
+        if (user is null || user.Role is not (UserRole.Admin or UserRole.CaptainOrder))
+        {
+            return ServiceResult<bool>.Failure("Staff account not found.");
+        }
+
+        // Prevents a staff member from deleting their own account through this endpoint
+        // and locking themselves (and potentially every other admin, if they were the only
+        // one) out - not explicitly requested, but a standard safety rail for a hard-delete
+        // action like this one.
+        if (requestingUserId is not null && id == requestingUserId)
+        {
+            return ServiceResult<bool>.Failure("You cannot delete your own account.");
+        }
+
+        // Hard delete, per explicit product decision - unlike every other delete in this
+        // app, which is soft-delete-only (see AppUser.IsDeleted's own doc comment).
+        // LoyaltyPointTransaction.AdminId is DeleteBehavior.Restrict specifically so a
+        // manual points adjustment's audit trail can never be silently orphaned - guarded
+        // here the same way RoleService.DeleteAsync guards against deleting an
+        // still-assigned Role, rather than letting a raw DbUpdateException (Postgres FK
+        // violation) surface as an unhandled 500. LoyaltyPunchTransaction.AdminId, by
+        // contrast, is SetNull (not Restrict) and will be silently nulled by this delete -
+        // same for any PasswordResetToken/LoyaltyWalletPassRegistration/
+        // WebPushSubscription rows, which cascade-delete. That's an accepted, explicit
+        // trade-off of choosing a hard delete here rather than extending IsDeleted to staff.
+        var transactionCount = await _context.LoyaltyPointTransactions.CountAsync(t => t.AdminId == id);
+        if (transactionCount > 0)
+        {
+            return ServiceResult<bool>.Failure(
+                $"Cannot delete this staff account because it has {transactionCount} recorded loyalty point transaction(s) - that history can't be reassigned automatically.");
+        }
+
+        _context.Users.Remove(user);
+        await _context.SaveChangesAsync();
+
+        return ServiceResult<bool>.Success(true);
+    }
+
     public async Task<ServiceResult<FindOrCreateCustomerResult>> FindOrCreateCustomerByPhoneAsync(string fullName, string phoneNumber, string? address, bool isPastCustomer = false)
     {
         // Matches a soft-deleted account too, same reasoning as IsPhoneTakenAsync above:

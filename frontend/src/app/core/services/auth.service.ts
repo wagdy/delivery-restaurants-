@@ -9,7 +9,9 @@ import {
   ForgotPasswordRequest,
   LoginRequest,
   RegisterRequest,
-  ResetPasswordRequest
+  ResetPasswordRequest,
+  StaffAccount,
+  UpdateStaffUserRequest
 } from '../models/auth.model';
 import { AdminModuleName } from '../models/role.model';
 import { UserProfile } from '../models/user.model';
@@ -66,6 +68,21 @@ export class AuthService {
   // Admin-only — does not affect the calling admin's own session (no token returned/set).
   createStaffUser(request: CreateStaffUserRequest): Observable<UserProfile> {
     return this.http.post<UserProfile>(`${environment.apiUrl}/auth/staff`, request);
+  }
+
+  // The Staff tab's management table (list/edit/delete existing accounts) - a separate
+  // api/staff resource from the api/auth/staff creation endpoint above, see StaffController.
+  getStaff(): Observable<StaffAccount[]> {
+    return this.http.get<StaffAccount[]>(`${environment.apiUrl}/staff`);
+  }
+
+  updateStaffUser(id: string, request: UpdateStaffUserRequest): Observable<StaffAccount> {
+    return this.http.put<StaffAccount>(`${environment.apiUrl}/staff/${id}`, request);
+  }
+
+  // Hard delete - see StaffController/AuthService.DeleteStaffUserAsync's own doc comments.
+  deleteStaffUser(id: string): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/staff/${id}`);
   }
 
   // Always resolves with the same generic message whether or not the phone number is

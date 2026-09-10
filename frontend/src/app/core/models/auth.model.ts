@@ -45,3 +45,23 @@ export interface CreateStaffUserRequest {
   // role is 'CaptainOrder'.
   roleId?: number | null;
 }
+
+// One row in the Staff tab's management table (GET /api/staff).
+export interface StaffAccount {
+  id: string;
+  fullName: string;
+  phoneNumber: string | null;
+  role: UserRole;
+  // Null for CaptainOrder, and for an Admin with no custom Role assigned.
+  roleId: number | null;
+  roleName: string | null;
+}
+
+// Mirrors CreateStaffUserRequest minus password - editing a staff account never changes
+// their password.
+export interface UpdateStaffUserRequest {
+  fullName: string;
+  phoneNumber: string;
+  role: UserRole;
+  roleId?: number | null;
+}

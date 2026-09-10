@@ -17,6 +17,21 @@ public interface IAuthService
     // which always self-registers a Customer — a staff role can never be self-assigned.
     Task<ServiceResult<UserProfileResponse>> CreateStaffUserAsync(CreateStaffUserRequest request);
 
+    // The Staff tab's management table (list/edit/delete), backing StaffController - kept
+    // separate from CreateStaffUserAsync above (which stays wired to the pre-existing
+    // POST api/auth/staff) since listing/editing/deleting existing accounts is a distinct
+    // concern from provisioning a brand-new one.
+    Task<ServiceResult<List<StaffAccountResponse>>> GetStaffAccountsAsync();
+
+    Task<ServiceResult<StaffAccountResponse>> UpdateStaffUserAsync(string id, UpdateStaffUserRequest request);
+
+    // Hard delete, per explicit product decision - see the implementation's own doc
+    // comment for why this is the one place in the app that removes an AppUser row
+    // outright rather than soft-deleting it, and what that trades away. requestingUserId
+    // is the caller's own id (from their JWT), checked so a staff member can never delete
+    // their own account through this endpoint and lock themselves out.
+    Task<ServiceResult<bool>> DeleteStaffUserAsync(string id, string? requestingUserId);
+
     // Shared by the admin "Create Order" POS's New Customer mode (see OrderService.CreateAsync)
     // and the Scanner page's own "New Customer" tab (see CustomersController.Register):
     // returns the existing customer's id if this phone number is already registered
