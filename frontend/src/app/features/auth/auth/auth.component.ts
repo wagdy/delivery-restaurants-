@@ -34,8 +34,8 @@ import { AuthService } from '../../../core/services/auth.service';
   styleUrl: './auth.component.scss'
 })
 export class AuthComponent {
-  static readonly NAME_PATTERN = /^[A-Za-z ]+$/;
-  static readonly PHONE_PATTERN = /^[0-9]+$/;
+  static readonly NAME_PATTERN = /^[a-zA-Z\u0600-\u06FF\s]+$/;
+  static readonly PHONE_PATTERN = /^01[0125][0-9]{8}$/;
 
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
