@@ -8,6 +8,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -32,6 +33,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
     MatButtonModule,
     MatIconModule,
     MatSlideToggleModule,
+    MatCheckboxModule,
     MatProgressSpinnerModule,
     MatToolbarModule
   ],
@@ -57,6 +59,7 @@ export class CampaignManagerComponent implements OnInit {
   readonly newCategoryName = signal<string | null>(null);
   readonly newTargetPunches = signal(5);
   readonly newEndDate = signal('');
+  readonly newNotifyCustomersViaWhatsApp = signal(false);
   readonly creating = signal(false);
 
   // Global points ratios, shown in the Points Configuration card next to the campaign form.
@@ -184,7 +187,8 @@ export class CampaignManagerComponent implements OnInit {
         description,
         categoryName: this.newCategoryName(),
         targetPunches: this.newTargetPunches(),
-        endDate
+        endDate,
+        notifyCustomersViaWhatsApp: this.newNotifyCustomersViaWhatsApp()
       })
       .subscribe({
         next: () => {
@@ -194,6 +198,7 @@ export class CampaignManagerComponent implements OnInit {
           this.newCategoryName.set(null);
           this.newTargetPunches.set(5);
           this.newEndDate.set('');
+          this.newNotifyCustomersViaWhatsApp.set(false);
           this.load();
         },
         error: (err) => {

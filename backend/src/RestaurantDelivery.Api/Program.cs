@@ -225,6 +225,16 @@ else
     builder.Services.AddHttpClient<IWhatsAppNotificationService, WhatsAppNotificationService>();
 }
 
+// The WhatsApp broadcast queue/worker (new Promo Code / Campaign announcements to every
+// registered customer) - registered regardless of which WhatsApp provider is active above,
+// since SendBroadcastMessageAsync is implemented by both. WhatsAppBroadcastQueue is
+// exposed under both its own concrete type (so the hosted service below can reach its
+// ChannelReader, which isn't part of the public IWhatsAppBroadcastQueue contract) and the
+// interface (so PromoCodeService/CampaignService only depend on the abstraction).
+builder.Services.AddSingleton<WhatsAppBroadcastQueue>();
+builder.Services.AddSingleton<IWhatsAppBroadcastQueue>(sp => sp.GetRequiredService<WhatsAppBroadcastQueue>());
+builder.Services.AddHostedService<WhatsAppBroadcastBackgroundService>();
+
 var vapidSection = builder.Configuration.GetSection("Vapid");
 var vapidPublicKey = vapidSection["PublicKey"] ?? throw new InvalidOperationException("Vapid:PublicKey is not configured.");
 var vapidPrivateKey = vapidSection["PrivateKey"] ?? throw new InvalidOperationException("Vapid:PrivateKey is not configured.");

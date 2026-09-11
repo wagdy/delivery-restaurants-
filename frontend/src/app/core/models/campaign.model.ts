@@ -19,6 +19,9 @@ export interface CreateCampaignRequest {
   // Mandatory (unlike Campaign.endDate above, which stays nullable for campaigns created
   // before this field became required).
   endDate: string;
+  // Fires a WhatsApp broadcast to every active customer announcing this new campaign -
+  // see WhatsAppBroadcastBackgroundService. Opt-in per creation, never implied.
+  notifyCustomersViaWhatsApp: boolean;
 }
 
 /** Mirrors RestaurantDelivery.Core.DTOs.Loyalty.CustomerCampaignProgressResponse. */

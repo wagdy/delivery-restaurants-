@@ -8,6 +8,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -38,6 +39,7 @@ const DISCOUNT_TYPE_OPTIONS: { value: PromoDiscountType; label: string }[] = [
     MatButtonModule,
     MatIconModule,
     MatSlideToggleModule,
+    MatCheckboxModule,
     MatProgressSpinnerModule,
     MatToolbarModule
   ],
@@ -67,6 +69,9 @@ export class PromoCodesComponent {
   readonly targetIds = signal<number[]>([]);
   readonly expiryDate = signal('');
   readonly isActive = signal(true);
+  // Always starts unchecked, even when editing - re-broadcasting is a deliberate choice
+  // to make every time, not something to infer from a previously-saved value.
+  readonly notifyCustomersViaWhatsApp = signal(false);
 
   readonly needsCategoryTargets = computed(() => this.discountType() === 'SpecificCategory');
   readonly needsItemTargets = computed(() => this.discountType() === 'SpecificItem');
@@ -137,6 +142,7 @@ export class PromoCodesComponent {
     this.targetIds.set([]);
     this.expiryDate.set('');
     this.isActive.set(true);
+    this.notifyCustomersViaWhatsApp.set(false);
   }
 
   editPromoCode(promo: PromoCode): void {
@@ -147,6 +153,7 @@ export class PromoCodesComponent {
     this.targetIds.set(promo.targetIds ?? []);
     this.expiryDate.set(promo.expiryDate.slice(0, 10));
     this.isActive.set(promo.isActive);
+    this.notifyCustomersViaWhatsApp.set(false);
   }
 
   savePromoCode(): void {
@@ -161,7 +168,8 @@ export class PromoCodesComponent {
       discountValue: this.discountValue(),
       targetIds: needsTargets ? this.targetIds() : null,
       expiryDate: this.expiryDate(),
-      isActive: this.isActive()
+      isActive: this.isActive(),
+      notifyCustomersViaWhatsApp: this.notifyCustomersViaWhatsApp()
     };
 
     this.saving.set(true);

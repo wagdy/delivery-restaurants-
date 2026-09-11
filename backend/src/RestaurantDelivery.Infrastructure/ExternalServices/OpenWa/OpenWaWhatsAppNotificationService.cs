@@ -137,6 +137,13 @@ public class OpenWaWhatsAppNotificationService : IWhatsAppNotificationService
         return SendMessageAsync(phoneNumber, message);
     }
 
+    // A thin wrapper around the shared SendMessageAsync helper below - the caller builds
+    // the full message body (see WhatsAppBroadcastBackgroundService), this just routes it
+    // through the same send path (and therefore the same PromotionalFooter) every other
+    // method here already uses.
+    public Task SendBroadcastMessageAsync(string phoneNumber, string message) =>
+        SendMessageAsync(phoneNumber, message);
+
     public async Task SendOrderNotificationsAsync(Order order, IEnumerable<string?> managerPhones)
     {
         // No order number in the customer's own confirmation (per explicit instruction) -

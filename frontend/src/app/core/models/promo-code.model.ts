@@ -22,4 +22,7 @@ export interface PromoCodeRequest {
   targetIds: number[] | null;
   expiryDate: string;
   isActive: boolean;
+  // Fires a WhatsApp broadcast to every active customer announcing this code - see
+  // WhatsAppBroadcastBackgroundService. Opt-in per save (create or update), never implied.
+  notifyCustomersViaWhatsApp: boolean;
 }

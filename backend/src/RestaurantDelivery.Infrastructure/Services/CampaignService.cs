@@ -12,11 +12,13 @@ public class CampaignService : ICampaignService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILoyaltyRealtimeNotifier _realtimeNotifier;
+    private readonly IWhatsAppBroadcastQueue _broadcastQueue;
 
-    public CampaignService(ApplicationDbContext context, ILoyaltyRealtimeNotifier realtimeNotifier)
+    public CampaignService(ApplicationDbContext context, ILoyaltyRealtimeNotifier realtimeNotifier, IWhatsAppBroadcastQueue broadcastQueue)
     {
         _context = context;
         _realtimeNotifier = realtimeNotifier;
+        _broadcastQueue = broadcastQueue;
     }
 
     public async Task<List<CampaignResponse>> GetAllAsync(CancellationToken ct = default) =>
@@ -46,8 +48,47 @@ public class CampaignService : ICampaignService
         _context.LoyaltyCampaigns.Add(campaign);
         await _context.SaveChangesAsync(ct);
 
+        if (request.NotifyCustomersViaWhatsApp)
+        {
+            await EnqueueBroadcastAsync(campaign, ct);
+        }
+
         return ServiceResult<CampaignResponse>.Success(MapResponse(campaign));
     }
+
+    // Fetched synchronously (a fast, single indexed query) at the moment the campaign is
+    // saved - only the actual SENDING loop (with its multi-second anti-ban delay per
+    // customer) is deferred to the background queue, per the explicit requirement that the
+    // HTTP response itself never blocks on that.
+    private async Task EnqueueBroadcastAsync(LoyaltyCampaign campaign, CancellationToken ct)
+    {
+        var phoneNumbers = await _context.Users
+            .Where(u => u.Role == UserRole.Customer && !u.IsDeleted && !string.IsNullOrWhiteSpace(u.PhoneNumber))
+            .Select(u => u.PhoneNumber!)
+            .ToListAsync(ct);
+
+        if (phoneNumbers.Count == 0)
+        {
+            return;
+        }
+
+        _broadcastQueue.Enqueue(new WhatsAppBroadcastJob
+        {
+            PhoneNumbers = phoneNumbers,
+            Message = BuildBroadcastMessage(campaign)
+        });
+    }
+
+    // No trailing "شوف المنيو" link here, unlike the exact template originally specified -
+    // SendBroadcastMessageAsync's underlying SendMessageAsync already appends that exact
+    // line (PromotionalFooter) to every outgoing message, so repeating it here would show
+    // it twice. Same fix already applied to SendPastCustomerWelcomeAsync's own template
+    // for the same reason. Description doubles as the "reward description" - there's no
+    // separate RewardDescription field on LoyaltyCampaign, see that entity's doc comment.
+    private static string BuildBroadcastMessage(LoyaltyCampaign campaign) =>
+        $"نظام مكافآت جديد من أوتانتيك! 💳\n\n" +
+        $"فعلنا كارت '{campaign.Title}'.\n" +
+        $"اطلب {campaign.TargetPunches} مرات واكسب {campaign.Description} مجاناً!";
 
     public async Task<ServiceResult<CampaignResponse>> ToggleStatusAsync(Guid id, CancellationToken ct = default)
     {

@@ -53,6 +53,10 @@
               <mat-error>Expiration date is required.</mat-error>
             </mat-form-field>
 
+            <mat-checkbox [ngModel]="newNotifyCustomersViaWhatsApp()" (ngModelChange)="newNotifyCustomersViaWhatsApp.set($event)">
+              إرسال إشعار للعملاء عبر الواتساب
+            </mat-checkbox>
+
             <button
               mat-flat-button
               color="primary"

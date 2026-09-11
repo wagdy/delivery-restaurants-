@@ -67,6 +67,10 @@
         <mat-slide-toggle [ngModel]="isActive()" (ngModelChange)="isActive.set($event)"></mat-slide-toggle>
       </div>
 
+      <mat-checkbox [ngModel]="notifyCustomersViaWhatsApp()" (ngModelChange)="notifyCustomersViaWhatsApp.set($event)">
+        إرسال إشعار للعملاء عبر الواتساب
+      </mat-checkbox>
+
       <div class="form-actions">
         <button mat-flat-button color="primary" [disabled]="saving() || !canSave()" (click)="savePromoCode()">
           @if (saving()) {

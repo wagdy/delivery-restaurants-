@@ -24,4 +24,9 @@ public class CreateCampaignRequest
     // instead of producing the clean "The EndDate field is required." validation error below.
     [Required(ErrorMessage = "Expiration date is required.")]
     public DateTime? EndDate { get; set; }
+
+    // When true, CampaignService fires a WhatsApp broadcast to every active customer
+    // announcing this new punch-card campaign - see WhatsAppBroadcastBackgroundService.
+    // Defaults to false - a broadcast is opt-in per creation, never implicit.
+    public bool NotifyCustomersViaWhatsApp { get; set; }
 }

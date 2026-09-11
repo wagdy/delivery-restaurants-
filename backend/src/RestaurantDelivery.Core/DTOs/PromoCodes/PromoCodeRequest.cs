@@ -23,6 +23,13 @@ public class PromoCodeRequest : IValidatableObject
 
     public bool IsActive { get; set; } = true;
 
+    // When true, PromoCodeService fires a WhatsApp broadcast to every active customer
+    // announcing this code - see WhatsAppBroadcastBackgroundService. Applies on both
+    // create and update (this DTO is shared by both), since re-announcing an edited code
+    // is a legitimate, deliberate admin choice, not something to infer automatically.
+    // Always defaults to false - a broadcast is opt-in per save, never implicit.
+    public bool NotifyCustomersViaWhatsApp { get; set; }
+
     // A single DataAnnotation attribute can't express "TargetIds is required only for
     // these two DiscountType values" - hence IValidatableObject, mirroring TierRequest's
     // own MaxPoints > MinPoints cross-field check.

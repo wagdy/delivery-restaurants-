@@ -69,4 +69,13 @@ public interface IWhatsAppNotificationService
     // since "🔻 تم استبدال -50 نقطة" would read as broken. totalBalance is the customer's
     // resulting CurrentPoints.
     Task SendLoyaltyWalletUpdateAsync(string phoneNumber, string customerName, bool isRedemption, int transactionPoints, int totalBalance);
+
+    // Generic broadcast send for promotional/announcement messages (a new Promo Code or
+    // Punch-Card Campaign, see WhatsAppBroadcastBackgroundService) - unlike every other
+    // method here, the message body is built by the caller rather than a fixed template.
+    // Routes through the exact same underlying send path as everything else, so a
+    // broadcast message picks up the same PromotionalFooter automatically. Same
+    // never-throw contract - a single failed send must never take down the rest of a
+    // broadcast.
+    Task SendBroadcastMessageAsync(string phoneNumber, string message);
 }
