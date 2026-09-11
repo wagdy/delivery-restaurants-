@@ -89,49 +89,48 @@
   margin-bottom: 24px;
 }
 
-// The ratings matrix (StarRating questions grouped into categories) - a table rather than
-// CSS Grid so each category's full-width colored header row can naturally span every
-// column via colspan, and so column widths stay aligned across every category's rows
-// without manually recomputing a grid-template per section.
-//
-// Equivalent to Tailwind's `overflow-x-auto` - this project has no Tailwind installed, so
-// plain CSS instead, matching every other component's substitution pattern. A real
-// min-width on the table (rather than letting columns crush down to nothing) is what
-// actually forces the scrollbar to appear on a narrow phone instead of producing an
-// unreadably cramped table - this is the "horizontal scroll on mobile" option the design
-// asked for, chosen over reflowing into stacked cards for reliability: a table's alignment
-// guarantees (every row's 4th column lines up under the same header) are exactly what a
-// rating matrix needs, and stacking loses that at the same breakpoint it's meant to help.
-.ratings-matrix-scroll {
-  overflow-x: auto;
+// The ratings matrix (StarRating questions grouped into categories) - flex-based divs,
+// not a real <table>, specifically so the exact same markup can reflow from a compact
+// table-like row (desktop, ≥768px) into fully-stacked, individually-labeled chips
+// (mobile, <768px) via nothing but flex-direction - see the mobile override at the bottom
+// of this block. A real <table> can't do this cleanly: its column-alignment guarantees
+// are exactly what forced the old horizontal-scroll behavior once "ضعيف" no longer fit in
+// the viewport width, which is precisely the mobile UX bug this markup change fixes.
+.ratings-matrix {
   margin-bottom: 28px;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
+  overflow: hidden;
 }
 
-.ratings-matrix {
-  width: 100%;
-  min-width: 480px;
-  border-collapse: collapse;
-}
-
-.matrix-question-header {
-  width: 40%;
-}
-
-.matrix-scale-header {
-  padding: 12px 6px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #374151;
-  text-align: center;
-  white-space: nowrap;
+.matrix-header-row {
+  display: flex;
+  align-items: center;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-// The full-width colored section bar (e.g. "Service", "Food") - one per category,
-// spanning every column via colspan in the template.
-.matrix-category-row td {
+.matrix-header-spacer {
+  flex: 0 0 40%;
+}
+
+.matrix-header-scale {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 12px 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #374151;
+  text-align: center;
+  // Wraps onto 2 lines instead of the old nowrap - the host page's own card is capped at
+  // 480px (see PublicSurveyPageComponent) regardless of window width, which is narrower
+  // than 4 single-line "Excellent / ممتاز"-style labels can fit even at this breakpoint;
+  // wrapping keeps every label fully visible instead of silently clipping at the
+  // container edge (which was actually what "ضعيف / Poor" was doing here before this fix).
+  line-height: 1.25;
+}
+
+// The full-width colored section bar (e.g. "Service", "Food") - one per category.
+.matrix-section-title {
   background: var(--app-primary-color, #ea580c);
   color: white;
   font-weight: 700;
@@ -140,49 +139,73 @@
   text-align: start;
 }
 
-.matrix-question-row {
-  &:nth-child(even) {
+.matrix-question-group {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+
+  &:nth-of-type(even) {
     background: rgba(0, 0, 0, 0.02);
   }
 }
 
-.matrix-question-cell {
-  padding: 12px 14px;
+.matrix-question-text {
+  flex: 0 0 40%;
+  min-width: 0;
   font-size: 0.875rem;
   color: #374151;
   text-align: start;
-  white-space: normal;
 }
 
-.matrix-scale-cell {
-  padding: 10px 6px;
-  text-align: center;
+.matrix-options-row {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
 }
 
 // The custom circular "radio button" - a plain button (not a native input) so the
 // checkmark-filled selected state can be styled consistently across browsers, matching
 // this component's own pre-existing pattern of button-based star/option selection rather
-// than native form controls.
-.matrix-radio {
+// than native form controls. The option's own text label (.matrix-option-label) stays in
+// the DOM for every viewport (screen readers, and so nothing needs to change on resize)
+// but is only ever shown visually on mobile - see the breakpoint below.
+.matrix-option {
   appearance: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid #d1d5db;
-  background: white;
+  border: none;
+  background: none;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: white;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  color: #374151;
 
-  &:hover {
+  .matrix-option-check {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    background: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .matrix-option-label {
+    display: none;
+  }
+
+  &:hover .matrix-option-check {
     border-color: var(--app-primary-color, #ea580c);
   }
 
-  &.selected {
+  &.selected .matrix-option-check {
     background: var(--app-primary-color, #ea580c);
     border-color: var(--app-primary-color, #ea580c);
   }
@@ -191,6 +214,66 @@
 .matrix-check {
   width: 16px;
   height: 16px;
+}
+
+// Below 768px: the exact "stack vertically, no horizontal scroll" transform - each
+// question's row becomes its own block (label above, options below), and each rating
+// option becomes a large, full-width, individually-labeled touch chip instead of a small
+// unlabeled circle relying on a shared column header (the header row itself is hidden,
+// since there's no longer a shared column for it to label). Soft neutral palette (beige
+// card background, gray border, the app's own accent color for the selected state) kept
+// consistent with the rest of this form rather than introducing new colors.
+@media (max-width: 767px) {
+  .matrix-header-row {
+    display: none;
+  }
+
+  .matrix-question-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .matrix-question-text {
+    flex: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .matrix-options-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .matrix-option {
+    justify-content: flex-start;
+    gap: 10px;
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1.5px solid #e5e0d8;
+    background: #faf7f2;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+
+    .matrix-option-label {
+      display: inline;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    &.selected {
+      background: color-mix(in srgb, var(--app-primary-color, #ea580c) 10%, #faf7f2);
+      border-color: var(--app-primary-color, #ea580c);
+
+      .matrix-option-label {
+        font-weight: 700;
+        color: var(--app-primary-color, #ea580c);
+      }
+    }
+  }
 }
 
 .text-input,

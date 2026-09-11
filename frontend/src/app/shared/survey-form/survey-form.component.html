@@ -31,34 +31,40 @@
     </div>
 
     @if (starRatingCategories().length > 0) {
-      <div class="ratings-matrix-scroll">
-        <table class="ratings-matrix">
-          <thead>
-            <tr>
-              <th class="matrix-question-header"></th>
+      <!-- Div/flex based, not a real <table> - a table's column-alignment guarantees are
+           exactly what's NOT wanted here below 768px, where each question's 4 rating
+           options need to stack into their own full-width, individually-labeled chips
+           rather than staying locked to shared table columns. See the SCSS for how the
+           same markup renders as a compact table-like row on desktop and a stacked card
+           list on mobile, purely via flex-direction. -->
+      <div class="ratings-matrix">
+        @for (group of starRatingCategories(); track group.category) {
+          <div class="matrix-section">
+            <div class="matrix-section-title">{{ group.category }}</div>
+
+            <!-- Column headers - desktop only (see SCSS), each option chip shows its own
+                 label on mobile instead, so nothing here needs to survive the stack. -->
+            <div class="matrix-header-row" aria-hidden="true">
+              <span class="matrix-header-spacer"></span>
               @for (scale of ratingScale; track scale.value) {
-                <th class="matrix-scale-header">{{ scale.label }}</th>
+                <span class="matrix-header-scale">{{ scale.label }}</span>
               }
-            </tr>
-          </thead>
-          @for (group of starRatingCategories(); track group.category) {
-            <tbody>
-              <tr class="matrix-category-row">
-                <td [attr.colspan]="ratingScale.length + 1">{{ group.category }}</td>
-              </tr>
-              @for (question of group.questions; track question.id) {
-                <tr class="matrix-question-row">
-                  <td class="matrix-question-cell">{{ question.text }}</td>
+            </div>
+
+            @for (question of group.questions; track question.id) {
+              <div class="matrix-question-group">
+                <div class="matrix-question-text">{{ question.text }}</div>
+                <div class="matrix-options-row">
                   @for (scale of ratingScale; track scale.value) {
-                    <td class="matrix-scale-cell">
-                      <button
-                        type="button"
-                        class="matrix-radio"
-                        [class.selected]="getQuestionRating(question.id) === scale.value"
-                        [attr.aria-label]="question.text + ': ' + scale.label"
-                        [attr.aria-pressed]="getQuestionRating(question.id) === scale.value"
-                        (click)="setQuestionRating(question.id, scale.value)"
-                      >
+                    <button
+                      type="button"
+                      class="matrix-option"
+                      [class.selected]="getQuestionRating(question.id) === scale.value"
+                      [attr.aria-label]="question.text + ': ' + scale.label"
+                      [attr.aria-pressed]="getQuestionRating(question.id) === scale.value"
+                      (click)="setQuestionRating(question.id, scale.value)"
+                    >
+                      <span class="matrix-option-check">
                         @if (getQuestionRating(question.id) === scale.value) {
                           <svg viewBox="0 0 20 20" class="matrix-check">
                             <path
@@ -71,14 +77,15 @@
                             />
                           </svg>
                         }
-                      </button>
-                    </td>
+                      </span>
+                      <span class="matrix-option-label">{{ scale.label }}</span>
+                    </button>
                   }
-                </tr>
-              }
-            </tbody>
-          }
-        </table>
+                </div>
+              </div>
+            }
+          </div>
+        }
       </div>
     }
 
