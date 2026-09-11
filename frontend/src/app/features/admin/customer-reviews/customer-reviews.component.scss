@@ -57,6 +57,27 @@
 
 // --- Tab 1: Survey Configuration ---
 
+.survey-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+
+  button[mat-stroked-button] {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.survey-panel-hint {
+  margin: 0;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.875rem;
+}
+
 .questions-list {
   display: flex;
   flex-direction: column;
@@ -64,34 +85,41 @@
   margin-bottom: 16px;
 }
 
+// A subtle shadow (rather than the old flat 1px border) and slightly tighter padding -
+// the "more compact and professional" polish requested for these cards.
 .question-card {
   background: white;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 8px;
-  padding: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
+// A 2-column grid (Question text : Question type) that grows to 3 columns
+// (text : type : matrix section) via .with-section for a StarRating question - CSS Grid
+// rather than the old flex-wrap row, so all three fields line up on one clean baseline
+// instead of the section field wrapping onto its own full-width row underneath.
 .question-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
   gap: 12px;
-  flex-wrap: wrap;
-}
+  margin-bottom: 4px;
 
-.question-text-field {
-  flex: 2 1 320px;
-}
+  &.with-section {
+    grid-template-columns: 2fr 1fr 1fr;
+  }
 
-.question-type-field {
-  flex: 1 1 200px;
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .full-width {
   width: 100%;
 }
 
-.category-field {
-  width: 100%;
-  margin-bottom: 4px;
+.section-field {
+  min-width: 0;
 }
 
 .choice-builder {
@@ -170,12 +198,18 @@
   color: rgba(0, 0, 0, 0.45);
 }
 
+// Active toggle stays on the left; Save/Delete are grouped together on the right via
+// .question-actions below (space-between naturally pushes the second flex child there) -
+// a thin top divider separates this row from the fields above it now that cards are more
+// compact overall.
 .question-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 4px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .active-toggle {

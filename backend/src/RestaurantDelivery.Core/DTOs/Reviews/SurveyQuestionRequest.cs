@@ -14,9 +14,8 @@ public class SurveyQuestionRequest : IValidatableObject
     // than with a plain attribute, since "required" here depends on Type.
     public List<string>? Options { get; set; }
 
-    // Only meaningful when Type is StarRating - see SurveyQuestion.Category.
-    [MaxLength(100)]
-    public string? Category { get; set; }
+    // Only meaningful when Type is StarRating - see SurveyQuestion.MatrixSectionId.
+    public int? MatrixSectionId { get; set; }
 
     public bool IsActive { get; set; } = true;
     public int DisplayOrder { get; set; }

@@ -36,6 +36,7 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<Role> CustomRoles => Set<Role>();
 
     public DbSet<SurveyQuestion> SurveyQuestions => Set<SurveyQuestion>();
+    public DbSet<SurveyMatrixSection> SurveyMatrixSections => Set<SurveyMatrixSection>();
     public DbSet<OrderReview> OrderReviews => Set<OrderReview>();
     public DbSet<ReviewAnswer> ReviewAnswers => Set<ReviewAnswer>();
 

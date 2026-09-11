@@ -1,0 +1,60 @@
+<h2 mat-dialog-title>Manage Sections</h2>
+
+<mat-dialog-content>
+  <div class="add-row">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="add-field">
+      <mat-label>New section name</mat-label>
+      <input
+        matInput
+        [ngModel]="newSectionName()"
+        (ngModelChange)="newSectionName.set($event)"
+        placeholder="e.g. Service, Food"
+        (keydown.enter)="$event.preventDefault(); addSection()"
+      />
+    </mat-form-field>
+
+    <button mat-flat-button color="primary" [disabled]="adding() || !newSectionName().trim()" (click)="addSection()">
+      @if (adding()) {
+        <mat-spinner diameter="18"></mat-spinner>
+      } @else {
+        <ng-container>
+          <mat-icon>add</mat-icon>
+          Add
+        </ng-container>
+      }
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else if (sections().length === 0) {
+    <p class="empty-state">No sections yet - add one above.</p>
+  } @else {
+    <ul class="section-list">
+      @for (section of sections(); track section.id) {
+        <li class="section-row">
+          <span class="section-name">{{ section.name }}</span>
+          <button
+            mat-icon-button
+            color="warn"
+            [disabled]="deletingId() === section.id"
+            (click)="deleteSection(section)"
+            [attr.aria-label]="'Delete ' + section.name"
+          >
+            @if (deletingId() === section.id) {
+              <mat-spinner diameter="18"></mat-spinner>
+            } @else {
+              <mat-icon>delete</mat-icon>
+            }
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-flat-button color="primary" (click)="close()">Done</button>
+</mat-dialog-actions>

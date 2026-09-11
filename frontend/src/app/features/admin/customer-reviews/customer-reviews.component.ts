@@ -12,10 +12,18 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ReviewService } from '../../../core/services/review.service';
-import { OrderReview, SurveyQuestion, SurveyQuestionRequest, SurveyQuestionType } from '../../../core/models/review.model';
+import { SurveySectionService } from '../../../core/services/survey-section.service';
+import {
+  OrderReview,
+  SurveyMatrixSection,
+  SurveyQuestion,
+  SurveyQuestionRequest,
+  SurveyQuestionType
+} from '../../../core/models/review.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { SurveyFormComponent } from '../../../shared/survey-form/survey-form.component';
 import { ReviewDetailsDialogComponent } from './review-details-dialog/review-details-dialog.component';
+import { SurveySectionManagementDialogComponent } from '../survey-section-management-dialog/survey-section-management-dialog.component';
 
 type CustomerReviewsTab = 'survey' | 'reviews' | 'preview';
 
@@ -50,6 +58,7 @@ const QUESTION_TYPE_OPTIONS: { value: SurveyQuestionType; label: string }[] = [
 })
 export class CustomerReviewsComponent implements OnInit {
   private readonly reviewService = inject(ReviewService);
+  private readonly sectionService = inject(SurveySectionService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly fb = inject(FormBuilder);
@@ -63,6 +72,7 @@ export class CustomerReviewsComponent implements OnInit {
   readonly loadingQuestions = signal(true);
   readonly savingIndex = signal<number | null>(null);
   readonly deletingIndex = signal<number | null>(null);
+  readonly sections = signal<SurveyMatrixSection[]>([]);
 
   readonly surveyForm = this.fb.group({
     questions: this.fb.array<ReturnType<typeof this.buildQuestionGroup>>([])
@@ -82,6 +92,7 @@ export class CustomerReviewsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadQuestions();
+    this.loadSections();
     this.loadReviews();
   }
 
@@ -123,15 +134,33 @@ export class CustomerReviewsComponent implements OnInit {
       // (excluded in toRequest below), just holds whatever the admin is currently typing
       // for this row.
       newOptionText: this.fb.nonNullable.control(''),
-      // Only meaningful for StarRating - which ratings-matrix section (e.g. "Service",
-      // "Food") this question is grouped under on the public survey.
-      category: this.fb.nonNullable.control(question?.category ?? ''),
+      // Only meaningful for StarRating - which managed SurveyMatrixSection this question
+      // is grouped under on the public survey. A mat-select bound to a real section id,
+      // not free text - see loadSections()/openSectionManagement().
+      matrixSectionId: this.fb.control<number | null>(question?.matrixSectionId ?? null),
       isActive: this.fb.nonNullable.control(question?.isActive ?? true)
     });
   }
 
   addQuestion(): void {
     this.questions.push(this.buildQuestionGroup());
+  }
+
+  loadSections(): void {
+    this.sectionService.getAll().subscribe({
+      next: (sections) => this.sections.set(sections),
+      error: () => this.snackBar.open('Failed to load matrix sections.', 'Dismiss', { duration: 4000 })
+    });
+  }
+
+  openSectionManagement(): void {
+    const dialogRef = this.dialog.open(SurveySectionManagementDialogComponent, { width: '480px' });
+
+    dialogRef.afterClosed().subscribe((mutated: boolean | undefined) => {
+      if (mutated) {
+        this.loadSections();
+      }
+    });
   }
 
   isSingleChoice(index: number): boolean {
@@ -169,7 +198,7 @@ export class CustomerReviewsComponent implements OnInit {
       text: raw.text.trim(),
       type: raw.type,
       options: raw.type === 'SingleChoice' ? raw.options : null,
-      category: raw.type === 'StarRating' ? raw.category.trim() || null : null,
+      matrixSectionId: raw.type === 'StarRating' ? raw.matrixSectionId : null,
       isActive: raw.isActive,
       displayOrder: index
     };

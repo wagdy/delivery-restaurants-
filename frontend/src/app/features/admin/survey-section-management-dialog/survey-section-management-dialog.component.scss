@@ -1,0 +1,56 @@
+.add-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  min-width: 360px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+
+  button[mat-flat-button] {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    mat-spinner {
+      display: inline-block;
+    }
+  }
+}
+
+.add-field {
+  flex: 1 1 220px;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+.empty-state {
+  color: rgba(0, 0, 0, 0.5);
+  padding: 8px 0;
+}
+
+.section-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.section-name {
+  font-weight: 500;
+}

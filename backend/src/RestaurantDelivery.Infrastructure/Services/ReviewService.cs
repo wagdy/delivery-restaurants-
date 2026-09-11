@@ -31,17 +31,30 @@ public class ReviewService : IReviewService
         }
 
         var questions = await query.OrderBy(q => q.DisplayOrder).ThenBy(q => q.Id).ToListAsync();
-        return questions.Select(MapQuestionResponse).ToList();
+
+        // One query for every matrix section rather than one lookup per question - see
+        // AuthService.GetStaffAccountsAsync's identical reasoning for its own Role lookup.
+        var sectionNamesById = await _context.SurveyMatrixSections.ToDictionaryAsync(s => s.Id, s => s.Name);
+
+        return questions
+            .Select(q => MapQuestionResponse(q, q.MatrixSectionId.HasValue ? sectionNamesById.GetValueOrDefault(q.MatrixSectionId.Value) : null))
+            .ToList();
     }
 
     public async Task<ServiceResult<SurveyQuestionResponse>> CreateQuestionAsync(SurveyQuestionRequest request)
     {
+        var matrixSectionId = NormalizeMatrixSectionId(request);
+        if (matrixSectionId is not null && await _context.SurveyMatrixSections.FindAsync(matrixSectionId.Value) is null)
+        {
+            return ServiceResult<SurveyQuestionResponse>.Failure("The selected matrix section was not found.");
+        }
+
         var question = new SurveyQuestion
         {
             Text = request.Text.Trim(),
             Type = request.Type,
             Options = SerializeOptions(request),
-            Category = NormalizeCategory(request),
+            MatrixSectionId = matrixSectionId,
             IsActive = request.IsActive,
             DisplayOrder = request.DisplayOrder
         };
@@ -49,7 +62,8 @@ public class ReviewService : IReviewService
         _context.SurveyQuestions.Add(question);
         await _context.SaveChangesAsync();
 
-        return ServiceResult<SurveyQuestionResponse>.Success(MapQuestionResponse(question));
+        return ServiceResult<SurveyQuestionResponse>.Success(
+            MapQuestionResponse(question, await ResolveMatrixSectionNameAsync(matrixSectionId)));
     }
 
     public async Task<ServiceResult<SurveyQuestionResponse>> UpdateQuestionAsync(int id, SurveyQuestionRequest request)
@@ -60,16 +74,23 @@ public class ReviewService : IReviewService
             return ServiceResult<SurveyQuestionResponse>.Failure("Question not found.");
         }
 
+        var matrixSectionId = NormalizeMatrixSectionId(request);
+        if (matrixSectionId is not null && await _context.SurveyMatrixSections.FindAsync(matrixSectionId.Value) is null)
+        {
+            return ServiceResult<SurveyQuestionResponse>.Failure("The selected matrix section was not found.");
+        }
+
         question.Text = request.Text.Trim();
         question.Type = request.Type;
         question.Options = SerializeOptions(request);
-        question.Category = NormalizeCategory(request);
+        question.MatrixSectionId = matrixSectionId;
         question.IsActive = request.IsActive;
         question.DisplayOrder = request.DisplayOrder;
 
         await _context.SaveChangesAsync();
 
-        return ServiceResult<SurveyQuestionResponse>.Success(MapQuestionResponse(question));
+        return ServiceResult<SurveyQuestionResponse>.Success(
+            MapQuestionResponse(question, await ResolveMatrixSectionNameAsync(matrixSectionId)));
     }
 
     public async Task<ServiceResult<bool>> DeleteQuestionAsync(int id)
@@ -195,20 +216,30 @@ public class ReviewService : IReviewService
             ? string.Join(",", request.Options.Select(o => o.Trim()).Where(o => o.Length > 0))
             : null;
 
-    // Only meaningful for StarRating - trimmed to null (never an empty string) for every
-    // other type, same "blank means absent" convention SerializeOptions already uses.
-    private static string? NormalizeCategory(SurveyQuestionRequest request) =>
-        request.Type == SurveyQuestionType.StarRating && !string.IsNullOrWhiteSpace(request.Category)
-            ? request.Category.Trim()
-            : null;
+    // Only meaningful for StarRating - null for every other type, same "not applicable
+    // means absent" convention SerializeOptions already uses for Options.
+    private static int? NormalizeMatrixSectionId(SurveyQuestionRequest request) =>
+        request.Type == SurveyQuestionType.StarRating ? request.MatrixSectionId : null;
 
-    private static SurveyQuestionResponse MapQuestionResponse(SurveyQuestion question) => new()
+    private async Task<string?> ResolveMatrixSectionNameAsync(int? matrixSectionId)
+    {
+        if (matrixSectionId is null)
+        {
+            return null;
+        }
+
+        var section = await _context.SurveyMatrixSections.FindAsync(matrixSectionId.Value);
+        return section?.Name;
+    }
+
+    private static SurveyQuestionResponse MapQuestionResponse(SurveyQuestion question, string? matrixSectionName) => new()
     {
         Id = question.Id,
         Text = question.Text,
         Type = question.Type,
         Options = question.Options?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
-        Category = question.Category,
+        MatrixSectionId = question.MatrixSectionId,
+        MatrixSectionName = matrixSectionName,
         IsActive = question.IsActive,
         DisplayOrder = question.DisplayOrder
     };

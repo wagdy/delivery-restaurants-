@@ -17,6 +17,14 @@
 @switch (activeTab()) {
   @case ('survey') {
     <div class="tab-panel survey-panel">
+      <div class="survey-panel-header">
+        <p class="survey-panel-hint">Configure the questions shown on the customer survey.</p>
+        <button mat-stroked-button type="button" (click)="openSectionManagement()">
+          <mat-icon>tune</mat-icon>
+          Manage Sections
+        </button>
+      </div>
+
       @if (loadingQuestions()) {
         <div class="loading-state">
           <mat-spinner diameter="40"></mat-spinner>
@@ -26,7 +34,7 @@
           <div formArrayName="questions" class="questions-list">
             @for (group of questions.controls; track group; let i = $index) {
               <div class="question-card" [formGroupName]="i">
-                <div class="question-row">
+                <div class="question-row" [class.with-section]="isStarRating(i)">
                   <mat-form-field appearance="outline" subscriptSizing="dynamic" class="question-text-field">
                     <mat-label>Question text</mat-label>
                     <input matInput formControlName="text" placeholder="e.g. How was your food?" />
@@ -40,14 +48,22 @@
                       }
                     </mat-select>
                   </mat-form-field>
-                </div>
 
-                @if (isStarRating(i)) {
-                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="category-field">
-                    <mat-label>Matrix section (e.g. Service, Food)</mat-label>
-                    <input matInput formControlName="category" placeholder="Leave blank for a general section" />
-                  </mat-form-field>
-                }
+                  @if (isStarRating(i)) {
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="section-field">
+                      <mat-label>Matrix section</mat-label>
+                      <mat-select formControlName="matrixSectionId">
+                        <mat-option [value]="null">General (no section)</mat-option>
+                        @for (section of sections(); track section.id) {
+                          <mat-option [value]="section.id">{{ section.name }}</mat-option>
+                        }
+                      </mat-select>
+                      @if (sections().length === 0) {
+                        <mat-hint>No sections yet - use "Manage Sections" above.</mat-hint>
+                      }
+                    </mat-form-field>
+                  }
+                </div>
 
                 @if (isSingleChoice(i)) {
                   <div class="choice-builder">

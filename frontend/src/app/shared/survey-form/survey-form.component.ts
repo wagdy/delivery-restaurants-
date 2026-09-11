@@ -3,9 +3,9 @@ import { CommonModule } from '@angular/common';
 import { ReviewService } from '../../core/services/review.service';
 import { RATING_SCALE, SubmitReviewAnswer, SurveyQuestion } from '../../core/models/review.model';
 
-// Fallback bucket label for a StarRating question with no Category assigned yet (existing
-// questions from before this field existed, or one an admin just hasn't categorized) - so
-// the matrix always has a real section header instead of a blank bar.
+// Fallback bucket label for a StarRating question with no matrix section assigned yet
+// (existing questions from before this field existed, or one an admin just hasn't
+// grouped) - so the matrix always has a real section header instead of a blank bar.
 const UNCATEGORIZED_LABEL = 'التقييم العام';
 
 interface RatingCategoryGroup {
@@ -72,7 +72,7 @@ export class SurveyFormComponent implements OnInit {
       if (question.type !== 'StarRating') {
         continue;
       }
-      const category = question.category?.trim() || UNCATEGORIZED_LABEL;
+      const category = question.matrixSectionName?.trim() || UNCATEGORIZED_LABEL;
       let group = groups.find((g) => g.category === category);
       if (!group) {
         group = { category, questions: [] };

@@ -196,6 +196,7 @@ builder.Services.AddScoped<ICampaignService, CampaignService>();
 builder.Services.AddScoped<IPromoCodeRepository, PromoCodeRepository>();
 builder.Services.AddScoped<IPromoCodeService, PromoCodeService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<ISurveySectionService, SurveySectionService>();
 builder.Services.AddScoped<ICheckoutService, CheckoutService>();
 
 builder.Services.AddSignalR();

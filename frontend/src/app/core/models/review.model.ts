@@ -6,10 +6,13 @@ export interface SurveyQuestion {
   type: SurveyQuestionType;
   // Only meaningful (and only ever populated) when type is 'SingleChoice'.
   options: string[] | null;
-  // Only meaningful (and only ever populated) when type is 'StarRating' - the ratings
-  // matrix section this question is grouped under (e.g. "Service", "Food"). Null/blank
+  // Only meaningful (and only ever populated) when type is 'StarRating' - which managed
+  // SurveyMatrixSection this question is grouped under (e.g. "Service", "Food"). Null
   // falls back to a generic bucket - see SurveyFormComponent's starRatingCategories.
-  category: string | null;
+  matrixSectionId: number | null;
+  // Resolved alongside matrixSectionId by the backend for display/grouping, so this page
+  // and the public survey never need a second lookup just to show the section's name.
+  matrixSectionName: string | null;
   isActive: boolean;
   displayOrder: number;
 }
@@ -18,9 +21,21 @@ export interface SurveyQuestionRequest {
   text: string;
   type: SurveyQuestionType;
   options: string[] | null;
-  category: string | null;
+  matrixSectionId: number | null;
   isActive: boolean;
   displayOrder: number;
+}
+
+// A managed, named grouping for StarRating questions (e.g. "Service", "Food") - see
+// backend SurveyMatrixSection. Replaces the old free-text Category string with a
+// dropdown sourced from this list, managed via the "Manage Sections" dialog.
+export interface SurveyMatrixSection {
+  id: number;
+  name: string;
+}
+
+export interface SurveyMatrixSectionRequest {
+  name: string;
 }
 
 // The public survey's per-question rating matrix scale (StarRating questions only) - a

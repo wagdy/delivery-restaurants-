@@ -15,8 +15,13 @@ public class SurveyQuestionResponse
     // when Type is SingleChoice.
     public List<string>? Options { get; set; }
 
-    // Only meaningful when Type is StarRating - see SurveyQuestion.Category.
-    public string? Category { get; set; }
+    // Only meaningful when Type is StarRating - see SurveyQuestion.MatrixSectionId.
+    public int? MatrixSectionId { get; set; }
+
+    // Resolved alongside MatrixSectionId for display, so the admin builder and the public
+    // survey's ratings-matrix grouping never need a second round-trip just to show/group
+    // by the section's name.
+    public string? MatrixSectionName { get; set; }
 
     public bool IsActive { get; set; }
     public int DisplayOrder { get; set; }
