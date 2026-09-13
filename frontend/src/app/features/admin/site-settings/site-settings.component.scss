@@ -90,6 +90,16 @@
   width: 100%;
 }
 
+.inline-fields {
+  display: flex;
+  gap: 16px;
+
+  mat-form-field {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 .field-label {
   display: block;
   font-size: 0.75rem;

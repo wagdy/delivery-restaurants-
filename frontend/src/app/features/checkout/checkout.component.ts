@@ -17,6 +17,7 @@ import { CheckoutService } from '../../core/services/checkout.service';
 import { CreateOrderRequest } from '../../core/models/order.model';
 import { PaymentMethod, ValidatePromoResponse } from '../../core/models/checkout.model';
 import { AddOnNamesPipe } from '../../shared/pipes/add-on-names.pipe';
+import { estimatedDeliveryLabel as formatDeliveryLabel } from '../../shared/utils/delivery-time.util';
 
 @Component({
   selector: 'app-checkout',
@@ -68,8 +69,18 @@ export class CheckoutComponent {
     deliveryAddress: [
       this.authService.currentUser()?.address ?? '',
       [Validators.required, Validators.maxLength(500)]
-    ]
+    ],
+    // Optional apartment/floor/landmark detail - merged into deliveryAddress on submit
+    // (see placeOrder()) rather than sent as its own field, since the backend's
+    // CreateOrderRequest has just the one free-text address column.
+    deliveryNotes: ['', [Validators.maxLength(200)]]
   });
+
+  // Collapsed by default so the form doesn't look longer than it needs to for the
+  // common case of an address that's already complete on its own.
+  readonly showDeliveryNotes = signal(false);
+
+  readonly estimatedDeliveryLabel = computed(() => formatDeliveryLabel(this.settingsService.settings()));
 
   // Settings are already loaded app-wide before bootstrap (see app.config.ts's
   // APP_INITIALIZER) - reading the shared signal directly here, no separate load() call.
@@ -183,10 +194,19 @@ export class CheckoutComponent {
     this.errorMessage.set(null);
 
     const raw = this.form.getRawValue();
+    const notes = raw.deliveryNotes.trim();
+    // Folded into the one free-text address field the backend actually has (see
+    // CreateOrderRequest.cs) rather than sent separately - there's no DeliveryNotes
+    // column to send it to. Truncated to the backend's own [MaxLength(500)] so a long
+    // address plus notes can never fail order placement on a limit the customer never
+    // saw enforced on this combined string (each field's own maxLength validates the
+    // parts, not the concatenation).
+    const deliveryAddress = (notes ? `${raw.deliveryAddress} (${notes})` : raw.deliveryAddress).slice(0, 500);
+
     const request: CreateOrderRequest = {
       customerName: raw.customerName,
       customerPhone: raw.customerPhone,
-      deliveryAddress: raw.deliveryAddress,
+      deliveryAddress,
       items: this.cart.lines().map((l) => ({
         menuItemId: l.menuItem.id,
         quantity: l.quantity,

@@ -24,6 +24,25 @@
   height: 48px;
 }
 
+.delivery-time-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--app-primary-color, #3f51b5) 8%, transparent);
+  color: var(--app-primary-color, #3f51b5);
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
 .section {
   margin-bottom: 16px;
 

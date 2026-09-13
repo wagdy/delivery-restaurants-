@@ -42,6 +42,12 @@ export interface RestaurantSettings {
   // hardcoded constant now.
   baseDeliveryFee: number;
 
+  // A plain admin-set expectation shown at checkout/cart as "Estimated delivery: X-Y
+  // min" - not a computed ETA (there's no prep-time/distance data anywhere in this app
+  // to compute one from).
+  estimatedDeliveryMinMinutes: number;
+  estimatedDeliveryMaxMinutes: number;
+
   // Up to 3 WhatsApp numbers the detailed "new order" alert is sent to on order creation -
   // deliberately separate from `phone` above, which is the public contact number shown to
   // customers in the footer. Each is independently optional; all three empty skips the

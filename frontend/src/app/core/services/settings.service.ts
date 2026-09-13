@@ -46,6 +46,8 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
   isInstapayEnabled: false,
   instapayAccount: null,
   baseDeliveryFee: 4.99,
+  estimatedDeliveryMinMinutes: 30,
+  estimatedDeliveryMaxMinutes: 45,
   managerWhatsApp1: null,
   managerWhatsApp2: null,
   managerWhatsApp3: null

@@ -67,6 +67,12 @@ public class UpdateRestaurantSettingsRequest : IValidatableObject
     [Range(0, double.MaxValue, ErrorMessage = "Delivery fee cannot be negative.")]
     public decimal BaseDeliveryFee { get; set; }
 
+    [Range(0, 500, ErrorMessage = "Estimated delivery time must be between 0 and 500 minutes.")]
+    public int EstimatedDeliveryMinMinutes { get; set; } = 30;
+
+    [Range(0, 500, ErrorMessage = "Estimated delivery time must be between 0 and 500 minutes.")]
+    public int EstimatedDeliveryMaxMinutes { get; set; } = 45;
+
     [MaxLength(30)]
     public string? ManagerWhatsApp1 { get; set; }
 
@@ -92,6 +98,13 @@ public class UpdateRestaurantSettingsRequest : IValidatableObject
             yield return new ValidationResult(
                 "An Instapay account is required while Instapay payment is enabled.",
                 new[] { nameof(InstapayAccount) });
+        }
+
+        if (EstimatedDeliveryMinMinutes > EstimatedDeliveryMaxMinutes)
+        {
+            yield return new ValidationResult(
+                "The minimum estimated delivery time can't be greater than the maximum.",
+                new[] { nameof(EstimatedDeliveryMinMinutes), nameof(EstimatedDeliveryMaxMinutes) });
         }
     }
 }

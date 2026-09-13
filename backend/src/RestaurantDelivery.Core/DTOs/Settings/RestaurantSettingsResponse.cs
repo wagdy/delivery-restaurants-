@@ -25,6 +25,8 @@ public class RestaurantSettingsResponse
     public bool IsInstapayEnabled { get; set; }
     public string? InstapayAccount { get; set; }
     public decimal BaseDeliveryFee { get; set; }
+    public int EstimatedDeliveryMinMinutes { get; set; }
+    public int EstimatedDeliveryMaxMinutes { get; set; }
     public string? ManagerWhatsApp1 { get; set; }
     public string? ManagerWhatsApp2 { get; set; }
     public string? ManagerWhatsApp3 { get; set; }

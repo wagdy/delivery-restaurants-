@@ -397,6 +397,27 @@
                   }
                 </mat-form-field>
 
+                <div class="inline-fields">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Estimated delivery (min)</mat-label>
+                    <input matInput type="number" min="0" formControlName="estimatedDeliveryMinMinutes" />
+                    <span matTextSuffix>min</span>
+                    @if (form.controls.estimatedDeliveryMinMinutes.hasError('min') && form.controls.estimatedDeliveryMinMinutes.touched) {
+                      <mat-error>Cannot be negative</mat-error>
+                    }
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>Estimated delivery (max)</mat-label>
+                    <input matInput type="number" min="0" formControlName="estimatedDeliveryMaxMinutes" />
+                    <span matTextSuffix>min</span>
+                    <mat-hint>Shown to customers as "Estimated delivery: {{ form.controls.estimatedDeliveryMinMinutes.value }}-{{ form.controls.estimatedDeliveryMaxMinutes.value }} min".</mat-hint>
+                    @if (form.controls.estimatedDeliveryMaxMinutes.hasError('min') && form.controls.estimatedDeliveryMaxMinutes.touched) {
+                      <mat-error>Cannot be negative</mat-error>
+                    }
+                  </mat-form-field>
+                </div>
+
                 <div class="settings-subsection">
                   <h3 class="subsection-title">Manager WhatsApp Notifications (Optional)</h3>
                   <p class="field-hint">

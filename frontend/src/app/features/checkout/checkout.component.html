@@ -6,10 +6,26 @@
       <a mat-flat-button color="primary" routerLink="/">Browse the menu</a>
     </div>
   } @else {
+    <div class="delivery-time-banner">
+      <mat-icon>schedule</mat-icon>
+      Estimated delivery: {{ estimatedDeliveryLabel() }}
+    </div>
+
+    <nav class="checkout-steps" aria-hidden="true">
+      <span class="checkout-step active"><span class="step-dot">1</span>Delivery</span>
+      <span class="checkout-step-line"></span>
+      <span class="checkout-step" [class.active]="paymentMethod()"><span class="step-dot">2</span>Payment</span>
+      <span class="checkout-step-line"></span>
+      <span class="checkout-step"><span class="step-dot">3</span>Review</span>
+    </nav>
+
     <div class="checkout-layout">
       <mat-card class="details-card">
         <mat-card-header>
-          <mat-card-title>Delivery details</mat-card-title>
+          <mat-card-title>
+            <span class="step-badge">1</span>
+            Delivery details
+          </mat-card-title>
           @if (authService.isAuthenticated()) {
             <mat-card-subtitle>Signed in as {{ authService.currentUser()?.fullName }}</mat-card-subtitle>
           } @else {
@@ -21,6 +37,7 @@
           <mat-card-content>
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Full name</mat-label>
+              <mat-icon matPrefix>person_outline</mat-icon>
               <input matInput formControlName="customerName" />
               @if (form.controls.customerName.hasError('required') && form.controls.customerName.touched) {
                 <mat-error>Name is required</mat-error>
@@ -32,6 +49,7 @@
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Phone</mat-label>
+              <mat-icon matPrefix>call</mat-icon>
               <input matInput formControlName="customerPhone" />
               @if (form.controls.customerPhone.hasError('required') && form.controls.customerPhone.touched) {
                 <mat-error>Phone is required</mat-error>
@@ -43,30 +61,49 @@
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Delivery address</mat-label>
+              <mat-icon matPrefix>location_on</mat-icon>
               <input matInput formControlName="deliveryAddress" />
               @if (form.controls.deliveryAddress.hasError('required') && form.controls.deliveryAddress.touched) {
                 <mat-error>Delivery address is required</mat-error>
               }
             </mat-form-field>
 
+            @if (!showDeliveryNotes()) {
+              <button type="button" class="add-notes-toggle" (click)="showDeliveryNotes.set(true)">
+                <mat-icon>add</mat-icon>
+                Add apartment/floor/notes
+              </button>
+            } @else {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Apartment, floor, landmark (optional)</mat-label>
+                <mat-icon matPrefix>note_alt</mat-icon>
+                <input matInput formControlName="deliveryNotes" placeholder="e.g. Apt 4, 2nd floor, near the pharmacy" />
+              </mat-form-field>
+            }
+
             <div class="payment-methods">
-              <span class="field-label">Payment method</span>
+              <span class="field-label">
+                <span class="step-badge small">2</span>
+                Payment method
+              </span>
 
               @if (enabledPaymentMethods().length === 0) {
                 <p class="error-text">No payment methods are currently available. Please contact us to place an order.</p>
               } @else {
-                <mat-radio-group
-                  class="payment-radio-group"
-                  [ngModel]="paymentMethod()"
-                  (ngModelChange)="paymentMethod.set($event)"
-                  [ngModelOptions]="{ standalone: true }"
-                >
+                <div class="payment-options">
                   @for (method of enabledPaymentMethods(); track method) {
-                    <mat-radio-button [value]="method">
-                      {{ method === 'Visa' ? 'Visa (Fawry)' : method }}
-                    </mat-radio-button>
+                    <label class="payment-option" [class.selected]="paymentMethod() === method">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        [checked]="paymentMethod() === method"
+                        (change)="paymentMethod.set(method)"
+                      />
+                      <mat-icon>{{ method === 'Cash' ? 'payments' : method === 'Visa' ? 'credit_card' : 'account_balance_wallet' }}</mat-icon>
+                      <span>{{ method === 'Visa' ? 'Visa (Fawry)' : method }}</span>
+                    </label>
                   }
-                </mat-radio-group>
+                </div>
 
                 @if (paymentMethod() === 'Instapay') {
                   <div class="instapay-details">
@@ -87,6 +124,7 @@
               mat-flat-button
               color="primary"
               type="submit"
+              class="place-order-button"
               [disabled]="submitting() || form.invalid || !paymentMethod()"
             >
               @if (submitting()) {
@@ -101,7 +139,10 @@
 
       <mat-card class="summary-card">
         <mat-card-header>
-          <mat-card-title>Order summary</mat-card-title>
+          <mat-card-title>
+            <span class="step-badge">3</span>
+            Order summary
+          </mat-card-title>
         </mat-card-header>
         <mat-card-content>
           @for (line of cart.lines(); track cart.keyFor(line)) {

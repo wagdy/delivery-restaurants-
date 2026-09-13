@@ -48,6 +48,8 @@ public class SettingsService : ISettingsService
         settings.IsInstapayEnabled = request.IsInstapayEnabled;
         settings.InstapayAccount = request.InstapayAccount;
         settings.BaseDeliveryFee = request.BaseDeliveryFee;
+        settings.EstimatedDeliveryMinMinutes = request.EstimatedDeliveryMinMinutes;
+        settings.EstimatedDeliveryMaxMinutes = request.EstimatedDeliveryMaxMinutes;
         settings.ManagerWhatsApp1 = request.ManagerWhatsApp1;
         settings.ManagerWhatsApp2 = request.ManagerWhatsApp2;
         settings.ManagerWhatsApp3 = request.ManagerWhatsApp3;
@@ -95,6 +97,8 @@ public class SettingsService : ISettingsService
         IsInstapayEnabled = settings.IsInstapayEnabled,
         InstapayAccount = settings.InstapayAccount,
         BaseDeliveryFee = settings.BaseDeliveryFee,
+        EstimatedDeliveryMinMinutes = settings.EstimatedDeliveryMinMinutes,
+        EstimatedDeliveryMaxMinutes = settings.EstimatedDeliveryMaxMinutes,
         ManagerWhatsApp1 = settings.ManagerWhatsApp1,
         ManagerWhatsApp2 = settings.ManagerWhatsApp2,
         ManagerWhatsApp3 = settings.ManagerWhatsApp3

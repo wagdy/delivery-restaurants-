@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -6,7 +6,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../../core/services/auth.service';
 import { CartService } from '../../../core/services/cart.service';
+import { SettingsService } from '../../../core/services/settings.service';
 import { AddOnNamesPipe } from '../../../shared/pipes/add-on-names.pipe';
+import { estimatedDeliveryLabel as formatDeliveryLabel } from '../../../shared/utils/delivery-time.util';
 
 @Component({
   selector: 'app-cart-dialog',
@@ -17,9 +19,12 @@ import { AddOnNamesPipe } from '../../../shared/pipes/add-on-names.pipe';
 })
 export class CartDialogComponent {
   protected readonly cart = inject(CartService);
+  protected readonly settingsService = inject(SettingsService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly ref = inject(MatDialogRef<CartDialogComponent>);
+
+  readonly estimatedDeliveryLabel = computed(() => formatDeliveryLabel(this.settingsService.settings()));
 
   // Swaps the dialog's own content/actions to the loyalty prompt below rather than
   // stacking a second MatDialog on top of this one - this cart is already a dialog, so a

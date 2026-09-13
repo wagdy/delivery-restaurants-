@@ -4,6 +4,10 @@
       <mat-icon class="success-icon">check_circle</mat-icon>
       <h1>Order placed!</h1>
       <p>Thanks{{ o.userId ? '' : ', ' + o.customerName }} — your order has been received.</p>
+      <div class="delivery-time-banner">
+        <mat-icon>schedule</mat-icon>
+        Estimated delivery: {{ estimatedDeliveryLabel() }}
+      </div>
     </div>
 
     <mat-card class="order-card">

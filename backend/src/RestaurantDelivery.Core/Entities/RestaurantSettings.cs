@@ -83,6 +83,13 @@ public class RestaurantSettings
     // that extension requires changing this column - it just stops being the only fee.
     public decimal BaseDeliveryFee { get; set; }
 
+    // Shown to the customer at checkout/cart as "Estimated delivery: X-Y min" - a plain
+    // admin-set expectation, not a computed ETA (there's no prep-time/distance data
+    // anywhere in this app to compute one from). Min/Max rather than a single number so
+    // it reads honestly as a range instead of false precision.
+    public int EstimatedDeliveryMinMinutes { get; set; } = 30;
+    public int EstimatedDeliveryMaxMinutes { get; set; } = 45;
+
     // Up to 3 WhatsApp numbers the detailed "new order" alert is sent to (see
     // WhatsAppNotificationService.SendOrderNotificationsAsync) - deliberately separate from
     // Phone above, which is the public contact number shown to customers in the footer.
