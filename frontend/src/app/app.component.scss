@@ -238,6 +238,27 @@
   padding: 16px;
 }
 
+// Explicit 44px rather than trusting Material's own mat-icon-button default sizing
+// (which has varied across Material versions/densities elsewhere in this app) - this is
+// the drawer's one "exit" affordance, so it gets its own light hover backdrop plus a
+// small spin, rather than relying on the ripple alone for feedback.
+.drawer-close-btn {
+  width: 44px;
+  height: 44px;
+  transition: background-color 150ms ease, transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+    transform: rotate(90deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer-close-btn {
+    transition: none !important;
+  }
+}
+
 // Bigger, more touch-friendly rows than Material's own dense default (spec calls for
 // "large, highly touch-friendly typography ... without feeling cluttered") - the
 // generous vertical padding plus the pill-shaped hover/active state is what keeps it
@@ -368,13 +389,17 @@
 // what gives `.brand`'s `height: 100%` below a real, fixed reference to fill - without
 // it, "make the logo match the header's full height" has no fixed height to match.
 .app-header {
-  // A real 3-item flex row (hamburger/logout group, brand, cart/account group) - see
-  // .brand below for why this replaced the old "absolutely position the brand over a
-  // two-item flex row" approach. A subtle frosted-glass layer (slightly translucent
-  // admin-configured color + backdrop blur) on top of the solid --app-header-color
-  // background below via styles.scss, rather than a heavily transparent header that
-  // would fight the admin's own color choice and unpredictably tank text contrast
-  // depending on what scrolls underneath.
+  // A real 3-item flex row: the hamburger button, the centered brand, and an invisible
+  // spacer of the exact same fixed width as the hamburger (see .header-hamburger-btn
+  // below). Every action that used to live in a right-side icon group - Cart, account,
+  // Admin, My Deliveries, Logout - now lives in the sidebar drawer instead, so both
+  // outer slots are always exactly one icon-button wide for every role, which is what
+  // lets .brand's own flex-centering land on the toolbar's true center rather than
+  // needing to guess at some other width. A subtle frosted-glass layer (slightly
+  // translucent admin-configured color + backdrop blur) on top of the solid
+  // --app-header-color background below via styles.scss, rather than a heavily
+  // transparent header that would fight the admin's own color choice and unpredictably
+  // tank text contrast depending on what scrolls underneath.
   display: flex;
   align-items: center;
   position: sticky;
@@ -392,14 +417,23 @@
   }
 }
 
-// A genuine flex sibling of the two icon groups now, not an absolutely-positioned
-// overlay guessing a percentage of the toolbar's total width - flex: 1 1 auto means it
-// gets exactly whatever space the (flex: 0 0 auto, never-shrinking) icon groups on
-// either side actually leave behind, which varies a lot by who's logged in (a guest
-// sees far fewer icons than an authenticated admin) instead of one fixed guess that's
-// either too tight or too generous depending on who's viewing. min-width is a
-// legibility floor: past that point the header would rather run slightly tight than
-// crush the logo unreadably thin in a worst-case icon combination.
+// The hamburger button itself, and the invisible spacer that mirrors it on the other
+// side of the brand (see app.component.html) - a fixed, explicit size for both rather
+// than trusting Material's own mat-icon-button default (which has varied across
+// contexts elsewhere in this app), since true centering here specifically depends on
+// both slots being identical.
+.header-hamburger-btn {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+// A genuine flex sibling of the two now-equal-width slots above, not an
+// absolutely-positioned overlay guessing at a max-width - flex: 1 1 auto means it gets
+// exactly whatever space those two fixed 44px slots leave behind, which is the same on
+// both sides for every role, so justify-content: center below lands the logo on the
+// toolbar's true center. min-width is a legibility floor: past that point the header
+// would rather run slightly tight than crush the logo unreadably thin.
 .brand {
   flex: 1 1 auto;
   min-width: 110px;
@@ -494,24 +528,13 @@
   }
 }
 
-// Equivalent to Tailwind's `flex items-center gap-2 md:gap-4`.
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  @media (min-width: 1120px) {
-    gap: 16px;
-  }
-}
-
-// Hover treatment for Material's own icon-buttons (hamburger, cart) - Material already
-// gives these their circular shape and click ripple, so this only adds the persistent
-// hover backdrop on top. A translucent white (not Tailwind's literal hover:bg-gray-100)
-// is the correct equivalent here: the toolbar itself sits on an admin-configurable
-// colored background (see styles.scss's --app-header-color), not white, so a light-gray
-// tint would barely show or look muddy - white-on-color is the standard Material
-// pattern for hover feedback on a colored surface.
+// Hover treatment for Material's own hamburger icon-button - Material already gives it
+// its circular shape and click ripple, so this only adds the persistent hover backdrop
+// on top. A translucent white (not Tailwind's literal hover:bg-gray-100) is the correct
+// equivalent here: the toolbar itself sits on an admin-configurable colored background
+// (see styles.scss's --app-header-color), not white, so a light-gray tint would barely
+// show or look muddy - white-on-color is the standard Material pattern for hover
+// feedback on a colored surface.
 .icon-hover {
   transition: background-color 150ms ease, transform 150ms ease;
 
@@ -543,116 +566,15 @@
   }
 }
 
-// Custom (non-Material) icon+label actions - Logout, Admin, and Login/Register all
-// share this so they get the same rounded-full hover treatment and the same "icon only
-// on mobile, icon+label from md: up" behavior as the spec asked for.
-.action-link {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px;
-  border-radius: 9999px;
-  color: inherit;
-  background: none;
-  border: none;
-  text-decoration: none;
-  font: inherit;
-  cursor: pointer;
-  transition: background-color 150ms ease, transform 150ms ease;
-
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.16);
-    transform: scale(1.06);
-
-    mat-icon {
-      color: var(--app-accent-color, #ff4081) !important;
-    }
-  }
-
-  &:active {
-    transform: scale(0.96);
-  }
-
-  mat-icon {
-    flex-shrink: 0;
-    transition: color 150ms ease;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .icon-hover,
-  .icon-hover mat-icon,
-  .action-link {
+  .icon-hover mat-icon {
     transition: none !important;
   }
 
   .icon-hover:hover,
-  .action-link:hover,
-  .icon-hover:active,
-  .action-link:active {
+  .icon-hover:active {
     transform: none !important;
-  }
-}
-
-// Equivalent to Tailwind's "hidden md:inline" pattern for the text next to each
-// action icon (Logout, Admin, Login/Register) - only the icon shows below this
-// breakpoint. The reveal point is 1120px, not Tailwind's literal 768px "md:" - see the
-// max-width: 1119px block below for why.
-.action-label {
-  display: none;
-  white-space: nowrap;
-
-  @media (min-width: 1120px) {
-    display: inline;
-  }
-}
-
-// Equivalent to Tailwind's `absolute -top-1 -right-1 bg-red-600 text-white text-[10px]
-// w-4 h-4 flex items-center justify-center rounded-full`.
-.cart-button {
-  position: relative;
-  overflow: visible;
-}
-
-.cart-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 16px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9999px;
-  background: #dc2626;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-
-  &.bump {
-    animation: cartBadgeBump 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-}
-
-@keyframes cartBadgeBump {
-  0% {
-    transform: scale(1);
-  }
-  35% {
-    transform: scale(1.5);
-  }
-  60% {
-    transform: scale(0.9);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cart-badge.bump {
-    animation: none !important;
   }
 }
 
@@ -673,39 +595,13 @@
   }
 }
 
-// Below 1120px: tighter icon-group gaps/padding so the hamburger+Logout on the left and
-// cart+Admin (or cart+account for a guest) on the right - all icon-only here - leave the
-// centered brand (a real flex item now, sized from whatever these groups don't take -
-// see .brand above) as much room as possible instead of overlapping it. Verified against
-// every right-side composition (guest, customer, admin) at 375, 640, 767, 1024, 1080,
-// 1119, and 1120px before landing on this threshold.
-@media (max-width: 1119px) {
-  .header-actions {
-    gap: 2px;
-  }
-
-  .action-link {
-    padding: 4px;
-  }
-}
-
-// The narrowest real phones (320-374px) - logo legibility takes priority over the
-// header's own side padding and icon-group spacing here, per the spec: reclaim width
-// from the chrome around the logo rather than letting the logo itself keep shrinking.
-// Verified against the worst realistic case - an authenticated admin (hamburger+Logout
-// left, Cart+Admin+Account right, five icon-buttons total) - at exactly 320px.
+// The narrowest real phones (320-374px) - logo legibility still takes priority over the
+// header's own side padding here, per the original spec this carried over from, even
+// though both outer slots are now a fixed, much smaller 44px regardless of role (see
+// .header-hamburger-btn above) rather than a multi-icon group that could grow further.
 @media (max-width: 374px) {
   .app-header {
     padding-left: 6px;
     padding-right: 6px;
-  }
-
-  .header-actions {
-    gap: 0;
-  }
-
-  .brand {
-    min-width: 84px;
-    padding: 0 4px;
   }
 }

@@ -1,10 +1,9 @@
-import { Component, ViewChild, computed, effect, inject, signal } from '@angular/core';
+import { Component, ViewChild, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatBadgeModule } from '@angular/material/badge';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -27,7 +26,6 @@ import { iconForCategory } from './shared/utils/category-icon.util';
     MatToolbarModule,
     MatButtonModule,
     MatIconModule,
-    MatBadgeModule,
     MatSidenavModule,
     MatListModule,
     CartDrawerComponent,
@@ -59,17 +57,6 @@ export class AppComponent {
   // than once at app init) - see cart-drawer's own shake signals for why a round trip
   // through false is needed on a persistent, never-recreated component like this one.
   readonly categoryDrawerAnimate = signal(false);
-
-  // Bounces the header cart badge whenever the item count actually changes. Driven by
-  // an effect() rather than calling this explicitly wherever the count changes - the
-  // count is mutated from many unrelated places (menu cards' Smart Add, the cart
-  // drawer's own stepper, checkout), and this is the one place that owns the badge.
-  readonly cartBadgeBump = signal(false);
-  // Seeded from the cart's actual starting count (not e.g. -1) so the effect's own
-  // first run - which always fires immediately on creation, before anything has really
-  // "changed" - doesn't mistake the initial value for a change and bump on page load.
-  private previousCartCount = this.cart.itemCount();
-  private cartBadgeBumpTimer: ReturnType<typeof setTimeout> | null = null;
 
   // The cart bottom sheet - a plain signal + custom fixed-position container instead of
   // <mat-sidenav> (see app.component.html), since a side-drawer/dialog's own animation
@@ -109,14 +96,6 @@ export class AppComponent {
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => {
       this.isBarePage.set(AppComponent.isBareUrl((event as NavigationEnd).urlAfterRedirects));
-    });
-
-    effect(() => {
-      const count = this.cart.itemCount();
-      if (count !== this.previousCartCount) {
-        this.previousCartCount = count;
-        this.pulseCartBadge();
-      }
     });
 
     // The service worker (see app.config.ts's provideServiceWorker) caches the whole app
@@ -169,34 +148,17 @@ export class AppComponent {
     this.router.navigate(['/'], { queryParams: { category: name } });
   }
 
-  // The single header User icon's target - replaces the old separate Login/Register
-  // links for a guest. An authenticated (non-captain, non-admin-specific) user goes to
-  // their own orders rather than back through the auth form; /my-orders is itself
-  // authGuard-protected, so this is purely a shortcut, not the only thing enforcing it.
+  // The sidebar's own auth quick-link target (see the drawer's "Login / Register"/"My
+  // Orders" item in app.component.html). An authenticated (non-captain, non-admin-
+  // specific) user goes to their own orders rather than back through the auth form;
+  // /my-orders is itself authGuard-protected, so this is purely a shortcut, not the
+  // only thing enforcing it.
   protected accountRoute(): string {
     return this.authService.isAuthenticated() ? '/my-orders' : '/login';
   }
 
   protected iconFor(category: string): string {
     return iconForCategory(category);
-  }
-
-  // Same false -> (next tick) -> true round trip as the add-ons dialog's own price
-  // pulse - a plain set(true) would silently no-op if two cart changes land close
-  // enough together that the first bump's (animationend) hasn't reset the signal yet.
-  private pulseCartBadge(): void {
-    this.cartBadgeBump.set(false);
-    if (this.cartBadgeBumpTimer !== null) {
-      clearTimeout(this.cartBadgeBumpTimer);
-    }
-    this.cartBadgeBumpTimer = setTimeout(() => this.cartBadgeBump.set(true), 0);
-  }
-
-  // Angular template expressions can't use arrow-function syntax directly (e.g.
-  // "cartOpen.update(v => !v)" in a (click) binding fails to parse) - this is the
-  // header cart icon's toggle, kept as a real method for that reason.
-  protected toggleCartSheet(): void {
-    this.cartOpen.update((open) => !open);
   }
 
   // Mirrors the old <mat-sidenav>'s (closed) timing for CartDrawerComponent's own

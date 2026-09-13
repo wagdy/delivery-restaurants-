@@ -14,28 +14,25 @@
         <mat-icon>restaurant_menu</mat-icon>
         Menu
       </span>
-      <button mat-icon-button (click)="drawer.close()" aria-label="Close menu">
+      <button mat-icon-button class="drawer-close-btn" (click)="drawer.close()" aria-label="Close menu">
         <mat-icon>close</mat-icon>
       </button>
     </div>
     <mat-nav-list class="category-nav-list" [class.animate-in]="categoryDrawerAnimate()">
-      <!-- Quick links - mirrors the header's own cart/account/admin actions (see the
-           toolbar further down) so everything reachable from the header is also one tap
-           away from here on mobile, not just categories. -->
+      <!-- Quick links - the sidebar is now the single hub for every account/nav action
+           (the header itself is just the hamburger + centered logo - see the toolbar
+           further down), so Login/Register (or My Orders/Admin/Logout once signed in)
+           lead here, above the category list. -->
       @if (authService.isCaptain()) {
         <a mat-list-item class="category-nav-item" routerLink="/captain" (click)="drawer.close()">
           <mat-icon matListItemIcon>local_shipping</mat-icon>
           <span matListItemTitle>My Deliveries</span>
         </a>
       } @else {
-        <a mat-list-item class="category-nav-item" (click)="drawer.close(); cartOpen.set(true)">
-          <mat-icon matListItemIcon>shopping_cart</mat-icon>
-          <span matListItemTitle>Cart</span>
-          @if (cart.itemCount() > 0) {
-            <span matListItemMeta class="nav-item-badge">{{ cart.itemCount() }}</span>
-          }
-        </a>
-
+        <!-- Cart isn't repeated here - the floating "Review Order" bar (see
+             cartOpen()/showCartFab() in app.component.ts) is already a persistent,
+             always-visible affordance whenever there's anything in the cart, so a
+             second entry point buried in this drawer would just be redundant. -->
         <a mat-list-item class="category-nav-item" [routerLink]="accountRoute()" (click)="drawer.close()">
           <mat-icon matListItemIcon>{{ authService.isAuthenticated() ? 'receipt_long' : 'login' }}</mat-icon>
           <span matListItemTitle>{{ authService.isAuthenticated() ? 'My Orders' : 'Login / Register' }}</span>
@@ -80,36 +77,31 @@
   </mat-sidenav>
 
   <mat-sidenav-content>
+    <!-- Minimalist header: hamburger (opens the sidebar - the sole nav trigger now),
+         perfectly centered logo, and an invisible spacer matching the hamburger's own
+         width on the right so the logo's flex-centered slot stays symmetric regardless
+         of role. Every action that used to live here (Cart, Login/My account, Admin,
+         My Deliveries, Logout) has an equivalent already in the sidebar drawer above -
+         see its own quick-links section. -->
     <mat-toolbar color="primary" class="app-header">
-      <!-- Left: hamburger + Logout (any authenticated role - customer, admin, or captain) -->
-      <div class="header-actions">
-        <button
-          mat-icon-button
-          class="icon-hover"
-          (click)="drawer.toggle()"
-          [attr.aria-label]="drawer.opened ? 'Close menu' : 'Open menu'"
-          [attr.aria-expanded]="drawer.opened"
-        >
-          <span class="hamburger" [class.open]="drawer.opened">
-            <span class="hamburger-bar"></span>
-            <span class="hamburger-bar"></span>
-            <span class="hamburger-bar"></span>
-          </span>
-        </button>
-        @if (authService.isAuthenticated()) {
-          <button class="action-link" (click)="authService.logout()" aria-label="Logout">
-            <mat-icon>logout</mat-icon>
-            <span class="action-label">Logout</span>
-          </button>
-        }
-      </div>
+      <button
+        mat-icon-button
+        class="icon-hover header-hamburger-btn"
+        (click)="drawer.toggle()"
+        [attr.aria-label]="drawer.opened ? 'Close menu' : 'Open menu'"
+        [attr.aria-expanded]="drawer.opened"
+      >
+        <span class="hamburger" [class.open]="drawer.opened">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </span>
+      </button>
 
-      <!-- Center - a true flex sibling (not absolutely positioned) so it gets whatever
-           space is actually left over after the two icon groups, rather than a guessed
-           percentage - a guest sees far fewer icons than a logged-in admin, so the
-           genuinely available room differs a lot between them. min-width below is a
-           legibility floor: the logo would rather make the header slightly tighter
-           than get crushed unreadably thin in a worst-case icon combination. -->
+      <!-- True center: a flex sibling of two now-equal-width slots (this button and the
+           spacer below), not an absolutely-positioned overlay guessing a max-width -
+           see app.component.scss's .brand for why that still gives the logo more room
+           on a narrow screen than a fixed guess would. -->
       <a [routerLink]="authService.isCaptain() ? '/captain' : '/'" class="brand">
         @if (settingsService.settings().centerLogoUrl) {
           <span class="logo-wrapper prominent">
@@ -134,47 +126,7 @@
         }
       </a>
 
-      <!-- Right -->
-      @if (authService.isCaptain()) {
-        <!-- Captain Order accounts are restricted to the Orders section only: no cart,
-             no customer "My Orders", no admin console. -->
-        <div class="header-actions">
-          <a class="action-link" routerLink="/captain">
-            <mat-icon>local_shipping</mat-icon>
-            <span class="action-label">My Deliveries</span>
-          </a>
-        </div>
-      } @else {
-        <div class="header-actions">
-          <button mat-icon-button class="icon-hover cart-button" (click)="toggleCartSheet()" aria-label="View cart">
-            <mat-icon>shopping_cart</mat-icon>
-            @if (cart.itemCount() > 0) {
-              <span class="cart-badge" [class.bump]="cartBadgeBump()" (animationend)="cartBadgeBump.set(false)">{{ cart.itemCount() }}</span>
-            }
-          </button>
-
-          @if (authService.isAuthenticated() && authService.isAdmin()) {
-            <a class="action-link" routerLink="/admin">
-              <mat-icon>admin_panel_settings</mat-icon>
-              <span class="action-label">Admin</span>
-            </a>
-          }
-
-          <!-- Single account icon, unconditional (replaces the old separate Login/Register
-               links): a guest lands on /login, an authenticated customer on their own
-               /my-orders - see AppComponent.accountRoute(). Icon-only like the cart/menu
-               buttons next to it, not the icon+label .action-link pattern - there's no
-               "Login"/"Register" text left to show. -->
-          <a
-            mat-icon-button
-            class="icon-hover"
-            [routerLink]="accountRoute()"
-            [attr.aria-label]="authService.isAuthenticated() ? 'My account' : 'Login'"
-          >
-            <mat-icon>person</mat-icon>
-          </a>
-        </div>
-      }
+      <div class="header-hamburger-btn" aria-hidden="true"></div>
     </mat-toolbar>
 
     <div class="page-content" [class.has-cart-bar]="showCartFab()">
