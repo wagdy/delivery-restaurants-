@@ -1,0 +1,121 @@
+// Step 1 of the menu's 2-step drill-down: the visual category landing grid. Split into
+// its own stylesheet (added alongside storefront.component.scss - see storeFront's own
+// styleUrls) purely to stay under Angular's per-file component style budget; there's no
+// functional reason these rules couldn't live in the main file.
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+
+  @media (min-width: 480px) {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+  }
+}
+
+.category-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border: none;
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  background: #eee;
+  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
+  animation: cardEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: var(--enter-delay, 0ms);
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 36px -14px rgba(0, 0, 0, 0.4);
+
+    .category-card-image {
+      transform: scale(1.12);
+    }
+
+    .category-card-fallback mat-icon {
+      transform: scale(1.15);
+    }
+  }
+}
+
+.category-card-image {
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+// The "no image uploaded yet" fallback - a warm brand gradient (matching this app's
+// other Otantik-brand flourishes: the auth screen's split panel, the cart drawer's
+// footer) rather than a plain gray box, so an admin who hasn't uploaded category photos
+// yet still gets a premium-looking card, not a broken-looking placeholder.
+.category-card-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3a2a1c, #b9793f);
+
+  mat-icon {
+    font-size: 56px;
+    width: 56px;
+    height: 56px;
+    color: rgba(255, 255, 255, 0.85);
+    transition: transform 0.4s ease;
+  }
+}
+
+// Strongest at the bottom, where the name/count sit, fading to nothing near the top so
+// the photo itself stays visible - text legibility never depends on where in the image
+// the admin's own subject happens to be.
+.category-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.35) 45%, rgba(0, 0, 0, 0) 75%);
+}
+
+.category-card-content {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.category-card-name {
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+
+  @media (min-width: 1024px) {
+    font-size: 1.3rem;
+  }
+}
+
+.category-card-count {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .category-card {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .category-card-image,
+  .category-card-fallback mat-icon {
+    transition: none !important;
+  }
+}

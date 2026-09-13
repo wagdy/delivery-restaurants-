@@ -1,4 +1,4 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -71,6 +71,21 @@ export class AppComponent {
   private previousCartCount = this.cart.itemCount();
   private cartBadgeBumpTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // The cart bottom sheet - a plain signal + custom fixed-position container instead of
+  // <mat-sidenav> (see app.component.html), since a side-drawer/dialog's own animation
+  // system can't give the true bottom-sheet slide-up this pattern calls for. Content
+  // component (CartDrawerComponent) is unchanged either way - see DrawerHandle, the same
+  // minimal `{ close(): void }` contract it already used with the old sidenav.
+  readonly cartOpen = signal(false);
+  protected readonly cartSheetHandle = { close: () => this.closeCartSheet() };
+  @ViewChild('cartDrawerContent') private cartDrawerContentRef?: CartDrawerComponent;
+  private cartSheetResetTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Drives both the floating "Review Order" bar's visibility and .page-content's own
+  // extra bottom padding (see app.component.scss) - hidden once the sheet itself is open
+  // so the bar never shows stacked behind/under it.
+  readonly showCartFab = computed(() => !this.authService.isCaptain() && this.cart.itemCount() > 0 && !this.cartOpen());
+
   // True for the fully public, chrome-free pages: "/rate/store", "/customer-review/:id"
   // (reached from a WhatsApp link by a customer who may not even be logged in - the
   // app-wide toolbar/sidenav would look completely out of place there), plus the
@@ -116,7 +131,17 @@ export class AppComponent {
       this.swUpdate.versionUpdates
         .pipe(filter((event): event is VersionReadyEvent => event.type === 'VERSION_READY'))
         .subscribe(() => {
-          const ref = this.snackBar.open('A new version of the app is available.', 'Refresh', { duration: 0 });
+          // verticalPosition: 'top' - the cart's own floating "Review Order" bar (see
+          // cartOpen/showCartFab above) now permanently occupies the bottom of the
+          // screen whenever there's anything in the cart, which is prime real estate for
+          // Material's own default bottom-center snackbar position. Moving this one
+          // notification to the top sidesteps the collision entirely, rather than
+          // trying to carefully coordinate z-index/offsets between two independent
+          // bottom-anchored elements that would otherwise fight for the same space.
+          const ref = this.snackBar.open('A new version of the app is available.', 'Refresh', {
+            duration: 0,
+            verticalPosition: 'top'
+          });
           ref.onAction().subscribe(() => {
             this.swUpdate.activateUpdate().then(() => document.location.reload());
           });
@@ -165,5 +190,26 @@ export class AppComponent {
       clearTimeout(this.cartBadgeBumpTimer);
     }
     this.cartBadgeBumpTimer = setTimeout(() => this.cartBadgeBump.set(true), 0);
+  }
+
+  // Angular template expressions can't use arrow-function syntax directly (e.g.
+  // "cartOpen.update(v => !v)" in a (click) binding fails to parse) - this is the
+  // header cart icon's toggle, kept as a real method for that reason.
+  protected toggleCartSheet(): void {
+    this.cartOpen.update((open) => !open);
+  }
+
+  // Mirrors the old <mat-sidenav>'s (closed) timing for CartDrawerComponent's own
+  // resetOnClose() (see that component's own comment on showGuestPrompt for why it
+  // needs this at all) - resetting immediately on click, instead of waiting for the
+  // close transition to actually finish, would flash the drawer back to its default
+  // content while it's still visibly sliding off-screen. 320ms matches .cart-sheet's
+  // own transition duration in app.component.scss.
+  protected closeCartSheet(): void {
+    this.cartOpen.set(false);
+    if (this.cartSheetResetTimer !== null) {
+      clearTimeout(this.cartSheetResetTimer);
+    }
+    this.cartSheetResetTimer = setTimeout(() => this.cartDrawerContentRef?.resetOnClose(), 320);
   }
 }

@@ -26,14 +26,54 @@
       </div>
     } @else if (errorMessage()) {
       <p class="error-text">{{ errorMessage() }}</p>
+    } @else if (menuView() === 'categories') {
+      <!-- Step 1: the visual category landing grid. -->
+      @if (categoryCards().length === 0) {
+        <p class="empty-state">No menu items available right now.</p>
+      } @else {
+        <div class="category-grid">
+          @for (card of categoryCards(); track card.name; let i = $index) {
+            <button
+              type="button"
+              class="category-card"
+              [style.--enter-delay.ms]="i * 60"
+              (click)="selectCategory(card.name)"
+            >
+              @if (card.imageUrl) {
+                <div class="menu-card-skeleton" [class.is-hidden]="isCategoryImageLoaded(card.name)"></div>
+                <img
+                  [ngSrc]="card.imageUrl"
+                  [alt]="card.name"
+                  [priority]="i === firstImageCardIndex()"
+                  fill
+                  class="category-card-image"
+                  (load)="onCategoryImageLoad(card.name)"
+                />
+              } @else {
+                <div class="category-card-fallback">
+                  <mat-icon>{{ iconFor(card.name) }}</mat-icon>
+                </div>
+              }
+              <div class="category-card-overlay"></div>
+              <div class="category-card-content">
+                <span class="category-card-name">{{ card.name }}</span>
+                <span class="category-card-count">{{ card.itemCount }} item{{ card.itemCount === 1 ? '' : 's' }}</span>
+              </div>
+            </button>
+          }
+        </div>
+      }
     } @else {
+      <!-- Step 2: one category's own items, with a sticky rail (back-to-categories +
+           every other category, so the user can jump sideways without retreating to the
+           grid) always reachable at the top. -->
       <div class="menu-toolbar">
         <div class="search-bar">
           <mat-icon class="search-icon">search</mat-icon>
           <input
             type="text"
             class="search-input"
-            placeholder="Search the menu"
+            [placeholder]="'Search in ' + selectedCategory()"
             [value]="searchTerm()"
             (input)="searchTerm.set($any($event.target).value)"
           />
@@ -63,110 +103,107 @@
         </div>
       </div>
 
-      @if (menuSections().length === 0) {
-        <p class="empty-state">
-          {{ searchTerm().trim() ? 'No items match your search.' : 'No menu items available right now.' }}
-        </p>
-      } @else {
-        <div class="menu-layout">
-          <nav class="category-rail" aria-label="Menu categories">
-            @for (section of menuSections(); track section.category) {
-              <button
-                type="button"
-                class="category-chip"
-                [class.active]="activeCategory() === section.category"
-                (click)="scrollToCategory(section.category)"
-              >
-                <mat-icon>{{ iconFor(section.category) }}</mat-icon>
-                <span class="category-chip-label">{{ section.category }}</span>
-                <span class="category-chip-count">{{ section.totalCount }}</span>
-              </button>
-            }
-          </nav>
+      <div class="menu-layout">
+        <nav class="category-rail" aria-label="Menu categories">
+          <button type="button" class="category-chip back-chip" (click)="backToCategories()">
+            <mat-icon>arrow_back</mat-icon>
+            <span class="category-chip-label">All Categories</span>
+          </button>
 
-          <!-- Reusable item grid, shared by every section's ungrouped items and each of
-               its sub-category sub-sections - keeps the card markup defined exactly once. -->
-          <ng-template #itemsGrid let-items>
-            <div class="items-grid" [class.list-view]="viewMode() === 'list'">
-              @for (item of items; track item.id; let i = $index) {
-                <mat-card class="menu-card" [style.--enter-delay.ms]="i * 40" (click)="openDetails(item)">
-                  <div class="menu-card-media">
-                    @if (item.imageUrl) {
-                      <div class="menu-card-skeleton" [class.is-hidden]="isItemImageLoaded(item.id)"></div>
-                      <img
-                        [ngSrc]="item.imageUrl"
-                        [alt]="item.name"
-                        fill
-                        class="menu-card-image"
-                        (load)="onItemImageLoad(item.id)"
-                      />
-                    } @else {
-                      <div class="menu-card-placeholder">
-                        <mat-icon>restaurant</mat-icon>
-                      </div>
-                    }
-                    @if (item.addOns.length > 0 && quantityFor(item.id) > 0) {
-                      <span class="in-cart-badge">{{ quantityFor(item.id) }} in cart</span>
-                    }
-                  </div>
-                  <mat-card-content>
-                    <div class="card-header">
-                      <h3>{{ item.name }}</h3>
-                      <span class="price">L.E {{ item.price.toFixed(2) }}</span>
+          @for (name of categories(); track name) {
+            <button
+              type="button"
+              class="category-chip"
+              [class.active]="selectedCategory() === name"
+              (click)="selectCategory(name)"
+            >
+              <mat-icon>{{ iconFor(name) }}</mat-icon>
+              <span class="category-chip-label">{{ name }}</span>
+              <span class="category-chip-count">{{ categoryTotalCounts().get(name) }}</span>
+            </button>
+          }
+        </nav>
+
+        <!-- Reusable item grid, shared by the selected category's ungrouped items and
+             each of its sub-category sub-sections - keeps the card markup defined
+             exactly once. -->
+        <ng-template #itemsGrid let-items>
+          <div class="items-grid" [class.list-view]="viewMode() === 'list'">
+            @for (item of items; track item.id; let i = $index) {
+              <mat-card class="menu-card" [style.--enter-delay.ms]="i * 40" (click)="openDetails(item)">
+                <div class="menu-card-media">
+                  @if (item.imageUrl) {
+                    <div class="menu-card-skeleton" [class.is-hidden]="isItemImageLoaded(item.id)"></div>
+                    <img
+                      [ngSrc]="item.imageUrl"
+                      [alt]="item.name"
+                      fill
+                      class="menu-card-image"
+                      (load)="onItemImageLoad(item.id)"
+                    />
+                  } @else {
+                    <div class="menu-card-placeholder">
+                      <mat-icon>restaurant</mat-icon>
                     </div>
-                    @if (item.description) {
-                      <p class="description">{{ item.description }}</p>
-                    }
-                    @if (item.addOns.length > 0) {
-                      <p class="addons-hint">{{ item.addOns.length }} add-on{{ item.addOns.length === 1 ? '' : 's' }} available</p>
-                    }
-                  </mat-card-content>
-                  <mat-card-actions>
-                    @if (showInlineStepper(item)) {
-                      <div class="qty-stepper" (click)="$event.stopPropagation()">
-                        <button mat-icon-button class="qty-btn" (click)="decrementPlainLine(item); $event.stopPropagation()" aria-label="Decrease quantity">
-                          <mat-icon>remove</mat-icon>
-                        </button>
-                        <span class="qty-value">{{ quantityFor(item.id) }}</span>
-                        <button mat-icon-button class="qty-btn" (click)="incrementPlainLine(item); $event.stopPropagation()" aria-label="Increase quantity">
-                          <mat-icon>add</mat-icon>
-                        </button>
-                      </div>
-                    } @else {
-                      <button mat-flat-button color="primary" class="add-button" (click)="smartAdd(item); $event.stopPropagation()">
-                        <mat-icon>add</mat-icon>
-                        Add
+                  }
+                  @if (item.addOns.length > 0 && quantityFor(item.id) > 0) {
+                    <span class="in-cart-badge">{{ quantityFor(item.id) }} in cart</span>
+                  }
+                </div>
+                <mat-card-content>
+                  <div class="card-header">
+                    <h3>{{ item.name }}</h3>
+                    <span class="price">L.E {{ item.price.toFixed(2) }}</span>
+                  </div>
+                  @if (item.description) {
+                    <p class="description">{{ item.description }}</p>
+                  }
+                  @if (item.addOns.length > 0) {
+                    <p class="addons-hint">{{ item.addOns.length }} add-on{{ item.addOns.length === 1 ? '' : 's' }} available</p>
+                  }
+                </mat-card-content>
+                <mat-card-actions>
+                  @if (showInlineStepper(item)) {
+                    <div class="qty-stepper" (click)="$event.stopPropagation()">
+                      <button mat-icon-button class="qty-btn" (click)="decrementPlainLine(item); $event.stopPropagation()" aria-label="Decrease quantity">
+                        <mat-icon>remove</mat-icon>
                       </button>
-                    }
-                  </mat-card-actions>
-                </mat-card>
-              }
-            </div>
-          </ng-template>
-
-          <div class="menu-content">
-            @for (section of menuSections(); track section.category; let i = $index) {
-              <section
-                #categorySectionEl
-                class="menu-section"
-                [id]="anchorId(section.category, i)"
-                [attr.data-category]="section.category"
-              >
-                <h2 class="menu-section-title">{{ section.category }}</h2>
-
-                @if (section.ungroupedItems.length > 0) {
-                  <ng-container [ngTemplateOutlet]="itemsGrid" [ngTemplateOutletContext]="{ $implicit: section.ungroupedItems }"></ng-container>
-                }
-
-                @for (sub of section.subSections; track sub.subCategory.id) {
-                  <h3 class="sub-category-headline">{{ sub.subCategory.name }}</h3>
-                  <ng-container [ngTemplateOutlet]="itemsGrid" [ngTemplateOutletContext]="{ $implicit: sub.items }"></ng-container>
-                }
-              </section>
+                      <span class="qty-value">{{ quantityFor(item.id) }}</span>
+                      <button mat-icon-button class="qty-btn" (click)="incrementPlainLine(item); $event.stopPropagation()" aria-label="Increase quantity">
+                        <mat-icon>add</mat-icon>
+                      </button>
+                    </div>
+                  } @else {
+                    <button mat-flat-button color="primary" class="add-button" (click)="smartAdd(item); $event.stopPropagation()">
+                      <mat-icon>add</mat-icon>
+                      Add
+                    </button>
+                  }
+                </mat-card-actions>
+              </mat-card>
             }
           </div>
+        </ng-template>
+
+        <div class="menu-content">
+          @if (selectedSection(); as section) {
+            <h2 class="menu-section-title">{{ section.category }}</h2>
+
+            @if (section.ungroupedItems.length > 0) {
+              <ng-container [ngTemplateOutlet]="itemsGrid" [ngTemplateOutletContext]="{ $implicit: section.ungroupedItems }"></ng-container>
+            }
+
+            @for (sub of section.subSections; track sub.subCategory.id) {
+              <h3 class="sub-category-headline">{{ sub.subCategory.name }}</h3>
+              <ng-container [ngTemplateOutlet]="itemsGrid" [ngTemplateOutletContext]="{ $implicit: sub.items }"></ng-container>
+            }
+          } @else {
+            <p class="empty-state">
+              {{ searchTerm().trim() ? 'No items match your search.' : 'No items in this category yet.' }}
+            </p>
+          }
         </div>
-      }
+      </div>
     }
   } @else if (activeTab() === 'rewards') {
     <!-- Loyalty points/tier/wallet passes require an account, so a guest sees a sign-in

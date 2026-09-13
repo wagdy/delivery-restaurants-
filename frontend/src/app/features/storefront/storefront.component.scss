@@ -246,6 +246,20 @@ $hero-tab-active-color: #7a2e22;
   }
 }
 
+// The rail's own "exit" action (back to the category grid) - a dashed, muted-primary
+// treatment keeps it visually distinct from the solid category chips beside it, so it
+// never reads as just another category to pick.
+.back-chip {
+  border-style: dashed;
+  color: var(--app-primary-color, #3f51b5);
+  border-color: color-mix(in srgb, var(--app-primary-color, #3f51b5) 40%, transparent);
+  background: color-mix(in srgb, var(--app-primary-color, #3f51b5) 6%, white);
+
+  &:hover {
+    background: color-mix(in srgb, var(--app-primary-color, #3f51b5) 12%, white);
+  }
+}
+
 .category-chip-count {
   background: rgba(0, 0, 0, 0.08);
   border-radius: 999px;
@@ -278,32 +292,10 @@ $hero-tab-active-color: #7a2e22;
   min-width: 0;
 }
 
-.menu-section {
-  scroll-margin-top: 128px;
-}
-
-@media (min-width: 1024px) {
-  .menu-section {
-    scroll-margin-top: 96px;
-  }
-}
-
-@media (min-width: 1120px) {
-  .menu-section {
-    scroll-margin-top: 112px;
-  }
-}
-
 .menu-section-title {
   font-size: 1.4rem;
   font-weight: 800;
   margin: 8px 0 16px;
-
-  .menu-section:not(:first-child) & {
-    margin-top: 40px;
-    padding-top: 24px;
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
-  }
 }
 
 .sub-category-headline {

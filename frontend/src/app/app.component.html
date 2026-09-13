@@ -12,38 +12,71 @@
     <div class="drawer-header">
       <span class="drawer-title">
         <mat-icon>restaurant_menu</mat-icon>
-        Categories
+        Menu
       </span>
       <button mat-icon-button (click)="drawer.close()" aria-label="Close menu">
         <mat-icon>close</mat-icon>
       </button>
     </div>
     <mat-nav-list class="category-nav-list" [class.animate-in]="categoryDrawerAnimate()">
-      @for (category of categories(); track category.id; let i = $index) {
-        <a
-          mat-list-item
-          class="category-nav-item"
-          [style.animation-delay.ms]="i * 40"
-          (click)="selectCategory(category.name, drawer)"
-        >
-          <mat-icon matListItemIcon>{{ iconFor(category.name) }}</mat-icon>
-          <span matListItemTitle>{{ category.name }}</span>
+      <!-- Quick links - mirrors the header's own cart/account/admin actions (see the
+           toolbar further down) so everything reachable from the header is also one tap
+           away from here on mobile, not just categories. -->
+      @if (authService.isCaptain()) {
+        <a mat-list-item class="category-nav-item" routerLink="/captain" (click)="drawer.close()">
+          <mat-icon matListItemIcon>local_shipping</mat-icon>
+          <span matListItemTitle>My Deliveries</span>
         </a>
-      } @empty {
-        <p class="drawer-empty">No categories yet.</p>
+      } @else {
+        <a mat-list-item class="category-nav-item" (click)="drawer.close(); cartOpen.set(true)">
+          <mat-icon matListItemIcon>shopping_cart</mat-icon>
+          <span matListItemTitle>Cart</span>
+          @if (cart.itemCount() > 0) {
+            <span matListItemMeta class="nav-item-badge">{{ cart.itemCount() }}</span>
+          }
+        </a>
+
+        <a mat-list-item class="category-nav-item" [routerLink]="accountRoute()" (click)="drawer.close()">
+          <mat-icon matListItemIcon>{{ authService.isAuthenticated() ? 'receipt_long' : 'login' }}</mat-icon>
+          <span matListItemTitle>{{ authService.isAuthenticated() ? 'My Orders' : 'Login / Register' }}</span>
+        </a>
+
+        @if (authService.isAuthenticated() && authService.isAdmin()) {
+          <a mat-list-item class="category-nav-item" routerLink="/admin" (click)="drawer.close()">
+            <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
+            <span matListItemTitle>Admin Panel</span>
+          </a>
+        }
+      }
+
+      @if (authService.isAuthenticated()) {
+        <button mat-list-item type="button" class="category-nav-item nav-item-logout" (click)="drawer.close(); authService.logout()">
+          <mat-icon matListItemIcon>logout</mat-icon>
+          <span matListItemTitle>Logout</span>
+        </button>
+      }
+
+      <!-- Captain accounts are restricted to the Orders section only (see the header's
+           own comment further down) - no food menu to browse, so this whole section is
+           skipped for them rather than showing an irrelevant category list. -->
+      @if (!authService.isCaptain()) {
+        <div class="drawer-section-label">Browse by category</div>
+
+        @for (category of categories(); track category.id; let i = $index) {
+          <a
+            mat-list-item
+            class="category-nav-item"
+            [style.animation-delay.ms]="i * 40"
+            (click)="selectCategory(category.name, drawer)"
+          >
+            <mat-icon matListItemIcon>{{ iconFor(category.name) }}</mat-icon>
+            <span matListItemTitle>{{ category.name }}</span>
+          </a>
+        } @empty {
+          <p class="drawer-empty">No categories yet.</p>
+        }
       }
     </mat-nav-list>
-  </mat-sidenav>
-
-  <mat-sidenav
-    #cartDrawer
-    position="end"
-    mode="over"
-    class="cart-drawer-panel"
-    [autoFocus]="false"
-    (closed)="cartDrawerContent.resetOnClose()"
-  >
-    <app-cart-drawer #cartDrawerContent [drawer]="cartDrawer"></app-cart-drawer>
   </mat-sidenav>
 
   <mat-sidenav-content>
@@ -113,7 +146,7 @@
         </div>
       } @else {
         <div class="header-actions">
-          <button mat-icon-button class="icon-hover cart-button" (click)="cartDrawer.toggle()" aria-label="View cart">
+          <button mat-icon-button class="icon-hover cart-button" (click)="toggleCartSheet()" aria-label="View cart">
             <mat-icon>shopping_cart</mat-icon>
             @if (cart.itemCount() > 0) {
               <span class="cart-badge" [class.bump]="cartBadgeBump()" (animationend)="cartBadgeBump.set(false)">{{ cart.itemCount() }}</span>
@@ -144,7 +177,7 @@
       }
     </mat-toolbar>
 
-    <div class="page-content">
+    <div class="page-content" [class.has-cart-bar]="showCartFab()">
       <router-outlet></router-outlet>
     </div>
 
@@ -153,4 +186,22 @@
     <!-- <app-footer></app-footer> -->
   </mat-sidenav-content>
 </mat-sidenav-container>
+
+<!-- Floating "Review Order" bar - shown whenever there's anything in the cart and the
+     sheet itself isn't already open (see showCartFab()). -->
+@if (showCartFab()) {
+  <button type="button" class="cart-fab-bar" (click)="cartOpen.set(true)">
+    <span class="cart-fab-badge">{{ cart.itemCount() }}</span>
+    <span class="cart-fab-label">Review Order</span>
+    <span class="cart-fab-total">L.E {{ cart.estimatedTotal().toFixed(2) }}</span>
+  </button>
+}
+
+<!-- The cart bottom sheet itself - a plain fixed-position container (not <mat-dialog> or
+     <mat-sidenav>) animated purely via transform: translateY, so it can slide up from
+     the bottom edge instead of sliding in from a side or fading in centered. -->
+<div class="cart-backdrop" [class.visible]="cartOpen()" (click)="closeCartSheet()" aria-hidden="true"></div>
+<div class="cart-sheet" [class.open]="cartOpen()" role="dialog" aria-modal="true" aria-label="Your cart" [attr.inert]="cartOpen() ? null : ''">
+  <app-cart-drawer #cartDrawerContent [drawer]="cartSheetHandle"></app-cart-drawer>
+</div>
 }
