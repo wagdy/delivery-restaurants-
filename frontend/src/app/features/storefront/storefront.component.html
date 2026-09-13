@@ -105,7 +105,7 @@
                         <mat-icon>restaurant</mat-icon>
                       </div>
                     }
-                    @if (quantityFor(item.id) > 0) {
+                    @if (item.addOns.length > 0 && quantityFor(item.id) > 0) {
                       <span class="in-cart-badge">{{ quantityFor(item.id) }} in cart</span>
                     }
                   </div>
@@ -122,10 +122,22 @@
                     }
                   </mat-card-content>
                   <mat-card-actions>
-                    <button mat-flat-button color="primary" class="add-button" (click)="openDetails(item); $event.stopPropagation()">
-                      <mat-icon>add</mat-icon>
-                      Add
-                    </button>
+                    @if (showInlineStepper(item)) {
+                      <div class="qty-stepper" (click)="$event.stopPropagation()">
+                        <button mat-icon-button class="qty-btn" (click)="decrementPlainLine(item); $event.stopPropagation()" aria-label="Decrease quantity">
+                          <mat-icon>remove</mat-icon>
+                        </button>
+                        <span class="qty-value">{{ quantityFor(item.id) }}</span>
+                        <button mat-icon-button class="qty-btn" (click)="incrementPlainLine(item); $event.stopPropagation()" aria-label="Increase quantity">
+                          <mat-icon>add</mat-icon>
+                        </button>
+                      </div>
+                    } @else {
+                      <button mat-flat-button color="primary" class="add-button" (click)="smartAdd(item); $event.stopPropagation()">
+                        <mat-icon>add</mat-icon>
+                        Add
+                      </button>
+                    }
                   </mat-card-actions>
                 </mat-card>
               }

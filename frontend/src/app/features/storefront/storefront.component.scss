@@ -474,6 +474,7 @@ $hero-tab-active-color: #7a2e22;
 
 .add-button {
   width: 100%;
+  animation: popIn 200ms ease both;
 
   mat-icon {
     transition: transform 0.15s ease;
@@ -482,6 +483,41 @@ $hero-tab-active-color: #7a2e22;
   &:hover mat-icon {
     transform: rotate(90deg);
   }
+}
+
+// Smart Add's inline stepper - replaces .add-button in place (same slot/width) the
+// instant a no-add-ons item is added, so "Add" morphs straight into "[ - ] 1 [ + ]"
+// with no dialog trip. Filled in the brand color to match .add-button's own weight.
+.qty-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border-radius: 999px;
+  background: var(--app-primary-color, #3f51b5);
+  padding: 2px;
+  animation: popIn 220ms ease both;
+}
+
+.qty-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: #fff;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+  }
+}
+
+.qty-value {
+  flex: 1;
+  text-align: center;
+  font-weight: 700;
+  color: #fff;
 }
 
 // ---------------------------------------------------------------------------
@@ -519,6 +555,10 @@ $hero-tab-active-color: #7a2e22;
   width: auto;
 }
 
+.list-view .qty-stepper {
+  width: auto;
+}
+
 // ---------------------------------------------------------------------------
 // Motion
 // ---------------------------------------------------------------------------
@@ -534,6 +574,17 @@ $hero-tab-active-color: #7a2e22;
   }
 }
 
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .menu-card {
     animation: none !important;
@@ -546,5 +597,10 @@ $hero-tab-active-color: #7a2e22;
 
   .category-chip {
     transition: none !important;
+  }
+
+  .add-button,
+  .qty-stepper {
+    animation: none !important;
   }
 }

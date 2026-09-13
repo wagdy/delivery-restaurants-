@@ -10,7 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MenuItemService } from '../../core/services/menu-item.service';
 import { CategoryService } from '../../core/services/category.service';
 import { SubCategoryService } from '../../core/services/sub-category.service';
-import { CartService } from '../../core/services/cart.service';
+import { CartService, cartLineKey } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { MenuItem } from '../../core/models/menu-item.model';
@@ -353,5 +353,36 @@ export class StorefrontComponent implements AfterViewInit {
       maxWidth: '95vw',
       data: { menuItem: item }
     });
+  }
+
+  // Smart Add: an item with no add-ons has nothing left to configure, so the dialog
+  // would just be an extra click to confirm "1x, no extras" - add it straight to the
+  // cart instead. An item WITH add-ons still needs the dialog (Scenario A) since the
+  // user has real choices to make there.
+  smartAdd(item: MenuItem): void {
+    if (item.addOns.length > 0) {
+      this.openDetails(item);
+      return;
+    }
+    this.cart.add(item, [], 1);
+  }
+
+  // The card's inline stepper only ever targets the plain (no add-ons) line - an item
+  // with add-ons never shows the stepper (see showInlineStepper below) - so this fixed
+  // key, with no add-on ids, is always the right line to adjust.
+  incrementPlainLine(item: MenuItem): void {
+    this.cart.increment(cartLineKey(item.id, []));
+  }
+
+  decrementPlainLine(item: MenuItem): void {
+    this.cart.decrement(cartLineKey(item.id, []));
+  }
+
+  // Only a no-add-ons item still in the cart gets the inline [ - ] qty [ + ] control in
+  // place of the Add button - an item with add-ons always shows Add (re-opening the
+  // dialog lets the user add another, differently-configured line) even once it's
+  // already in the cart.
+  showInlineStepper(item: MenuItem): boolean {
+    return item.addOns.length === 0 && this.quantityFor(item.id) > 0;
   }
 }

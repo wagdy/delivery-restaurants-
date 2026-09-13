@@ -7,6 +7,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { AuthService } from './core/services/auth.service';
 import { CartService } from './core/services/cart.service';
 import { SettingsService } from './core/services/settings.service';
@@ -40,6 +42,8 @@ export class AppComponent {
   protected readonly settingsService = inject(SettingsService);
   private readonly categoryService = inject(CategoryService);
   private readonly router = inject(Router);
+  private readonly swUpdate = inject(SwUpdate);
+  private readonly snackBar = inject(MatSnackBar);
 
   // Never referenced again after this - injecting it here is what instantiates the
   // providedIn: 'root' singleton and starts its connect/disconnect effect() app-wide.
@@ -80,6 +84,25 @@ export class AppComponent {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => {
       this.isBarePage.set(AppComponent.isBareUrl((event as NavigationEnd).urlAfterRedirects));
     });
+
+    // The service worker (see app.config.ts's provideServiceWorker) caches the whole app
+    // shell for offline use, which has a sharp edge: without this, a customer who leaves
+    // a tab open across a deploy - or even just returns days later without a hard refresh
+    // - keeps running whatever JS bundle was cached at their last visit, silently, forever
+    // (a plain reload re-fetches index.html but the SW can still serve the OLD cached app
+    // shell from before it notices the update). Every future fix ships to the server
+    // immediately but not to an already-open tab until this fires - surfacing it here
+    // rather than auto-reloading avoids yanking the page out from under someone mid-order.
+    if (this.swUpdate.isEnabled) {
+      this.swUpdate.versionUpdates
+        .pipe(filter((event): event is VersionReadyEvent => event.type === 'VERSION_READY'))
+        .subscribe(() => {
+          const ref = this.snackBar.open('A new version of the app is available.', 'Refresh', { duration: 0 });
+          ref.onAction().subscribe(() => {
+            this.swUpdate.activateUpdate().then(() => document.location.reload());
+          });
+        });
+    }
   }
 
   private static isBareUrl(url: string): boolean {
