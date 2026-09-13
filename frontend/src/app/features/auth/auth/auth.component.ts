@@ -7,9 +7,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/services/auth.service';
+import { AuthShellComponent } from '../auth-shell/auth-shell.component';
 
 // Unified customer-facing sign-in/sign-up page - replaces the old separate
 // LoginComponent (phone-only) and RegisterComponent at the same /login and /register
@@ -28,7 +30,9 @@ import { AuthService } from '../../../core/services/auth.service';
     MatButtonModule,
     MatCheckboxModule,
     MatTabsModule,
-    MatProgressSpinnerModule
+    MatIconModule,
+    MatProgressSpinnerModule,
+    AuthShellComponent
   ],
   templateUrl: './auth.component.html',
   styleUrl: './auth.component.scss'
@@ -50,6 +54,13 @@ export class AuthComponent {
   readonly loginLoading = signal(false);
   readonly loginError = signal<string | null>(null);
 
+  // Briefly true to play a CSS shake on the card when a submit is rejected (either
+  // client-side validation or a server error) - toggled back to false on the shake
+  // animation's own (animationend), so a second failed attempt in a row still replays it
+  // (re-adding the same class name wouldn't restart a CSS animation on its own).
+  readonly loginShake = signal(false);
+  readonly registerShake = signal(false);
+
   readonly loginForm = this.fb.nonNullable.group({
     identifier: ['', [Validators.required]],
     password: ['', [Validators.required]],
@@ -69,6 +80,7 @@ export class AuthComponent {
   submitLogin(): void {
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
+      this.loginShake.set(true);
       return;
     }
 
@@ -91,6 +103,7 @@ export class AuthComponent {
       error: (err) => {
         this.loginLoading.set(false);
         this.loginError.set(err.error?.errors?.[0] ?? 'Login failed. Please try again.');
+        this.loginShake.set(true);
       }
     });
   }
@@ -98,6 +111,7 @@ export class AuthComponent {
   submitRegister(): void {
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
+      this.registerShake.set(true);
       return;
     }
 
@@ -129,6 +143,7 @@ export class AuthComponent {
         error: (err) => {
           this.registerLoading.set(false);
           this.registerError.set(err.error?.errors?.[0] ?? 'Registration failed. Please try again.');
+          this.registerShake.set(true);
         }
       });
   }

@@ -7,14 +7,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
-import { MatDialog } from '@angular/material/dialog';
 import { AuthService } from './core/services/auth.service';
 import { CartService } from './core/services/cart.service';
 import { SettingsService } from './core/services/settings.service';
 import { CategoryService } from './core/services/category.service';
 import { LoyaltyRealtimeService } from './core/services/loyalty-realtime.service';
 import { Category } from './core/models/category.model';
-import { CartDialogComponent } from './features/storefront/cart-dialog/cart-dialog.component';
+import { CartDrawerComponent } from './features/storefront/cart-drawer/cart-drawer.component';
 import { AppFooterComponent } from './shared/app-footer/app-footer.component';
 
 @Component({
@@ -28,6 +27,7 @@ import { AppFooterComponent } from './shared/app-footer/app-footer.component';
     MatBadgeModule,
     MatSidenavModule,
     MatListModule,
+    CartDrawerComponent,
     AppFooterComponent
   ],
   templateUrl: './app.component.html',
@@ -38,7 +38,6 @@ export class AppComponent {
   protected readonly cart = inject(CartService);
   protected readonly settingsService = inject(SettingsService);
   private readonly categoryService = inject(CategoryService);
-  private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
 
   // Never referenced again after this - injecting it here is what instantiates the
@@ -51,12 +50,17 @@ export class AppComponent {
   // reasoning as StorefrontComponent's own category fetch.
   readonly categories = signal<Category[]>([]);
 
-  // True for the fully public, chrome-free customer-facing pages ("/rate/store",
-  // "/customer-review/:orderId") - this app-wide toolbar/sidenav (cart, login, admin
-  // link, category drawer) would look completely out of place on a page reached from a
-  // WhatsApp link by a customer who may not even be logged in. Initialized from the
-  // current URL (not just NavigationEnd) so a hard-reload directly on one of these URLs
-  // starts bare too, rather than flashing the full chrome for one frame before the first
+  // True for the fully public, chrome-free pages: "/rate/store", "/customer-review/:id"
+  // (reached from a WhatsApp link by a customer who may not even be logged in - the
+  // app-wide toolbar/sidenav would look completely out of place there), plus the
+  // customer-facing auth screens "/login", "/register", "/forgot-password" (a premium
+  // full-bleed split-screen design doesn't work under a busy toolbar still showing the
+  // cart/hamburger/account icons for a session that isn't signed in yet - the new
+  // AuthShellComponent supplies its own "back to Otantik" link in place of the toolbar).
+  // "/email-login" deliberately stays out of this list - it's the separate, intentionally
+  // lower-key staff/legacy flow this redesign doesn't touch. Initialized from the current
+  // URL (not just NavigationEnd) so a hard-reload directly on one of these URLs starts
+  // bare too, rather than flashing the full chrome for one frame before the first
   // navigation event.
   protected readonly isBarePage = signal(AppComponent.isBareUrl(this.router.url));
 
@@ -73,17 +77,16 @@ export class AppComponent {
   }
 
   private static isBareUrl(url: string): boolean {
-    return url.startsWith('/rate/') || url.startsWith('/customer-review/');
-  }
-
-  openCart(): void {
-    this.dialog.open(CartDialogComponent, {
-      width: '448px',
-      // Panel-level backstop alongside the dialog's own internal max-width: 28rem (see
-      // cart-dialog.component.scss's .cart-body) - without this, the 448px target width
-      // alone would still overflow any viewport narrower than that.
-      maxWidth: '95vw'
-    });
+    // Strip the query string first - "/login?returnUrl=%2Fcheckout" (the common case,
+    // arriving via an auth guard redirect) must still match the exact "/login" path below.
+    const path = url.split('?')[0].split('#')[0];
+    return (
+      path.startsWith('/rate/') ||
+      path.startsWith('/customer-review/') ||
+      path === '/login' ||
+      path === '/register' ||
+      path === '/forgot-password'
+    );
   }
 
   // Closing the drawer before navigating avoids it staying open over the storefront

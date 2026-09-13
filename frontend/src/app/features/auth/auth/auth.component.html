@@ -1,13 +1,29 @@
-<div class="auth-page">
+<app-auth-shell>
   <mat-card class="auth-card">
-    <mat-tab-group [(selectedIndex)]="activeTabIndex" mat-stretch-tabs="true" animationDuration="150ms">
+    <mat-tab-group [(selectedIndex)]="activeTabIndex" mat-stretch-tabs="true" animationDuration="200ms">
       <mat-tab label="Login">
-        <form [formGroup]="loginForm" (ngSubmit)="submitLogin()">
+        <!-- matTabContent lazily creates this tab's content only once it's actually
+             selected, instead of Material rendering both tabs' forms into the DOM
+             upfront (hidden via CSS) - the mat-icon prefixes below get measured with a
+             real, non-zero width because of this. Without it, whichever tab ISN'T the
+             initial one (this component opens on Login for /login but Register for
+             /register - see AuthComponent.activeTabIndex) renders its icons overlapping
+             the floating labels forever, because Material's outline/label-offset
+             calculation only runs once, while the tab was still display:none. -->
+        <ng-template matTabContent>
+        <form
+          [formGroup]="loginForm"
+          (ngSubmit)="submitLogin()"
+          class="auth-form"
+          [class.shake]="loginShake()"
+          (animationend)="loginShake.set(false)"
+        >
           <mat-card-content>
             <p class="tab-subtitle">Log in with your email or phone number</p>
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Email or Phone Number</mat-label>
+              <mat-icon matPrefix>person_outline</mat-icon>
               <input matInput formControlName="identifier" autocomplete="username" />
               @if (loginForm.controls.identifier.hasError('required') && loginForm.controls.identifier.touched) {
                 <mat-error>Email or phone number is required</mat-error>
@@ -16,6 +32,7 @@
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Password</mat-label>
+              <mat-icon matPrefix>lock_outline</mat-icon>
               <input matInput type="password" formControlName="password" autocomplete="current-password" />
               @if (loginForm.controls.password.hasError('required') && loginForm.controls.password.touched) {
                 <mat-error>Password is required</mat-error>
@@ -28,12 +45,15 @@
             </div>
 
             @if (loginError()) {
-              <p class="error-text">{{ loginError() }}</p>
+              <p class="error-text">
+                <mat-icon inline>error_outline</mat-icon>
+                {{ loginError() }}
+              </p>
             }
           </mat-card-content>
 
           <mat-card-actions class="actions">
-            <button mat-flat-button color="primary" type="submit" [disabled]="loginLoading() || loginForm.invalid">
+            <button mat-flat-button color="primary" type="submit" class="submit-button" [disabled]="loginLoading() || loginForm.invalid">
               @if (loginLoading()) {
                 <mat-spinner diameter="20"></mat-spinner>
               } @else {
@@ -42,15 +62,24 @@
             </button>
           </mat-card-actions>
         </form>
+        </ng-template>
       </mat-tab>
 
       <mat-tab label="Register">
-        <form [formGroup]="registerForm" (ngSubmit)="submitRegister()">
+        <ng-template matTabContent>
+        <form
+          [formGroup]="registerForm"
+          (ngSubmit)="submitRegister()"
+          class="auth-form"
+          [class.shake]="registerShake()"
+          (animationend)="registerShake.set(false)"
+        >
           <mat-card-content>
             <p class="tab-subtitle">Save your details for faster checkout and order tracking</p>
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Full name</mat-label>
+              <mat-icon matPrefix>person_outline</mat-icon>
               <input matInput formControlName="fullName" autocomplete="name" />
               @if (registerForm.controls.fullName.hasError('required') && registerForm.controls.fullName.touched) {
                 <mat-error>Full name is required</mat-error>
@@ -62,6 +91,7 @@
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Phone number</mat-label>
+              <mat-icon matPrefix>call</mat-icon>
               <input matInput formControlName="phoneNumber" autocomplete="tel" />
               @if (registerForm.controls.phoneNumber.hasError('required') && registerForm.controls.phoneNumber.touched) {
                 <mat-error>Phone number is required</mat-error>
@@ -73,6 +103,7 @@
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Password</mat-label>
+              <mat-icon matPrefix>lock_outline</mat-icon>
               <input matInput type="password" formControlName="password" autocomplete="new-password" />
               @if (registerForm.controls.password.hasError('required') && registerForm.controls.password.touched) {
                 <mat-error>Password is required</mat-error>
@@ -84,16 +115,20 @@
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Delivery address (optional)</mat-label>
+              <mat-icon matPrefix>location_on</mat-icon>
               <input matInput formControlName="address" autocomplete="street-address" />
             </mat-form-field>
 
             @if (registerError()) {
-              <p class="error-text">{{ registerError() }}</p>
+              <p class="error-text">
+                <mat-icon inline>error_outline</mat-icon>
+                {{ registerError() }}
+              </p>
             }
           </mat-card-content>
 
           <mat-card-actions class="actions">
-            <button mat-flat-button color="primary" type="submit" [disabled]="registerLoading() || registerForm.invalid">
+            <button mat-flat-button color="primary" type="submit" class="submit-button" [disabled]="registerLoading() || registerForm.invalid">
               @if (registerLoading()) {
                 <mat-spinner diameter="20"></mat-spinner>
               } @else {
@@ -102,7 +137,8 @@
             </button>
           </mat-card-actions>
         </form>
+        </ng-template>
       </mat-tab>
     </mat-tab-group>
   </mat-card>
-</div>
+</app-auth-shell>

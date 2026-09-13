@@ -7,6 +7,23 @@
   max-width: 85vw;
 }
 
+// Material's default .mat-drawer is `position: absolute; top/bottom: 0`, sized against
+// .app-shell's own height - which is `min-height: 100%` sized to the *document's*
+// natural scroll height (this app has no fixed-height shell; the window itself is the
+// only scroll container, see .app-header's own comment above), not the viewport. That's
+// harmless for the short category-drawer nav list, but this drawer's sticky footer
+// (totals/Checkout - see cart-drawer.component.scss) needs a real viewport-pinned box to
+// stick against, so it's decoupled from the container's height entirely here rather than
+// inheriting the (possibly much taller, e.g. a long scrolled-down menu page) document
+// height Material would otherwise give it.
+.cart-drawer-panel {
+  position: fixed !important;
+  inset: 0 0 0 auto !important;
+  height: 100dvh !important;
+  width: min(440px, 100vw);
+  max-width: 100vw;
+}
+
 .drawer-header {
   display: flex;
   align-items: center;

@@ -1,0 +1,28 @@
+<div class="auth-shell">
+  <div class="auth-form-side">
+    <a routerLink="/" class="auth-brand-link">
+      @if (settingsService.settings().logoUrl) {
+        <img [src]="settingsService.settings().logoUrl" [alt]="settingsService.settings().restaurantName ?? 'Home'" class="auth-brand-logo" />
+      } @else {
+        <mat-icon>restaurant</mat-icon>
+      }
+      <span>{{ settingsService.settings().restaurantName || 'Otantik' }}</span>
+    </a>
+
+    <div class="auth-form-content">
+      <ng-content></ng-content>
+    </div>
+  </div>
+
+  <div
+    class="auth-brand-side"
+    [class.has-image]="!!settingsService.settings().backgroundImageUrl"
+    [style.background-image]="settingsService.settings().backgroundImageUrl ? 'url(' + settingsService.settings().backgroundImageUrl + ')' : null"
+  >
+    <mat-icon class="auth-brand-watermark" aria-hidden="true">restaurant_menu</mat-icon>
+    <div class="auth-brand-overlay">
+      <h2>Authentic flavors,<br />delivered with care.</h2>
+      <p>Join {{ settingsService.settings().restaurantName || 'Otantik' }} for exclusive rewards, faster checkout, and a taste of home.</p>
+    </div>
+  </div>
+</div>

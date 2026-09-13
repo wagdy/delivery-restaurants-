@@ -1,13 +1,18 @@
-<h2 mat-dialog-title class="cart-title">
-  <mat-icon>shopping_bag</mat-icon>
-  Your cart
-  @if (cart.itemCount() > 0) {
-    <span class="cart-title-count">{{ cart.itemCount() }}</span>
-  }
-</h2>
+<div class="cart-drawer">
+  <div class="drawer-header">
+    <h2 class="drawer-title">
+      <mat-icon>shopping_bag</mat-icon>
+      Your cart
+      @if (cart.itemCount() > 0) {
+        <span class="drawer-title-count">{{ cart.itemCount() }}</span>
+      }
+    </h2>
+    <button mat-icon-button (click)="close()" aria-label="Close cart">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
 
-<mat-dialog-content>
-  <div class="cart-body">
+  <div class="drawer-body">
     @if (showGuestPrompt()) {
       <div class="guest-prompt">
         <mat-icon class="guest-prompt-icon">redeem</mat-icon>
@@ -66,7 +71,16 @@
           </div>
         }
       </div>
+    }
+  </div>
 
+  @if (showGuestPrompt()) {
+    <div class="drawer-footer guest-footer">
+      <button mat-flat-button color="primary" (click)="registerNow()">تسجيل حساب</button>
+      <button mat-stroked-button (click)="continueAsGuest()">المتابعة كضيف</button>
+    </div>
+  } @else if (cart.lines().length > 0) {
+    <div class="drawer-footer">
       <div class="totals">
         <div class="totals-row">
           <span>Subtotal</span>
@@ -81,20 +95,12 @@
           <span>L.E {{ cart.estimatedTotal().toFixed(2) }}</span>
         </div>
       </div>
-    }
-  </div>
-</mat-dialog-content>
 
-@if (showGuestPrompt()) {
-  <mat-dialog-actions align="end">
-    <button mat-stroked-button (click)="continueAsGuest()">المتابعة كضيف</button>
-    <button mat-flat-button color="primary" (click)="registerNow()">تسجيل حساب</button>
-  </mat-dialog-actions>
-} @else {
-  <mat-dialog-actions align="end">
-    <button mat-button (click)="close()">Continue shopping</button>
-    <button mat-flat-button color="primary" [disabled]="cart.lines().length === 0" (click)="checkout()">
-      Checkout
-    </button>
-  </mat-dialog-actions>
-}
+      <button mat-flat-button color="primary" class="checkout-button" (click)="checkout()">
+        <mat-icon>lock</mat-icon>
+        Checkout
+      </button>
+      <button mat-button class="continue-shopping-button" (click)="close()">Continue shopping</button>
+    </div>
+  }
+</div>

@@ -18,6 +18,17 @@
     </mat-nav-list>
   </mat-sidenav>
 
+  <mat-sidenav
+    #cartDrawer
+    position="end"
+    mode="over"
+    class="cart-drawer-panel"
+    [autoFocus]="false"
+    (closed)="cartDrawerContent.resetOnClose()"
+  >
+    <app-cart-drawer #cartDrawerContent [drawer]="cartDrawer"></app-cart-drawer>
+  </mat-sidenav>
+
   <mat-sidenav-content>
     <mat-toolbar color="primary" class="app-header">
       <!-- Left: hamburger + Logout (any authenticated role - customer, admin, or captain) -->
@@ -72,7 +83,7 @@
         </div>
       } @else {
         <div class="header-actions">
-          <button mat-icon-button class="icon-hover cart-button" (click)="openCart()" aria-label="View cart">
+          <button mat-icon-button class="icon-hover cart-button" (click)="cartDrawer.toggle()" aria-label="View cart">
             <mat-icon>shopping_cart</mat-icon>
             @if (cart.itemCount() > 0) {
               <span class="cart-badge">{{ cart.itemCount() }}</span>

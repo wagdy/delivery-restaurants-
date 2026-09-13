@@ -1,16 +1,11 @@
-.auth-page {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 48px 16px;
-  min-height: calc(100vh - 64px);
-}
-
 .auth-card {
   width: 100%;
   max-width: 420px;
   padding: 0;
   overflow: hidden;
+  border-radius: 20px;
+  box-shadow: 0 20px 48px -16px rgba(0, 0, 0, 0.18);
+  animation: cardEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 .tab-subtitle {
@@ -21,6 +16,11 @@
 
 .full-width {
   width: 100%;
+
+  mat-icon[matPrefix] {
+    margin-right: 8px;
+    color: rgba(0, 0, 0, 0.4);
+  }
 }
 
 // Equivalent to Tailwind's `flex items-center justify-between` - this project has no
@@ -54,11 +54,101 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 8px 16px 16px;
+  padding: 8px 16px 20px;
+}
+
+.submit-button {
+  width: 100%;
+  padding: 6px 0;
+  font-weight: 700;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--app-primary-color, #3f51b5) 55%, transparent);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
 }
 
 .error-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: var(--mat-sys-error, #b3261e);
   font-size: 0.875rem;
   margin: 4px 0 0;
+  animation: errorEnter 0.25s ease;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+}
+
+// Plays once per failed submit attempt - see AuthComponent's loginShake/registerShake
+// signals and the template's (animationend) reset (re-adding the same class name
+// wouldn't restart a CSS animation on its own, hence the signal round-trip).
+.auth-form.shake {
+  animation: formShake 0.4s ease;
+}
+
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes errorEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes formShake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-card {
+    animation: none !important;
+  }
+
+  .auth-form.shake {
+    animation: none !important;
+  }
+
+  .submit-button {
+    transition: none !important;
+  }
 }

@@ -1,0 +1,134 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.auth-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+// ---------------------------------------------------------------------------
+// Form side - full width on mobile, a fixed left column on desktop.
+// ---------------------------------------------------------------------------
+
+.auth-form-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 20px 40px;
+  background: #fffdfb;
+}
+
+.auth-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  margin-bottom: 24px;
+  padding: 6px 0;
+  color: rgba(0, 0, 0, 0.8);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.05rem;
+  transition: opacity 0.15s ease;
+
+  &:hover {
+    opacity: 0.75;
+  }
+
+  mat-icon {
+    color: var(--app-primary-color, #3f51b5);
+  }
+}
+
+.auth-brand-logo {
+  height: 28px;
+  width: 28px;
+  object-fit: contain;
+}
+
+.auth-form-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+// ---------------------------------------------------------------------------
+// Brand side - desktop only. A warm gradient + oversized watermark icon by default,
+// upgrading automatically to an admin-configured photo (RestaurantSettings.
+// backgroundImageUrl - already used elsewhere as a general brand background image, so
+// this reuses it rather than introducing a second, narrower-purpose image field) the
+// moment one is set in Site Settings.
+// ---------------------------------------------------------------------------
+
+.auth-brand-side {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .auth-shell {
+    flex-direction: row;
+  }
+
+  .auth-form-side {
+    flex: 0 0 min(480px, 45%);
+    padding: 48px 56px;
+  }
+
+  .auth-brand-side {
+    display: flex;
+    align-items: flex-end;
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    background: linear-gradient(135deg, #3a2a1c 0%, #7a4a26 55%, #b9793f 100%);
+    background-size: cover;
+    background-position: center;
+
+    &.has-image::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(20, 12, 6, 0.75), rgba(20, 12, 6, 0.15) 55%);
+    }
+  }
+}
+
+.auth-brand-watermark {
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  font-size: 340px;
+  width: 340px;
+  height: 340px;
+  color: rgba(255, 255, 255, 0.06);
+
+  .has-image & {
+    display: none;
+  }
+}
+
+.auth-brand-overlay {
+  position: relative;
+  padding: 56px;
+  color: #fff;
+
+  h2 {
+    margin: 0 0 12px;
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+
+  p {
+    margin: 0;
+    max-width: 380px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+}
