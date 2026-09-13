@@ -11,11 +11,12 @@ import { AuthService } from '../../../core/services/auth.service';
 import { CustomerCampaignProgress } from '../../../core/models/campaign.model';
 import { Tier } from '../../../core/models/tier.model';
 import { tierStyleClass } from '../../../shared/utils/tier-style.util';
+import { TiltDirective } from '../../../shared/directives/tilt.directive';
 
 @Component({
   selector: 'app-loyalty-rewards',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatProgressSpinnerModule, QRCodeComponent],
+  imports: [CommonModule, MatIconModule, MatButtonModule, MatProgressSpinnerModule, QRCodeComponent, TiltDirective],
   templateUrl: './loyalty-rewards.component.html',
   styleUrl: './loyalty-rewards.component.scss'
 })
@@ -114,6 +115,39 @@ export class LoyaltyRewardsComponent {
 
   tierClass(tierName: string): string {
     return tierStyleClass(tierName);
+  }
+
+  // Ready-to-redeem cards always float to the top (that's an action waiting on the
+  // customer), then whatever's closest to completion - so the card most worth a tap is
+  // always the first thing seen, not whatever order the API happened to return.
+  readonly sortedCampaigns = computed(() => {
+    return [...this.campaigns()].sort((a, b) => {
+      const aReady = a.rewardsEarned > 0 ? 1 : 0;
+      const bReady = b.rewardsEarned > 0 ? 1 : 0;
+      if (aReady !== bReady) {
+        return bReady - aReady;
+      }
+
+      return this.progressRatio(b) - this.progressRatio(a);
+    });
+  });
+
+  private progressRatio(campaign: CustomerCampaignProgress): number {
+    return campaign.targetPunches > 0 ? campaign.currentPunches / campaign.targetPunches : 0;
+  }
+
+  progressPercent(campaign: CustomerCampaignProgress): number {
+    return Math.min(100, Math.round(this.progressRatio(campaign) * 100));
+  }
+
+  isReadyToRedeem(campaign: CustomerCampaignProgress): boolean {
+    return campaign.rewardsEarned > 0;
+  }
+
+  // "One punch away" is only worth calling out when there isn't already a reward sitting
+  // ready - that banner already says everything this one would.
+  isAlmostThere(campaign: CustomerCampaignProgress): boolean {
+    return !this.isReadyToRedeem(campaign) && campaign.targetPunches - campaign.currentPunches === 1;
   }
 
   // A boolean per stamp slot - filled for slots already punched, empty for the rest.

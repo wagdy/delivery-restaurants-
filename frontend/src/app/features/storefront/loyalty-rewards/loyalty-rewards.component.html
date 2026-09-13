@@ -7,7 +7,11 @@
 } @else {
   @if (me(); as loyalty) {
   <div class="rewards">
-    <div class="loyalty-card" [class]="tierClass(loyalty.membershipTier)">
+    <div class="ambient-glow" aria-hidden="true"></div>
+
+    <div class="loyalty-card" [class]="tierClass(loyalty.membershipTier)" appTilt="6">
+      <div class="card-texture" aria-hidden="true"></div>
+      <div class="card-sheen" aria-hidden="true"></div>
       <div class="card-glow"></div>
 
       <div class="card-top">
@@ -15,7 +19,10 @@
           <p class="card-label">Loyalty Member</p>
           <p class="card-name">{{ authService.currentUser()?.fullName }}</p>
         </div>
-        <span class="tier-badge">{{ loyalty.membershipTier }}</span>
+        <div class="card-top-right">
+          <mat-icon class="contactless-icon" aria-hidden="true">wifi</mat-icon>
+          <span class="tier-badge">{{ loyalty.membershipTier }}</span>
+        </div>
       </div>
 
       <div class="card-bottom">
@@ -76,20 +83,51 @@
       <p class="error-text">{{ walletError() }}</p>
     }
 
-    @if (campaigns().length > 0) {
+    @if (sortedCampaigns().length > 0) {
       <div class="punch-cards">
-        @for (campaign of campaigns(); track campaign.campaignId) {
-          <div class="punch-card">
-            <p class="punch-card-title">{{ campaign.campaignTitle }}</p>
-            <p class="punch-card-description">{{ campaign.campaignDescription }}</p>
+        @for (campaign of sortedCampaigns(); track campaign.campaignId; let i = $index) {
+          <div
+            class="punch-card"
+            [class.ready]="isReadyToRedeem(campaign)"
+            [class.almost]="isAlmostThere(campaign)"
+            [style.--enter-delay.ms]="i * 80"
+          >
+            @if (isReadyToRedeem(campaign) || isAlmostThere(campaign)) {
+              <div class="status-row">
+                @if (isReadyToRedeem(campaign)) {
+                  <span class="status-badge ready">
+                    <mat-icon>redeem</mat-icon>
+                    Ready to redeem
+                  </span>
+                } @else {
+                  <span class="status-badge almost">1 punch to go!</span>
+                }
+              </div>
+            }
+
+            <div class="punch-card-head">
+              <div class="punch-card-copy">
+                <p class="punch-card-title">{{ campaign.campaignTitle }}</p>
+                <p class="punch-card-description">{{ campaign.campaignDescription }}</p>
+              </div>
+
+              <div class="progress-ring-wrap" role="img" [attr.aria-label]="campaign.currentPunches + ' of ' + campaign.targetPunches + ' punches'">
+                <div class="progress-ring" [style.--pct]="progressPercent(campaign)"></div>
+                <div class="progress-ring-label">
+                  {{ campaign.currentPunches }}<span>/{{ campaign.targetPunches }}</span>
+                </div>
+              </div>
+            </div>
 
             <div class="punch-stamps">
               @for (filled of stampsFor(campaign); track $index) {
-                <span class="punch-stamp" [class.filled]="filled"></span>
+                <span class="punch-stamp" [class.filled]="filled" [style.--stamp-delay.ms]="$index * 60">
+                  @if (filled) {
+                    <mat-icon>check</mat-icon>
+                  }
+                </span>
               }
             </div>
-
-            <p class="punch-card-count">{{ campaign.currentPunches }} / {{ campaign.targetPunches }}</p>
 
             @if (campaign.rewardsEarned > 0) {
               <div class="reward-banner">

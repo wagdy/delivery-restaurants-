@@ -1,17 +1,27 @@
+// Registers --pct as an animatable number (not just a string) so the punch-card progress
+// ring's conic-gradient can transition smoothly when punches update, instead of snapping.
+// Unsupported browsers (pre-2023 Firefox) just lose the transition, not the correct final
+// value - a harmless progressive enhancement, not a functional dependency.
+@property --pct {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
 // Fixed, conventional per-tier colors - independent of the app's admin-configurable
 // --app-primary-color/--app-accent-color branding vars, matching the Apple Wallet pass's
 // own per-tier palette (see ApplePassBuilder.TierColors on the backend).
-$tier-bronze-start: #a9784f;
-$tier-bronze-end: #5c3d24;
-$tier-silver-start: #b8b8b8;
-$tier-silver-end: #6e6e6e;
-$tier-gold-start: #e0bb4d;
-$tier-gold-end: #8a6d1f;
-$tier-vip-start: #3a2f2b;
-$tier-vip-end: #0d0a09;
-$tier-vip-accent: #d4af37;
-$tier-default-start: #5a6bd8;
-$tier-default-end: #3f51b5;
+$tier-bronze-start: #c68a56;
+$tier-bronze-end: #4a2f1c;
+$tier-silver-start: #d4d4d8;
+$tier-silver-end: #5b5b63;
+$tier-gold-start: #f3cf6b;
+$tier-gold-end: #7a5a12;
+$tier-vip-start: #4a3d36;
+$tier-vip-end: #08060a;
+$tier-vip-accent: #e8c766;
+$tier-default-start: #6d7ce8;
+$tier-default-end: #3f2fae;
 
 .loading-state {
   display: flex;
@@ -24,20 +34,55 @@ $tier-default-end: #3f51b5;
 }
 
 .rewards {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
   max-width: 420px;
   margin: 0 auto;
+  padding: 4px 2px 24px;
 }
+
+// A soft, out-of-focus wash of brand color sitting behind the whole rewards panel - gives
+// the glass/gradient cards above something to actually catch light against, instead of
+// floating on flat white.
+.ambient-glow {
+  position: absolute;
+  inset: -40px -24px auto -24px;
+  height: 320px;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--app-primary-color, #3f51b5) 22%, transparent), transparent 60%),
+    radial-gradient(circle at 90% 10%, color-mix(in srgb, var(--app-accent-color, #ff4081) 16%, transparent), transparent 55%);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+// ---------------------------------------------------------------------------
+// Membership card
+// ---------------------------------------------------------------------------
 
 .loyalty-card {
   position: relative;
   overflow: hidden;
-  border-radius: 20px;
-  padding: 24px;
+  border-radius: 24px;
+  padding: 26px;
   color: #fff;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+  box-shadow:
+    0 20px 40px -12px rgba(0, 0, 0, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transform: perspective(1000px) rotateX(var(--tilt-rx, 0deg)) rotateY(var(--tilt-ry, 0deg));
+  transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
+  will-change: transform;
+  animation: cardEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+
+  &:hover {
+    box-shadow:
+      0 28px 52px -14px rgba(0, 0, 0, 0.4),
+      0 2px 6px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
 
   &.tier-bronze {
     background: linear-gradient(135deg, $tier-bronze-start, $tier-bronze-end);
@@ -71,6 +116,37 @@ $tier-default-end: #3f51b5;
   }
 }
 
+// Faint diagonal grain, blended with `overlay` so it reads as brushed-metal texture
+// rather than a visible pattern - a cheap way to keep a flat CSS gradient from looking
+// like a flat CSS gradient.
+.card-texture {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+}
+
+// The light sweep that tracks the cursor via TiltDirective's --tilt-px/--tilt-py -
+// invisible until hover, so a static screenshot of the card still looks clean.
+.card-sheen {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  background: radial-gradient(
+    circle at var(--tilt-px, 50%) var(--tilt-py, 50%),
+    rgba(255, 255, 255, 0.35),
+    transparent 55%
+  );
+
+  .loyalty-card:hover & {
+    opacity: 1;
+  }
+}
+
 .card-glow {
   position: absolute;
   right: -40px;
@@ -87,6 +163,20 @@ $tier-default-end: #3f51b5;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+}
+
+.card-top-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.contactless-icon {
+  transform: rotate(90deg);
+  opacity: 0.75;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
 }
 
 .card-bottom {
@@ -110,13 +200,16 @@ $tier-default-end: #3f51b5;
 
 .card-points {
   margin: 4px 0 0;
-  font-size: 2rem;
+  font-size: 2.1rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  animation: pointsPop 0.5s 0.15s cubic-bezier(0.22, 1.6, 0.36, 1) backwards;
 }
 
 .tier-badge {
   background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 999px;
   padding: 4px 12px;
   font-size: 0.75rem;
@@ -130,6 +223,7 @@ $tier-default-end: #3f51b5;
   border-radius: 10px;
   padding: 6px;
   line-height: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
 }
 
 .card-referral {
@@ -156,8 +250,8 @@ $tier-default-end: #3f51b5;
 .tier-progress-fill {
   height: 100%;
   border-radius: 4px;
-  background: var(--app-primary-color, #3f51b5);
-  transition: width 0.2s ease;
+  background: linear-gradient(90deg, var(--app-primary-color, #3f51b5), var(--app-accent-color, #ff4081));
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .tier-progress-text {
@@ -182,14 +276,23 @@ $tier-default-end: #3f51b5;
   justify-content: center;
   gap: 8px;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 12px 16px;
   font-size: 0.9rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   color: #fff;
-  transition: opacity 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.18);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
 
   &:disabled {
     opacity: 0.6;
@@ -212,8 +315,10 @@ $tier-default-end: #3f51b5;
   color: rgba(0, 0, 0, 0.5);
 }
 
-// Card 2 - one per active campaign, independent of the points/tier card above and its
-// admin-configurable theme colors.
+// ---------------------------------------------------------------------------
+// Punch cards
+// ---------------------------------------------------------------------------
+
 .punch-cards {
   display: flex;
   flex-direction: column;
@@ -221,10 +326,84 @@ $tier-default-end: #3f51b5;
 }
 
 .punch-card {
-  background: #fff;
-  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.12);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+  animation: cardEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: var(--enter-delay, 0ms);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 32px -10px rgba(0, 0, 0, 0.18);
+  }
+
+  &.almost {
+    border-color: color-mix(in srgb, var(--app-primary-color, #3f51b5) 45%, transparent);
+  }
+
+  &.ready {
+    border-color: rgba(232, 199, 102, 0.7);
+    background: linear-gradient(160deg, rgba(255, 251, 235, 0.85), rgba(255, 255, 255, 0.72));
+    box-shadow: 0 10px 28px -8px rgba(212, 175, 55, 0.35);
+    animation: cardEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards, readyGlow 2.6s ease-in-out infinite;
+  }
+}
+
+// A plain top-right-aligned pill in normal flow, not an absolutely positioned/rotated
+// corner ribbon - that earlier approach clipped and wrapped "1 punch to go!" at small
+// card widths. This one sizes to its own text and can never overlap the ring next to it.
+.status-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+
+  &.almost {
+    background: linear-gradient(90deg, var(--app-primary-color, #3f51b5), var(--app-accent-color, #ff4081));
+  }
+
+  &.ready {
+    background: linear-gradient(90deg, #d4af37, #f3d67a);
+    color: #4a3a00;
+  }
+}
+
+.punch-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.punch-card-copy {
+  min-width: 0;
 }
 
 .punch-card-title {
@@ -233,28 +412,87 @@ $tier-default-end: #3f51b5;
 }
 
 .punch-card-description {
-  margin: 4px 0 12px;
+  margin: 4px 0 0;
   color: rgba(0, 0, 0, 0.6);
   font-size: 0.85rem;
+}
+
+.progress-ring-wrap {
+  position: relative;
+  flex: none;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .punch-card.ready & {
+    animation: ringPulse 2.6s ease-in-out infinite;
+    border-radius: 50%;
+  }
+}
+
+.progress-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  --pct: 0;
+  background: conic-gradient(
+    var(--app-primary-color, #3f51b5) calc(var(--pct) * 1%),
+    rgba(0, 0, 0, 0.08) 0
+  );
+  transition: --pct 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 7px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 7px));
+
+  .punch-card.ready & {
+    background: conic-gradient(#d4af37 calc(var(--pct) * 1%), rgba(212, 175, 55, 0.15) 0);
+  }
+}
+
+.progress-ring-label {
+  position: relative;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: rgba(0, 0, 0, 0.8);
+
+  span {
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.45);
+  }
 }
 
 .punch-stamps {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 8px;
+  margin: 16px 0 8px;
 }
 
 .punch-stamp {
+  position: relative;
   width: 28px;
   height: 28px;
   border-radius: 50%;
   border: 2px solid rgba(0, 0, 0, 0.15);
   background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: #fff;
+  }
 
   &.filled {
-    background: $tier-gold-start;
-    border-color: $tier-gold-end;
+    border-color: transparent;
+    background: linear-gradient(135deg, $tier-gold-start, $tier-gold-end);
+    box-shadow: 0 2px 6px rgba(184, 134, 11, 0.45);
+    animation: stampFillIn 0.4s var(--stamp-delay, 0ms) cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
   }
 }
 
@@ -272,7 +510,7 @@ $tier-default-end: #3f51b5;
   margin-top: 10px;
   padding: 10px 12px;
   border-radius: 10px;
-  background: rgba(212, 175, 55, 0.15);
+  background: rgba(212, 175, 55, 0.18);
   color: #7a5c00;
   font-size: 0.85rem;
   font-weight: 600;
@@ -288,4 +526,84 @@ $tier-default-end: #3f51b5;
   margin: 8px 0 0;
   font-size: 0.75rem;
   color: rgba(0, 0, 0, 0.45);
+}
+
+// ---------------------------------------------------------------------------
+// Motion (disabled under prefers-reduced-motion below)
+// ---------------------------------------------------------------------------
+
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pointsPop {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes stampFillIn {
+  from {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes readyGlow {
+  0%,
+  100% {
+    box-shadow: 0 10px 28px -8px rgba(212, 175, 55, 0.35);
+  }
+  50% {
+    box-shadow: 0 10px 34px -6px rgba(212, 175, 55, 0.6);
+  }
+}
+
+@keyframes ringPulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 rgba(212, 175, 55, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.6));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loyalty-card,
+  .punch-card,
+  .card-points {
+    animation: none !important;
+  }
+
+  .punch-card.ready,
+  .progress-ring-wrap {
+    animation: none !important;
+  }
+
+  .punch-stamp.filled {
+    animation: none !important;
+  }
+
+  .loyalty-card,
+  .punch-card,
+  .wallet-button {
+    transition: none !important;
+  }
 }
