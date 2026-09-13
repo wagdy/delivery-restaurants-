@@ -51,9 +51,7 @@ $tier-default-end: #3f2fae;
   inset: -40px -24px auto -24px;
   height: 320px;
   z-index: -1;
-  background:
-    radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--app-primary-color, #3f51b5) 22%, transparent), transparent 60%),
-    radial-gradient(circle at 90% 10%, color-mix(in srgb, var(--app-accent-color, #ff4081) 16%, transparent), transparent 55%);
+  background: radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--app-primary-color, #3f51b5) 20%, transparent), transparent 60%);
   filter: blur(10px);
   pointer-events: none;
 }
@@ -68,20 +66,14 @@ $tier-default-end: #3f2fae;
   border-radius: 24px;
   padding: 26px;
   color: #fff;
-  box-shadow:
-    0 20px 40px -12px rgba(0, 0, 0, 0.35),
-    0 2px 6px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
   transform: perspective(1000px) rotateX(var(--tilt-rx, 0deg)) rotateY(var(--tilt-ry, 0deg));
   transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
   will-change: transform;
   animation: cardEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 
   &:hover {
-    box-shadow:
-      0 28px 52px -14px rgba(0, 0, 0, 0.4),
-      0 2px 6px rgba(0, 0, 0, 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    box-shadow: 0 28px 52px -14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   }
 
   &.tier-bronze {
@@ -114,18 +106,6 @@ $tier-default-end: #3f2fae;
   &.tier-default {
     background: linear-gradient(135deg, $tier-default-start, $tier-default-end);
   }
-}
-
-// Faint diagonal grain, blended with `overlay` so it reads as brushed-metal texture
-// rather than a visible pattern - a cheap way to keep a flat CSS gradient from looking
-// like a flat CSS gradient.
-.card-texture {
-  position: absolute;
-  inset: 0;
-  opacity: 0.5;
-  mix-blend-mode: overlay;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
 }
 
 // The light sweep that tracks the cursor via TiltDirective's --tilt-px/--tilt-py -
@@ -283,16 +263,7 @@ $tier-default-end: #3f2fae;
   font-family: inherit;
   cursor: pointer;
   color: #fff;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.18);
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(0);
-  }
+  transition: opacity 0.15s ease;
 
   &:disabled {
     opacity: 0.6;
@@ -425,11 +396,6 @@ $tier-default-end: #3f2fae;
   display: flex;
   align-items: center;
   justify-content: center;
-
-  .punch-card.ready & {
-    animation: ringPulse 2.6s ease-in-out infinite;
-    border-radius: 50%;
-  }
 }
 
 .progress-ring {
@@ -575,28 +541,10 @@ $tier-default-end: #3f2fae;
   }
 }
 
-@keyframes ringPulse {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 0 rgba(212, 175, 55, 0));
-  }
-  50% {
-    filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.6));
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .loyalty-card,
   .punch-card,
-  .card-points {
-    animation: none !important;
-  }
-
-  .punch-card.ready,
-  .progress-ring-wrap {
-    animation: none !important;
-  }
-
+  .card-points,
   .punch-stamp.filled {
     animation: none !important;
   }
