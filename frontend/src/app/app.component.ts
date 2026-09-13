@@ -15,6 +15,7 @@ import { LoyaltyRealtimeService } from './core/services/loyalty-realtime.service
 import { Category } from './core/models/category.model';
 import { CartDrawerComponent } from './features/storefront/cart-drawer/cart-drawer.component';
 import { AppFooterComponent } from './shared/app-footer/app-footer.component';
+import { iconForCategory } from './shared/utils/category-icon.util';
 
 @Component({
   selector: 'app-root',
@@ -49,6 +50,11 @@ export class AppComponent {
   // The hamburger's category drawer - best-effort, same "don't block the app on this"
   // reasoning as StorefrontComponent's own category fetch.
   readonly categories = signal<Category[]>([]);
+
+  // Replays the category list's entrance stagger every time the drawer opens (rather
+  // than once at app init) - see cart-drawer's own shake signals for why a round trip
+  // through false is needed on a persistent, never-recreated component like this one.
+  readonly categoryDrawerAnimate = signal(false);
 
   // True for the fully public, chrome-free pages: "/rate/store", "/customer-review/:id"
   // (reached from a WhatsApp link by a customer who may not even be logged in - the
@@ -102,5 +108,9 @@ export class AppComponent {
   // authGuard-protected, so this is purely a shortcut, not the only thing enforcing it.
   protected accountRoute(): string {
     return this.authService.isAuthenticated() ? '/my-orders' : '/login';
+  }
+
+  protected iconFor(category: string): string {
+    return iconForCategory(category);
   }
 }

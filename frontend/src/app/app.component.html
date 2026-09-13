@@ -2,16 +2,33 @@
   <router-outlet></router-outlet>
 } @else {
 <mat-sidenav-container class="app-shell">
-  <mat-sidenav #drawer mode="over" class="category-drawer">
+  <mat-sidenav
+    #drawer
+    mode="over"
+    class="category-drawer"
+    (openedStart)="categoryDrawerAnimate.set(true)"
+    (closed)="categoryDrawerAnimate.set(false)"
+  >
     <div class="drawer-header">
-      <span>Categories</span>
+      <span class="drawer-title">
+        <mat-icon>restaurant_menu</mat-icon>
+        Categories
+      </span>
       <button mat-icon-button (click)="drawer.close()" aria-label="Close menu">
         <mat-icon>close</mat-icon>
       </button>
     </div>
-    <mat-nav-list>
-      @for (category of categories(); track category.id) {
-        <a mat-list-item (click)="selectCategory(category.name, drawer)">{{ category.name }}</a>
+    <mat-nav-list class="category-nav-list" [class.animate-in]="categoryDrawerAnimate()">
+      @for (category of categories(); track category.id; let i = $index) {
+        <a
+          mat-list-item
+          class="category-nav-item"
+          [style.animation-delay.ms]="i * 40"
+          (click)="selectCategory(category.name, drawer)"
+        >
+          <mat-icon matListItemIcon>{{ iconFor(category.name) }}</mat-icon>
+          <span matListItemTitle>{{ category.name }}</span>
+        </a>
       } @empty {
         <p class="drawer-empty">No categories yet.</p>
       }
@@ -33,8 +50,18 @@
     <mat-toolbar color="primary" class="app-header">
       <!-- Left: hamburger + Logout (any authenticated role - customer, admin, or captain) -->
       <div class="header-actions">
-        <button mat-icon-button class="icon-hover" (click)="drawer.toggle()" aria-label="Open menu">
-          <mat-icon>menu</mat-icon>
+        <button
+          mat-icon-button
+          class="icon-hover"
+          (click)="drawer.toggle()"
+          [attr.aria-label]="drawer.opened ? 'Close menu' : 'Open menu'"
+          [attr.aria-expanded]="drawer.opened"
+        >
+          <span class="hamburger" [class.open]="drawer.opened">
+            <span class="hamburger-bar"></span>
+            <span class="hamburger-bar"></span>
+            <span class="hamburger-bar"></span>
+          </span>
         </button>
         @if (authService.isAuthenticated()) {
           <button class="action-link" (click)="authService.logout()" aria-label="Logout">
