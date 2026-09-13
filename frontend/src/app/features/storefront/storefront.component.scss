@@ -1,5 +1,5 @@
 .storefront {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 24px 16px 64px;
 }
@@ -83,176 +83,15 @@ $hero-tab-active-color: #7a2e22;
   padding: 24px 0;
 }
 
-// View 1 - top-level categories grid. Breakpoints match Tailwind's own md/lg defaults
-// (768px / 1024px) so the column counts land exactly where they'd land with
-// `grid-cols-1 md:grid-cols-2 lg:grid-cols-4`, just expressed as plain SCSS to match
-// this app's existing styling convention (no Tailwind dependency here).
-// Fixed 5 columns on every screen size, deliberately with no responsive breakpoints -
-// equivalent to Tailwind's `grid grid-cols-5 gap-1 p-1` (this project has no Tailwind
-// installed - see storefront.component.ts's imageFor()/CATEGORY_ICONS comments for the
-// same substitution note - so the identical layout is done with plain CSS Grid instead).
-.categories-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 4px; // Tailwind gap-1
-  padding: 4px; // Tailwind p-1
-}
+// ---------------------------------------------------------------------------
+// Toolbar - search + grid/list toggle
+// ---------------------------------------------------------------------------
 
-.category-card {
-  cursor: pointer;
-  background: #fff;
-  border-radius: 8px;
-  padding: 4px;
-  min-width: 0; // without this, a grid item won't shrink enough for text-overflow below
-  text-align: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.category-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
-}
-
-// The image and its icon fallback share this exact box so a category with no image
-// never reflows the grid differently than one with an image - equivalent to Tailwind's
-// `w-full aspect-square object-cover rounded`.
-.category-card-media,
-.category-card-icon {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 6px;
-  margin: 0 auto 4px;
-}
-
-// NgOptimizedImage's `fill` mode absolutely-positions the <img> to cover this box (and
-// requires the box itself to be `position: relative`). The skeleton sits in this same
-// box as another absolutely positioned layer, on top until the real image has loaded.
-//
-// Dev console note: Angular logs an NG02952 warning here ("height of the fill-mode
-// image is zero") on every load, even though the rendered layout is correct (verified
-// via computed style: a real, non-zero square). This is a known false positive in
-// NgOptimizedImage's synchronous zero-height check when the container is sized via
-// `aspect-ratio` inside a CSS Grid - Angular's own team has an open issue about
-// loosening this exact check (angular/angular#59495). Dev-mode only; stripped from
-// production builds along with every other ngDevMode-gated assertion.
-.category-card-media {
-  position: relative;
-  overflow: hidden;
-}
-
-.category-card-image {
-  object-fit: cover;
-}
-
-// Equivalent to Tailwind's `animate-pulse` + a gray background (this project has no
-// Tailwind installed - see the "w-full aspect-square" note above for the standing
-// reason). Sits on top of the <img> and fades out once isImageLoaded() is true,
-// rather than disappearing abruptly, for the "seamless" hand-off that was asked for.
-.category-card-skeleton {
-  position: absolute;
-  inset: 0;
-  background: #e0e0e0;
-  border-radius: inherit;
-  opacity: 1;
-  transition: opacity 200ms ease;
-  animation: category-image-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-
-  &.is-hidden {
-    opacity: 0;
-    pointer-events: none;
-    // animation: none (not animation-play-state: paused) - pausing freezes on whatever
-    // opacity the pulse keyframes happened to be mid-cycle, which would still win over
-    // the static opacity: 0 above and leave the skeleton visibly stuck at a random
-    // brightness. Removing the animation entirely lets the static value take effect.
-    animation: none;
-  }
-}
-
-@keyframes category-image-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.category-card-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #e0e0e0;
-  color: rgba(0, 0, 0, 0.45);
-
-  mat-icon {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
-  }
-}
-
-// Responsive text, equivalent to Tailwind's `text-[9px] sm:text-[10px] md:text-xs`, plus
-// `truncate` so a long category title clips with an ellipsis instead of wrapping and
-// breaking the fixed 5-column row height.
-.category-card-name {
-  margin: 0;
-  font-weight: 600;
-  font-size: 9px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  @media (min-width: 640px) {
-    font-size: 10px;
-  }
-
-  @media (min-width: 768px) {
-    font-size: 12px; // Tailwind's text-xs
-  }
-}
-
-.category-card-count {
-  margin: 0;
-  color: rgba(0, 0, 0, 0.55);
-  font-size: 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  @media (min-width: 640px) {
-    font-size: 9px;
-  }
-
-  @media (min-width: 768px) {
-    font-size: 10px;
-  }
-}
-
-// View 2 - drilled into one category
-.drilldown-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
-
-  h2 {
-    margin: 0;
-    font-size: 1.3rem;
-  }
-}
-
-.back-button {
-  flex-shrink: 0;
-}
-
-.drilldown-toolbar {
+.menu-toolbar {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
 }
 
@@ -261,10 +100,16 @@ $hero-tab-active-color: #7a2e22;
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 24px;
-  padding: 8px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  padding: 10px 18px;
   background: #fff;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+
+  &:focus-within {
+    border-color: var(--app-primary-color, #3f51b5);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-primary-color, #3f51b5) 15%, transparent);
+  }
 }
 
 .search-icon {
@@ -275,8 +120,10 @@ $hero-tab-active-color: #7a2e22;
   border: none;
   outline: none;
   flex: 1;
+  min-width: 0;
   font-size: 0.95rem;
   font-family: inherit;
+  background: transparent;
 }
 
 .view-toggles {
@@ -286,9 +133,9 @@ $hero-tab-active-color: #7a2e22;
 }
 
 .view-toggle-btn {
-  border: 1px solid rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.12);
   background: #fff;
-  border-radius: 8px;
+  border-radius: 10px;
   width: 40px;
   height: 40px;
   display: flex;
@@ -296,6 +143,7 @@ $hero-tab-active-color: #7a2e22;
   justify-content: center;
   cursor: pointer;
   color: rgba(0, 0, 0, 0.6);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 
   &.active {
     background: var(--app-primary-color, #3f51b5);
@@ -304,90 +152,283 @@ $hero-tab-active-color: #7a2e22;
   }
 }
 
-// Equivalent to Tailwind's `text-lg md:text-xl font-bold mt-6 mb-3 pb-2 border-b-2
-// border-gray-100` - an inline section headline grouping the item grid directly below
-// it, never a clickable card (see subCategorySections() in the component).
+// ---------------------------------------------------------------------------
+// Layout: mobile stacks the rail above the content; desktop splits into a sticky
+// sidebar + content grid. Both variants of .category-rail below share the exact same
+// markup - only its own CSS changes between the two.
+// ---------------------------------------------------------------------------
+
+.menu-layout {
+  display: block;
+}
+
+@media (min-width: 1024px) {
+  .menu-layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+}
+
+.category-rail {
+  position: sticky;
+  top: 64px;
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 10px 2px;
+  margin: 0 0 20px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .category-rail {
+    top: 88px;
+    flex-direction: column;
+    overflow-x: visible;
+    max-height: calc(100vh - 112px);
+    overflow-y: auto;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    margin: 0;
+  }
+}
+
+@media (min-width: 1120px) {
+  .category-rail {
+    top: 104px;
+  }
+}
+
+.category-chip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.65);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: var(--app-primary-color, #3f51b5);
+  }
+
+  &.active {
+    background: linear-gradient(90deg, var(--app-primary-color, #3f51b5), var(--app-accent-color, #ff4081));
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--app-primary-color, #3f51b5) 60%, transparent);
+  }
+}
+
+.category-chip-count {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 0.72rem;
+
+  .category-chip.active & {
+    background: rgba(255, 255, 255, 0.25);
+  }
+}
+
+@media (min-width: 1024px) {
+  .category-chip {
+    width: 100%;
+  }
+
+  .category-chip-label {
+    flex: 1;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sections
+// ---------------------------------------------------------------------------
+
+.menu-content {
+  min-width: 0;
+}
+
+.menu-section {
+  scroll-margin-top: 128px;
+}
+
+@media (min-width: 1024px) {
+  .menu-section {
+    scroll-margin-top: 96px;
+  }
+}
+
+@media (min-width: 1120px) {
+  .menu-section {
+    scroll-margin-top: 112px;
+  }
+}
+
+.menu-section-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin: 8px 0 16px;
+
+  .menu-section:not(:first-child) & {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+  }
+}
+
 .sub-category-headline {
-  font-size: 1.125rem;
+  font-size: 1.05rem;
   font-weight: 700;
   margin: 24px 0 12px;
   padding-bottom: 8px;
   border-bottom: 2px solid #f3f4f6;
-
-  @media (min-width: 768px) {
-    font-size: 1.25rem;
-  }
 }
+
+// ---------------------------------------------------------------------------
+// Item grid + cards
+// ---------------------------------------------------------------------------
 
 .items-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 
-  // One row per item instead of a card grid - the .menu-card / .menu-card-image rules
-  // below switch from a vertical card to a horizontal row when this is applied, so the
-  // markup itself doesn't need to change between the two modes.
+  @media (min-width: 480px) {
+    gap: 16px;
+  }
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+
+  // One row per item instead of a card grid - the .menu-card rules below switch from a
+  // vertical card to a horizontal row when this is applied, so the markup itself doesn't
+  // need to change between the two modes.
   &.list-view {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 }
 
 .menu-card {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   overflow: hidden;
   cursor: pointer;
-  position: relative;
-  transition: box-shadow 0.15s;
-}
+  border-radius: 16px;
+  min-width: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+  animation: cardEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: var(--enter-delay, 0ms);
 
-.menu-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.menu-card-image {
-  width: 100%;
-  height: 140px;
-  object-fit: cover;
-}
-
-.list-view .menu-card {
-  flex-direction: row;
-  align-items: center;
-
-  mat-card-content {
-    flex: 1;
-    min-width: 0;
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 28px -12px rgba(0, 0, 0, 0.25);
   }
 }
 
-.list-view .menu-card-image {
-  width: 88px;
-  height: 88px;
-  flex-shrink: 0;
+.menu-card-media {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #eee;
 }
 
-// Sits in normal document flow next to the price (see .price-col) rather than
-// position: absolute over the card - that used to overlap and fully hide the price
-// whenever an item was already in the cart.
+.menu-card-image {
+  object-fit: cover;
+  transition: transform 0.35s ease;
+
+  .menu-card:hover & {
+    transform: scale(1.08);
+  }
+}
+
+.menu-card-skeleton {
+  position: absolute;
+  inset: 0;
+  background: #e0e0e0;
+  opacity: 1;
+  transition: opacity 200ms ease;
+  animation: image-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  &.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+    animation: none;
+  }
+}
+
+@keyframes image-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.menu-card-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f0ede8, #e4ddd3);
+  color: rgba(0, 0, 0, 0.25);
+
+  mat-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+  }
+}
+
 .in-cart-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
   background: var(--app-accent-color, #ff4081);
   color: #fff;
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
   white-space: nowrap;
-}
-
-.addons-hint {
-  color: var(--app-primary-color, #3f51b5);
-  font-size: 0.75rem;
-  margin: 6px 0 0;
-  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 .card-header {
@@ -398,25 +439,112 @@ $hero-tab-active-color: #7a2e22;
 
   h3 {
     margin: 0;
-    font-size: 1.05rem;
+    font-size: 1rem;
+    min-width: 0;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 }
 
-.price-col {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
 .price {
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
+  color: var(--app-primary-color, #3f51b5);
+  font-variant-numeric: tabular-nums;
 }
 
 .description {
   color: rgba(0, 0, 0, 0.6);
-  font-size: 0.875rem;
+  font-size: 0.82rem;
   margin: 6px 0 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.addons-hint {
+  color: var(--app-primary-color, #3f51b5);
+  font-size: 0.72rem;
+  margin: 6px 0 0;
+  font-weight: 500;
+}
+
+.add-button {
+  width: 100%;
+
+  mat-icon {
+    transition: transform 0.15s ease;
+  }
+
+  &:hover mat-icon {
+    transform: rotate(90deg);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// List view
+// ---------------------------------------------------------------------------
+
+.list-view .menu-card {
+  flex-direction: row;
+  align-items: stretch;
+
+  &:hover {
+    transform: none;
+  }
+
+  mat-card-content {
+    flex: 1;
+    min-width: 0;
+    padding-top: 12px;
+  }
+
+  mat-card-actions {
+    display: flex;
+    align-items: center;
+    padding-right: 12px;
+  }
+}
+
+.list-view .menu-card-media {
+  width: 100px;
+  aspect-ratio: auto;
+  flex-shrink: 0;
+}
+
+.list-view .add-button {
+  width: auto;
+}
+
+// ---------------------------------------------------------------------------
+// Motion
+// ---------------------------------------------------------------------------
+
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-card {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .menu-card-image {
+    transition: none !important;
+  }
+
+  .category-chip {
+    transition: none !important;
+  }
 }

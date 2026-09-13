@@ -26,76 +26,20 @@
       </div>
     } @else if (errorMessage()) {
       <p class="error-text">{{ errorMessage() }}</p>
-    } @else if (selectedCategory() === null) {
-      <!-- View 1: top-level categories grid -->
-      @if (categories().length === 0) {
-        <p class="empty-state">No menu items available right now.</p>
-      } @else {
-        <div class="categories-grid">
-          @for (category of categories(); track category) {
-            <div class="category-card" (click)="openCategory(category)">
-              @if (imageFor(category); as imageUrl) {
-                <div class="category-card-media">
-                  <!-- Shown instantly (no network cost) and faded out once the real
-                       image's (load) event fires below - never left visible forever,
-                       even if the image request errors, since isImageLoaded() only
-                       depends on a successful load. -->
-                  <div class="category-card-skeleton" [class.is-hidden]="isImageLoaded(category)"></div>
-                  <img
-                    [ngSrc]="imageUrl"
-                    [alt]="category"
-                    fill
-                    priority
-                    class="category-card-image"
-                    (load)="onImageLoad(category)"
-                  />
-                </div>
-              } @else {
-                <div class="category-card-icon">
-                  <mat-icon>{{ iconFor(category) }}</mat-icon>
-                </div>
-              }
-              <h3 class="category-card-name">{{ category }}</h3>
-              <p class="category-card-count">
-                {{ categoryCounts().get(category) }} item{{ categoryCounts().get(category) === 1 ? '' : 's' }}
-              </p>
-            </div>
-          }
-        </div>
-      }
     } @else {
-      <!-- View 2: drilled into one category -->
-      <div class="drilldown-header">
-        <button mat-button class="back-button" (click)="backToCategories()">
-          <mat-icon>arrow_back</mat-icon>
-          Back to Categories
-        </button>
-        <h2>{{ selectedCategory() }}</h2>
-      </div>
-
-      <div class="drilldown-toolbar">
+      <div class="menu-toolbar">
         <div class="search-bar">
           <mat-icon class="search-icon">search</mat-icon>
           <input
             type="text"
             class="search-input"
-            [placeholder]="'Search in ' + selectedCategory()"
+            placeholder="Search the menu"
             [value]="searchTerm()"
             (input)="searchTerm.set($any($event.target).value)"
           />
         </div>
 
         <div class="view-toggles">
-          <button
-            type="button"
-            class="view-toggle-btn"
-            [class.active]="viewMode() === 'list'"
-            [attr.aria-pressed]="viewMode() === 'list'"
-            aria-label="List view"
-            (click)="viewMode.set('list')"
-          >
-            <mat-icon>view_list</mat-icon>
-          </button>
           <button
             type="button"
             class="view-toggle-btn"
@@ -106,61 +50,110 @@
           >
             <mat-icon>grid_view</mat-icon>
           </button>
+          <button
+            type="button"
+            class="view-toggle-btn"
+            [class.active]="viewMode() === 'list'"
+            [attr.aria-pressed]="viewMode() === 'list'"
+            aria-label="List view"
+            (click)="viewMode.set('list')"
+          >
+            <mat-icon>view_list</mat-icon>
+          </button>
         </div>
       </div>
 
-      <!-- Reusable item grid, shared by the ungrouped items below and each sub-category
-           section further down - keeps the mat-card markup defined exactly once. -->
-      <ng-template #itemsGrid let-items>
-        <div class="items-grid" [class.list-view]="viewMode() === 'list'">
-          @for (item of items; track item.id) {
-            <mat-card class="menu-card" (click)="openDetails(item)">
-              @if (item.imageUrl) {
-                <img class="menu-card-image" [src]="item.imageUrl" [alt]="item.name" />
-              }
-              <mat-card-content>
-                <div class="card-header">
-                  <h3>{{ item.name }}</h3>
-                  <div class="price-col">
-                    <span class="price">L.E {{ item.price.toFixed(2) }}</span>
+      @if (menuSections().length === 0) {
+        <p class="empty-state">
+          {{ searchTerm().trim() ? 'No items match your search.' : 'No menu items available right now.' }}
+        </p>
+      } @else {
+        <div class="menu-layout">
+          <nav class="category-rail" aria-label="Menu categories">
+            @for (section of menuSections(); track section.category) {
+              <button
+                type="button"
+                class="category-chip"
+                [class.active]="activeCategory() === section.category"
+                (click)="scrollToCategory(section.category)"
+              >
+                <mat-icon>{{ iconFor(section.category) }}</mat-icon>
+                <span class="category-chip-label">{{ section.category }}</span>
+                <span class="category-chip-count">{{ section.totalCount }}</span>
+              </button>
+            }
+          </nav>
+
+          <!-- Reusable item grid, shared by every section's ungrouped items and each of
+               its sub-category sub-sections - keeps the card markup defined exactly once. -->
+          <ng-template #itemsGrid let-items>
+            <div class="items-grid" [class.list-view]="viewMode() === 'list'">
+              @for (item of items; track item.id; let i = $index) {
+                <mat-card class="menu-card" [style.--enter-delay.ms]="i * 40" (click)="openDetails(item)">
+                  <div class="menu-card-media">
+                    @if (item.imageUrl) {
+                      <div class="menu-card-skeleton" [class.is-hidden]="isItemImageLoaded(item.id)"></div>
+                      <img
+                        [ngSrc]="item.imageUrl"
+                        [alt]="item.name"
+                        fill
+                        class="menu-card-image"
+                        (load)="onItemImageLoad(item.id)"
+                      />
+                    } @else {
+                      <div class="menu-card-placeholder">
+                        <mat-icon>restaurant</mat-icon>
+                      </div>
+                    }
                     @if (quantityFor(item.id) > 0) {
-                      <span class="in-cart-badge">In cart: {{ quantityFor(item.id) }}</span>
+                      <span class="in-cart-badge">{{ quantityFor(item.id) }} in cart</span>
                     }
                   </div>
-                </div>
-                @if (item.description) {
-                  <p class="description">{{ item.description }}</p>
+                  <mat-card-content>
+                    <div class="card-header">
+                      <h3>{{ item.name }}</h3>
+                      <span class="price">L.E {{ item.price.toFixed(2) }}</span>
+                    </div>
+                    @if (item.description) {
+                      <p class="description">{{ item.description }}</p>
+                    }
+                    @if (item.addOns.length > 0) {
+                      <p class="addons-hint">{{ item.addOns.length }} add-on{{ item.addOns.length === 1 ? '' : 's' }} available</p>
+                    }
+                  </mat-card-content>
+                  <mat-card-actions>
+                    <button mat-flat-button color="primary" class="add-button" (click)="openDetails(item); $event.stopPropagation()">
+                      <mat-icon>add</mat-icon>
+                      Add
+                    </button>
+                  </mat-card-actions>
+                </mat-card>
+              }
+            </div>
+          </ng-template>
+
+          <div class="menu-content">
+            @for (section of menuSections(); track section.category; let i = $index) {
+              <section
+                #categorySectionEl
+                class="menu-section"
+                [id]="anchorId(section.category, i)"
+                [attr.data-category]="section.category"
+              >
+                <h2 class="menu-section-title">{{ section.category }}</h2>
+
+                @if (section.ungroupedItems.length > 0) {
+                  <ng-container [ngTemplateOutlet]="itemsGrid" [ngTemplateOutletContext]="{ $implicit: section.ungroupedItems }"></ng-container>
                 }
-                @if (item.addOns.length > 0) {
-                  <p class="addons-hint">{{ item.addOns.length }} add-on{{ item.addOns.length === 1 ? '' : 's' }} available</p>
+
+                @for (sub of section.subSections; track sub.subCategory.id) {
+                  <h3 class="sub-category-headline">{{ sub.subCategory.name }}</h3>
+                  <ng-container [ngTemplateOutlet]="itemsGrid" [ngTemplateOutletContext]="{ $implicit: sub.items }"></ng-container>
                 }
-              </mat-card-content>
-              <mat-card-actions>
-                <button mat-flat-button color="primary" (click)="openDetails(item); $event.stopPropagation()">
-                  <mat-icon>add_shopping_cart</mat-icon>
-                  Add to cart
-                </button>
-              </mat-card-actions>
-            </mat-card>
-          }
+              </section>
+            }
+          </div>
         </div>
-      </ng-template>
-
-      @if (filteredItems().length === 0) {
-        <p class="empty-state">No items match your search.</p>
-      } @else {
-        <!-- Items with no sub-category render first, in a plain grid with no headline -
-             a category that never uses sub-categories looks exactly as it did before. -->
-        @if (ungroupedItems().length > 0) {
-          <ng-container [ngTemplateOutlet]="itemsGrid" [ngTemplateOutletContext]="{ $implicit: ungroupedItems() }"></ng-container>
-        }
-
-        <!-- Sub-category sections: an inline headline (never a clickable card) directly
-             above just that sub-category's own items. -->
-        @for (section of subCategorySections(); track section.subCategory.id) {
-          <h3 class="sub-category-headline">{{ section.subCategory.name }}</h3>
-          <ng-container [ngTemplateOutlet]="itemsGrid" [ngTemplateOutletContext]="{ $implicit: section.items }"></ng-container>
-        }
       }
     }
   } @else if (activeTab() === 'rewards') {

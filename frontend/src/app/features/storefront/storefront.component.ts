@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, ElementRef, QueryList, ViewChildren, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -23,17 +23,27 @@ import { LoyaltyRewardsComponent } from './loyalty-rewards/loyalty-rewards.compo
 export type MenuViewMode = 'list' | 'grid';
 export type HeroTab = 'menu' | 'rewards' | 'orders';
 
-// One inline section within View 2's item grid - a sub-category headline followed by
-// just its own items. Never a clickable card, unlike the top-level category cards in
-// View 1 - see the template's sub-category-headline rendering.
+// One inline sub-grouping within a category section - a sub-category headline followed
+// by just its own items. Never a clickable card, unlike the category headline above it.
 export interface SubCategorySection {
   subCategory: SubCategory;
   items: MenuItem[];
 }
 
-// Keyword -> icon fallback for a category card (View 1) with no admin-set image.
-// Falls back to a generic plate icon below for any name that doesn't match - this is
-// cosmetic only, never blocks a category from rendering.
+// One continuous-page section per category (see menuSections() below) - the unit the
+// sticky category rail scrolls/jumps to, replacing the old "drill into one category"
+// view. Ungrouped items render first with no headline, then each sub-category gets its
+// own headline, mirroring the category-level ungrouped/grouped split one level down.
+export interface CategorySection {
+  category: string;
+  ungroupedItems: MenuItem[];
+  subSections: SubCategorySection[];
+  totalCount: number;
+}
+
+// Keyword -> icon fallback for a category chip with no more specific match. Falls back
+// to a generic plate icon below for any name that doesn't match - this is cosmetic only,
+// never blocks a category from rendering.
 const CATEGORY_ICONS: { keywords: string[]; icon: string }[] = [
   { keywords: ['drink', 'beverage', 'juice', 'soda'], icon: 'local_bar' },
   { keywords: ['dessert', 'sweet', 'cake'], icon: 'icecream' },
@@ -49,6 +59,19 @@ const DEFAULT_CATEGORY_ICON = 'restaurant_menu';
 function iconForCategory(name: string): string {
   const lower = name.toLowerCase();
   return CATEGORY_ICONS.find((entry) => entry.keywords.some((k) => lower.includes(k)))?.icon ?? DEFAULT_CATEGORY_ICON;
+}
+
+// Turns an arbitrary admin-entered category name into a safe, unique DOM id for the
+// scroll-spy/anchor-jump nav below - category names are free text (see MenuItem.category
+// on the model), not slugs, so this can't assume anything about their characters. The
+// index suffix is what guarantees uniqueness (two categories could otherwise slugify to
+// the same string, e.g. "Drinks!" and "Drinks?").
+function categoryAnchorId(category: string, index: number): string {
+  const slug = category
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `menu-section-${index}-${slug || 'category'}`;
 }
 
 @Component({
@@ -69,12 +92,13 @@ function iconForCategory(name: string): string {
   templateUrl: './storefront.component.html',
   styleUrl: './storefront.component.scss'
 })
-export class StorefrontComponent {
+export class StorefrontComponent implements AfterViewInit {
   private readonly menuItemService = inject(MenuItemService);
   private readonly categoryService = inject(CategoryService);
   private readonly subCategoryService = inject(SubCategoryService);
   private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly cart = inject(CartService);
   protected readonly authService = inject(AuthService);
   protected readonly settingsService = inject(SettingsService);
@@ -85,16 +109,19 @@ export class StorefrontComponent {
   readonly searchTerm = signal('');
   readonly viewMode = signal<MenuViewMode>('grid');
 
-  // The hero's tab bar - Menu/Rewards/My Orders. Independent of selectedCategory below:
-  // this picks which whole tab panel is visible, selectedCategory only matters once
-  // 'menu' is the active tab.
+  // The hero's tab bar - Menu/Rewards/My Orders.
   readonly activeTab = signal<HeroTab>('menu');
 
-  // Two-step navigation: null shows the top-level categories grid (View 1); a category
-  // name drills into just that category's items (View 2). There is no continuous
-  // multi-category scroll anymore, so unlike before, exactly one of the two views is
-  // ever on screen at a time.
-  readonly selectedCategory = signal<string | null>(null);
+  // Which category chip is highlighted in the sticky rail - driven by whichever section
+  // scrollToCategory() jumped to (immediate) or the IntersectionObserver in
+  // ngAfterViewInit reports as nearest the top while the customer scrolls manually.
+  readonly activeCategory = signal<string | null>(null);
+
+  // Set by a ?category=X deep link (see the queryParamMap subscription below) before the
+  // menu has necessarily finished loading - consumed by the effect-free check inside
+  // menuSections()'s consumer in the template's constructor-time scroll, once that
+  // category's section actually exists to scroll to.
+  private pendingScrollCategory: string | null = null;
 
   // Admin-configured display order plus per-category image, fetched separately from the
   // menu items themselves since Category is its own entity (see
@@ -102,8 +129,8 @@ export class StorefrontComponent {
   private readonly categoryDisplayOrder = signal<Category[]>([]);
 
   // All sub-categories across every category, fetched once like categoryDisplayOrder
-  // above - subCategorySections() below narrows this down to just the drilled-into
-  // category's own sub-categories, in display order.
+  // above - each category section below narrows this down to just its own sub-categories,
+  // in display order.
   private readonly subCategories = signal<SubCategory[]>([]);
 
   readonly categories = computed(() => {
@@ -112,7 +139,7 @@ export class StorefrontComponent {
     // Only categories that actually have menu items right now, in admin-configured
     // order. Any item category with no matching Category row (a data edge case, since
     // MenuItem.category is a free-text field, not a foreign key) is appended
-    // alphabetically at the end rather than silently dropped from the grid.
+    // alphabetically at the end rather than silently dropped from the rail.
     const ordered = order.filter((name) => present.has(name));
     const knownNames = new Set(order);
     const extras = Array.from(present)
@@ -121,78 +148,70 @@ export class StorefrontComponent {
     return [...ordered, ...extras];
   });
 
-  // Name -> imageUrl lookup for the category cards (View 1). A category with no matching
-  // Category row (see the "extras" comment above) simply has no entry here, which
-  // imageFor() below treats the same as an explicitly null imageUrl - fall back to icon.
-  private readonly categoryImagesByName = computed(
-    () => new Map(this.categoryDisplayOrder().map((c) => [c.name, c.imageUrl]))
-  );
-
-  // Item count shown on each category card in View 1.
-  readonly categoryCounts = computed(() => {
-    const counts = new Map<string, number>();
-    for (const item of this.menuItems()) {
-      counts.set(item.category, (counts.get(item.category) ?? 0) + 1);
-    }
-    return counts;
-  });
-
-  // Only meaningful in View 2 (selectedCategory is always set there) - filtered by both
-  // the drilled-into category and, optionally, a search term typed within that view.
-  readonly filteredItems = computed(() => {
+  // One continuous-page section per category with at least one match, in admin-configured
+  // order - the replacement for the old two-view drill-down. Typing a search term narrows
+  // every section at once and a category whose matches all disappear simply drops out of
+  // the page entirely, same UX as the old per-category "no items match" empty state, just
+  // applied per-section instead of gating a whole separate view.
+  readonly menuSections = computed<CategorySection[]>(() => {
     const term = this.searchTerm().trim().toLowerCase();
-    const category = this.selectedCategory();
-    return this.menuItems().filter((item) => {
-      const matchesCategory = !category || item.category === category;
-      const matchesSearch = !term || item.name.toLowerCase().includes(term);
-      return matchesCategory && matchesSearch;
-    });
-  });
-
-  // filteredItems() grouped by sub-category for View 2's inline headlines. Only
-  // sub-categories that (a) belong to the drilled-into category and (b) currently have
-  // at least one matching item are included, in the category's own configured sub-order
-  // - an empty sub-category (nothing matches the search term, or no items assigned yet)
-  // simply doesn't render a headline rather than showing an empty section.
-  readonly subCategorySections = computed<SubCategorySection[]>(() => {
-    const categoryName = this.selectedCategory();
-    const categoryId = this.categoryDisplayOrder().find((c) => c.name === categoryName)?.id;
-    if (categoryId === undefined) {
-      return [];
+    const categoryIdByName = new Map(this.categoryDisplayOrder().map((c) => [c.name, c.id]));
+    const subCategoriesByCategoryId = new Map<number, SubCategory[]>();
+    for (const sc of this.subCategories()) {
+      const bucket = subCategoriesByCategoryId.get(sc.categoryId);
+      if (bucket) {
+        bucket.push(sc);
+      } else {
+        subCategoriesByCategoryId.set(sc.categoryId, [sc]);
+      }
     }
 
-    const itemsBySubCategoryId = new Map<number, MenuItem[]>();
-    for (const item of this.filteredItems()) {
-      if (item.subCategoryId == null) {
+    const sections: CategorySection[] = [];
+    for (const category of this.categories()) {
+      const matches = this.menuItems().filter(
+        (item) => item.category === category && (!term || item.name.toLowerCase().includes(term))
+      );
+      if (matches.length === 0) {
         continue;
       }
-      const bucket = itemsBySubCategoryId.get(item.subCategoryId);
-      if (bucket) {
-        bucket.push(item);
-      } else {
-        itemsBySubCategoryId.set(item.subCategoryId, [item]);
+
+      const itemsBySubCategoryId = new Map<number, MenuItem[]>();
+      const ungroupedItems: MenuItem[] = [];
+      for (const item of matches) {
+        if (item.subCategoryId == null) {
+          ungroupedItems.push(item);
+          continue;
+        }
+        const bucket = itemsBySubCategoryId.get(item.subCategoryId);
+        if (bucket) {
+          bucket.push(item);
+        } else {
+          itemsBySubCategoryId.set(item.subCategoryId, [item]);
+        }
       }
+
+      const categoryId = categoryIdByName.get(category);
+      const subSections: SubCategorySection[] = (categoryId != null ? subCategoriesByCategoryId.get(categoryId) ?? [] : [])
+        .slice()
+        .sort((a, b) => a.displayOrder - b.displayOrder)
+        .map((subCategory) => ({ subCategory, items: itemsBySubCategoryId.get(subCategory.id) ?? [] }))
+        .filter((section) => section.items.length > 0);
+
+      sections.push({ category, ungroupedItems, subSections, totalCount: matches.length });
     }
 
-    return this.subCategories()
-      .filter((sc) => sc.categoryId === categoryId)
-      .sort((a, b) => a.displayOrder - b.displayOrder)
-      .map((subCategory) => ({ subCategory, items: itemsBySubCategoryId.get(subCategory.id) ?? [] }))
-      .filter((section) => section.items.length > 0);
+    return sections;
   });
-
-  // filteredItems() with no sub-category assigned - rendered first, in a plain grid with
-  // no headline, so a category that never uses sub-categories at all looks exactly like
-  // it did before this feature existed.
-  readonly ungroupedItems = computed(() =>
-    this.filteredItems().filter((item) => item.subCategoryId == null)
-  );
 
   constructor() {
     this.menuItemService.getAll({ isAvailable: true }).subscribe({
       next: (items) => {
         this.menuItems.set(items);
         this.loading.set(false);
+        if (!this.activeCategory()) {
+          this.activeCategory.set(this.categories()[0] ?? null);
+        }
+        this.tryConsumePendingScroll();
       },
       error: () => {
         this.loading.set(false);
@@ -208,23 +227,23 @@ export class StorefrontComponent {
       }
     });
 
-    // Best-effort: if this fails, View 2 just shows a flat grid with no headlines
-    // (subCategorySections() returns empty), same as a category with none defined.
+    // Best-effort: if this fails, every section just shows a flat grid with no
+    // sub-headlines (subSections comes back empty), same as a category with none defined.
     this.subCategoryService.getAll().subscribe({
       next: (subCategories) => this.subCategories.set(subCategories)
     });
 
-    // The hamburger drawer (app.component) links here with ?category=X - drill straight
-    // into that category's View 2, switching back to the Menu tab first in case the
-    // link arrived while Rewards or My Orders was showing. A live subscription (not
-    // just route.snapshot) is needed since Angular reuses this component instance
-    // rather than recreating it when only the query param changes while already
-    // sitting on this route.
+    // The hamburger drawer (app.component) links here with ?category=X - scrolls straight
+    // to that category's section, switching back to the Menu tab first in case the link
+    // arrived while Rewards or My Orders was showing. A live subscription (not just
+    // route.snapshot) is needed since Angular reuses this component instance rather than
+    // recreating it when only the query param changes while already sitting on this route.
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       const category = params.get('category');
       if (category) {
         this.activeTab.set('menu');
-        this.selectedCategory.set(category);
+        this.pendingScrollCategory = category;
+        this.tryConsumePendingScroll();
       }
 
       // Lets the WhatsApp welcome message link straight to the Rewards tab
@@ -241,29 +260,103 @@ export class StorefrontComponent {
     });
   }
 
+  // Only fires the actual scroll once that category's section exists in menuSections() -
+  // harmless no-op otherwise (e.g. the deep link arrived before the menu finished
+  // loading), retried from the menu-items subscription's next() above once it has.
+  private tryConsumePendingScroll(): void {
+    const category = this.pendingScrollCategory;
+    if (!category || !this.menuSections().some((s) => s.category === category)) {
+      return;
+    }
+    this.pendingScrollCategory = null;
+    // Wait one tick so the section (and its id) has actually rendered before scrolling.
+    setTimeout(() => this.scrollToCategory(category), 0);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Sticky rail: anchor ids, click-to-jump, and scroll-spy
+  // ---------------------------------------------------------------------------
+
+  @ViewChildren('categorySectionEl') private categorySectionEls!: QueryList<ElementRef<HTMLElement>>;
+  private sectionObserver: IntersectionObserver | null = null;
+
+  ngAfterViewInit(): void {
+    this.categorySectionEls.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.observeSections());
+    this.observeSections();
+    this.destroyRef.onDestroy(() => this.sectionObserver?.disconnect());
+  }
+
+  // Just below the tallest sticky header (toolbar + mobile rail) at any breakpoint - the
+  // horizontal line a section's own headline has to cross to count as "current".
+  private static readonly SCROLL_SPY_TRIGGER_Y = 150;
+
+  private observeSections(): void {
+    this.sectionObserver?.disconnect();
+    // The observer here is only a cheap trigger for "something scrolled past a section
+    // boundary, go recompute" - the rootMargin just narrows where a crossing fires down
+    // to near SCROLL_SPY_TRIGGER_Y, so recomputes happen right when they matter instead
+    // of only at the raw viewport edges. The actual "which section is active" decision
+    // happens in recomputeActiveCategory() below, from every section's live position,
+    // not from which entries this particular callback happened to report - an earlier
+    // version picked from entries directly and had a dead zone (nothing "isIntersecting")
+    // right at the top of the page, where the active chip would freeze on a stale value.
+    this.sectionObserver = new IntersectionObserver(() => this.recomputeActiveCategory(), {
+      rootMargin: `-${StorefrontComponent.SCROLL_SPY_TRIGGER_Y}px 0px -50% 0px`,
+      threshold: 0
+    });
+    this.categorySectionEls.forEach((el) => this.sectionObserver!.observe(el.nativeElement));
+    this.recomputeActiveCategory();
+  }
+
+  // The current section is whichever one's headline is the last to have crossed the
+  // trigger line from below - i.e. the section the reader has scrolled into. Falls back
+  // to the first section above the trigger line (page not yet scrolled) rather than
+  // leaving the previous value in place, so there's never a position with no correct
+  // answer.
+  private recomputeActiveCategory(): void {
+    let current: string | null = null;
+    this.categorySectionEls.forEach((el) => {
+      if (el.nativeElement.getBoundingClientRect().top <= StorefrontComponent.SCROLL_SPY_TRIGGER_Y) {
+        current = el.nativeElement.getAttribute('data-category');
+      }
+    });
+    this.activeCategory.set(current ?? this.categorySectionEls.first?.nativeElement.getAttribute('data-category') ?? null);
+  }
+
+  anchorId(category: string, index: number): string {
+    return categoryAnchorId(category, index);
+  }
+
+  scrollToCategory(category: string): void {
+    this.activeCategory.set(category);
+    const index = this.menuSections().findIndex((s) => s.category === category);
+    if (index === -1) {
+      return;
+    }
+    document.getElementById(this.anchorId(category, index))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   iconFor(category: string): string {
     return iconForCategory(category);
   }
 
-  // Null (not just undefined) whenever there's no image to show, so the template's
-  // @if can treat "no Category row" and "Category row with imageUrl: null" identically.
-  imageFor(category: string): string | null {
-    return this.categoryImagesByName().get(category) ?? null;
+  // ---------------------------------------------------------------------------
+  // Item image loading reveal
+  // ---------------------------------------------------------------------------
+
+  // Tracks which item photos have actually finished downloading, so the template can show
+  // a skeleton placeholder (instant, zero network cost) until each image's own (load)
+  // event fires, then reveal it - keyed by item id, same pattern the old category-card
+  // images used (see git history), just generalized to every menu item's own photo now
+  // that those are the primary visual content of the page.
+  private readonly loadedItemImages = signal<ReadonlySet<number>>(new Set());
+
+  isItemImageLoaded(itemId: number): boolean {
+    return this.loadedItemImages().has(itemId);
   }
 
-  // Tracks which category images have actually finished downloading, so the template
-  // can show a skeleton placeholder (instant, zero network cost) until each image's own
-  // (load) event fires, then reveal it - keyed by category name like everything else
-  // in this View 1 section, not by URL, since that's already this class's identity for
-  // a category.
-  private readonly loadedCategoryImages = signal<ReadonlySet<string>>(new Set());
-
-  isImageLoaded(category: string): boolean {
-    return this.loadedCategoryImages().has(category);
-  }
-
-  onImageLoad(category: string): void {
-    this.loadedCategoryImages.update((current) => new Set(current).add(category));
+  onItemImageLoad(itemId: number): void {
+    this.loadedItemImages.update((current) => new Set(current).add(itemId));
   }
 
   quantityFor(menuItemId: number): number {
@@ -279,14 +372,5 @@ export class StorefrontComponent {
       maxWidth: '95vw',
       data: { menuItem: item }
     });
-  }
-
-  openCategory(category: string): void {
-    this.selectedCategory.set(category);
-  }
-
-  backToCategories(): void {
-    this.selectedCategory.set(null);
-    this.searchTerm.set('');
   }
 }
