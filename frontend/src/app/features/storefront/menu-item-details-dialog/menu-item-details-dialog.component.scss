@@ -1,159 +1,405 @@
-// Equivalent to Tailwind's `w-[95%] sm:w-full max-w-sm mx-auto p-4 box-border` (this
-// project has no Tailwind installed - see storefront.component.ts's imageFor() comment
-// for the standing note on why - so the same result is done in plain SCSS). The old
-// `min-width: 360px` here was the actual bug: on any viewport narrower than that
-// (most phones), it forced this content wider than the dialog panel around it,
-// pushing the quantity stepper's buttons past the edge instead of ever letting the
-// card shrink. width: 95% (with mx-auto centering the leftover 5%) replaces that fixed
-// floor, so the card always fits within whatever panel width the dialog config below
-// gives it - see openDetails() in storefront.component.ts, which now also caps that
-// outer panel at 95vw as a second, panel-level backstop against the same overflow.
-.dialog-content {
-  width: 95%;
-  margin: 0 auto;
-  max-width: 24rem; // max-w-sm
-  box-sizing: border-box;
+// Flex-column shell with ONE scrollable middle region - the same architecture the cart
+// drawer already proved out (see cart-drawer.component.scss), chosen over
+// position: sticky for the header/footer specifically because it can't silently break
+// depending on which ancestor ends up owning the scroll context. max-height caps this
+// at 85vh on a short phone screen (the mobile-critical case from the spec) without
+// ever letting a tall desktop viewport stretch it into an awkwardly oversized sheet.
+.addon-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: min(680px, 85vh);
+  border-radius: 20px;
+  overflow: hidden;
+  background: #fff;
+  animation: sheetEnter 260ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
 
-  @media (min-width: 640px) {
-    width: 100%;
+@media (max-width: 599px) {
+  .addon-modal {
+    // Flush against the bottom edge (see the global .addon-dialog-panel rule in
+    // styles.scss, which anchors the CDK overlay pane itself here) reads oddly with
+    // bottom corners still rounded - only the top ones should be.
+    border-radius: 20px 20px 0 0;
   }
 }
 
-.item-image {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-  display: block;
+.sheet-handle {
+  display: none;
 }
 
-.body {
-  padding: 20px 24px 8px;
+@media (max-width: 599px) {
+  .sheet-handle {
+    display: block;
+    flex-shrink: 0;
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.15);
+    margin: 10px auto 0;
+  }
 }
 
-.header-row {
+// ---------------------------------------------------------------------------
+// Header - sticky by construction (a flex-shrink: 0 sibling of the scrollable body,
+// not position: sticky), always showing name + base price + close regardless of how
+// long the add-ons list is.
+// ---------------------------------------------------------------------------
+
+.modal-header {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 16px 12px 14px 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.modal-header-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 6px;
 
   h2 {
     margin: 0;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
 .base-price {
   font-weight: 600;
-  white-space: nowrap;
+  font-size: 0.9rem;
+  color: var(--app-primary-color, #3f51b5);
+}
+
+.modal-close {
+  flex-shrink: 0;
+  // Guarantees the 44px minimum touch target regardless of Material's own
+  // density/sizing defaults for mat-icon-button.
+  width: 44px;
+  height: 44px;
+}
+
+// ---------------------------------------------------------------------------
+// Body - the ONLY scrolling region. min-height: 0 is what actually lets a flex child
+// scroll instead of overflowing its parent - without it this would silently ignore
+// overflow-y: auto and grow the whole sheet past max-height instead.
+// ---------------------------------------------------------------------------
+
+.modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 20px 20px;
+}
+
+// Bleeds edge-to-edge despite .modal-body's own side padding - a common "hero image
+// full-bleed, content below inset" pattern that reads as more premium than a padded,
+// letterboxed photo.
+.item-image {
+  width: calc(100% + 40px);
+  margin: 0 -20px 16px;
+  height: 160px;
+  object-fit: cover;
+  display: block;
 }
 
 .description {
   color: rgba(0, 0, 0, 0.6);
   font-size: 0.9rem;
-  margin: 8px 0 0;
+  margin: 4px 0 0;
 }
 
 .addons-section {
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin-top: 18px;
 
   h3 {
-    margin: 0 0 8px;
-    font-size: 0.85rem;
-    color: rgba(0, 0, 0, 0.6);
+    margin: 0 0 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(0, 0, 0, 0.5);
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.04em;
   }
 }
 
-.addon-row {
+.addon-list {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 0;
-}
-
-.addon-price {
-  font-size: 0.85rem;
-  color: rgba(0, 0, 0, 0.6);
-}
-
-// Equivalent to Tailwind's `flex justify-between items-center w-full gap-2`.
-.quantity-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
+  flex-direction: column;
   gap: 8px;
-  margin-top: 20px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.quantity-label {
-  font-weight: 500;
-}
-
-// Equivalent to Tailwind's `flex items-center gap-3 shrink-0` - flex-shrink: 0 is the
-// actual fix for "quantity selector gets pushed to the edge": without it, this group
-// was a normal shrinkable flex item that the row above could squeeze when space got
-// tight, splitting the -/value/+ apart instead of keeping them together as one unit.
-.qty-stepper {
+// The custom selectable "mini-card" replacing a plain checkbox row - a real <button>
+// for free keyboard/focus/AT support, fully custom-styled rather than themed from
+// mat-checkbox so the selected state can use the brand's own warm tones below.
+.addon-card {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-shrink: 0;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease, transform 150ms ease;
+
+  &:hover {
+    border-color: rgba(0, 0, 0, 0.18);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  // Warm, brand-toned selected state - independent of the admin-configurable
+  // --app-primary-color (which defaults to a cool indigo), matching the same fixed
+  // warm palette already used for this app's other "Otantik brand" surfaces (the auth
+  // screen's brand panel, the cart drawer's own grounded footer).
+  &.selected {
+    background: #fbf1e6;
+    border-color: #b9793f;
+    box-shadow: 0 6px 16px -10px rgba(185, 121, 63, 0.6);
+  }
 }
 
-// Equivalent to Tailwind's `flex flex-col-reverse sm:flex-row items-center gap-2 w-full
-// mt-4` - column-reverse below 640px puts "Add to cart" (declared second in the markup)
-// visually on top, so the primary action is the one nearest the thumb on a narrow phone
-// instead of the buttons being squeezed side by side.
-.footer-actions {
+// The custom checkmark control - an empty ring at rest, filling with a warm circle and
+// a checkmark that pops in with a small bounce once selected.
+.addon-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.22);
   display: flex;
-  flex-direction: column-reverse;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  margin-top: 16px;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 200ms ease, border-color 200ms ease;
 
-  @media (min-width: 640px) {
-    flex-direction: row;
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    line-height: 14px;
+    color: #fff;
+    transform: scale(0);
+    transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  &.checked {
+    border-color: transparent;
+    background: #b9793f;
+
+    mat-icon {
+      transform: scale(1);
+    }
   }
 }
 
-// Full width while stacked (column-reverse above) so both buttons are equally easy to
-// tap; back to content-sized once they're side by side at sm: and up.
-.footer-btn {
-  width: 100%;
+.addon-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-  @media (min-width: 640px) {
-    width: auto;
+.addon-price {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.55);
+  font-variant-numeric: tabular-nums;
+
+  .addon-card.selected & {
+    color: #8a5a30;
+    font-weight: 600;
   }
 }
 
-// Equivalent to Tailwind's `flex items-center justify-center w-full gap-1 flex-wrap
-// sm:flex-nowrap` - lets "Add to cart" and "· L.E X.XX" wrap onto their own line as a
-// pair, instead of breaking mid-price, if the button is ever narrower than its content.
+// ---------------------------------------------------------------------------
+// Footer - sticky by construction, same reasoning as the header. Stacks into two rows
+// below 400px (a 320-375px phone can't fit the qty stepper + Cancel + a legible Add to
+// cart button on one line without clipping or overlap) so the layout stays bulletproof
+// at the narrowest real screens, and becomes a single "group left, button right" row
+// from 400px up.
+// ---------------------------------------------------------------------------
+
+.modal-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 14px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+  background: #f7f2ec;
+  box-shadow: 0 -6px 16px -10px rgba(0, 0, 0, 0.18);
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.qty-stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  padding: 0 2px;
+  background: #fff;
+}
+
+.qty-btn {
+  width: 40px;
+  height: 40px;
+}
+
+.qty-value {
+  min-width: 22px;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+// A minimum 44px tap target for "Cancel" even though it visually reads as a compact
+// text link, not a full button - the spec's touch-target requirement doesn't stop
+// applying just because something is styled subtly.
+.cancel-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+
+  &:hover {
+    color: rgba(0, 0, 0, 0.8);
+  }
+}
+
 .add-to-cart-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--app-primary-color, #3f51b5), color-mix(in srgb, var(--app-primary-color, #3f51b5) 70%, black));
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--app-primary-color, #3f51b5) 65%, transparent);
+  transition: transform 150ms ease, box-shadow 150ms ease;
 
-  @media (min-width: 640px) {
-    flex-wrap: nowrap;
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: scale(0.97);
   }
 
   mat-icon {
     flex-shrink: 0;
   }
+
+  .dot {
+    opacity: 0.75;
+  }
 }
 
-.qty-value {
-  min-width: 24px;
-  text-align: center;
-  font-weight: 500;
+@media (min-width: 400px) {
+  .modal-footer {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-left {
+    flex-shrink: 0;
+  }
+
+  .add-to-cart-btn {
+    width: auto;
+  }
+}
+
+// The "rolling" price update - the number itself changes the instant the underlying
+// signal does (same tick this class gets added), so by the animation's fade-out
+// midpoint the NEW value is already in the DOM; what plays back reads as the price
+// ticking over to its new total, without needing to track/diff old vs new text.
+.price-slot {
+  display: inline-block;
+}
+
+.price-slot.rolling {
+  animation: priceRoll 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes priceRoll {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  40% {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  41% {
+    transform: translateY(8px);
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes sheetEnter {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .addon-modal {
+    animation: none !important;
+  }
+
+  .addon-card,
+  .addon-check mat-icon,
+  .add-to-cart-btn {
+    transition: none !important;
+  }
+
+  .price-slot.rolling {
+    animation: none !important;
+  }
 }

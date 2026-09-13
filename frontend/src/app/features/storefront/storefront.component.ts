@@ -295,6 +295,29 @@ export class StorefrontComponent implements AfterViewInit {
   // leaving the previous value in place, so there's never a position with no correct
   // answer.
   private recomputeActiveCategory(): void {
+    // A click's own choice wins outright for the whole ride to its destination - see
+    // scrollToCategory() below. Without this, a section boundary crossing the trigger
+    // line mid-flight (unavoidable for a long menu, where the smooth scroll can pass
+    // through several sections before settling) would recompute from wherever the
+    // animation currently is and stomp the just-clicked chip's highlight before it
+    // ever reaches the target.
+    if (this.isProgrammaticScroll) {
+      return;
+    }
+
+    // At the very bottom of the page, the last section's headline may never be able to
+    // reach the trigger line - scrollIntoView's block:'start' can't push it any further
+    // up once the document itself has run out of room to scroll (there's nothing below
+    // it to make room). Without this, clicking - or manually scrolling to - the very
+    // last category would leave the SECOND-TO-LAST one highlighted forever, since the
+    // last one's top never actually crosses the line. Whatever's on screen at max
+    // scroll is unambiguously the last section, regardless of exactly where its top sits.
+    const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+    if (atBottom && this.categorySectionEls.last) {
+      this.activeCategory.set(this.categorySectionEls.last.nativeElement.getAttribute('data-category'));
+      return;
+    }
+
     let current: string | null = null;
     this.categorySectionEls.forEach((el) => {
       if (el.nativeElement.getBoundingClientRect().top <= StorefrontComponent.SCROLL_SPY_TRIGGER_Y) {
@@ -308,13 +331,44 @@ export class StorefrontComponent implements AfterViewInit {
     return categoryAnchorId(category, index);
   }
 
+  // Set while a scrollToCategory()-triggered smooth scroll is in flight - see
+  // recomputeActiveCategory() above. scrollGuardToken lets a NEWER click's own release
+  // win if an OLDER click's scrollend/timeout fires after it (rapid re-clicking a
+  // different chip before the first scroll settles) - only the still-latest click may
+  // lift the guard.
+  private isProgrammaticScroll = false;
+  private scrollGuardToken = 0;
+
   scrollToCategory(category: string): void {
     this.activeCategory.set(category);
     const index = this.menuSections().findIndex((s) => s.category === category);
     if (index === -1) {
       return;
     }
-    document.getElementById(this.anchorId(category, index))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const target = document.getElementById(this.anchorId(category, index));
+    if (!target) {
+      return;
+    }
+
+    const token = ++this.scrollGuardToken;
+    this.isProgrammaticScroll = true;
+    const release = () => {
+      if (this.scrollGuardToken !== token) {
+        return;
+      }
+      this.isProgrammaticScroll = false;
+      // Reconcile against wherever the scroll actually settled - the fallback timeout
+      // below can fire slightly before a very long scroll (a menu with hundreds of
+      // items) truly finishes, and this is a harmless no-op if it's already correct.
+      this.recomputeActiveCategory();
+    };
+    window.addEventListener('scrollend', release, { once: true });
+    // Fallback for browsers without scrollend, and for the "already at the target, so
+    // scrollIntoView causes no motion and scrollend never fires" case - generous enough
+    // to outlast even a full-length jump on a very long menu.
+    setTimeout(release, 2500);
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   iconFor(category: string): string {
@@ -346,11 +400,17 @@ export class StorefrontComponent implements AfterViewInit {
 
   openDetails(item: MenuItem): void {
     this.dialog.open(MenuItemDetailsDialogComponent, {
-      width: '400px',
-      // Panel-level backstop alongside the dialog's own internal width: 95% (see
-      // menu-item-details-dialog.component.scss's .dialog-content) - without this, the
-      // 400px target width alone would still overflow any viewport narrower than that.
+      width: '440px',
+      // Panel-level backstops alongside the dialog's own internal max-height/width (see
+      // menu-item-details-dialog.component.scss's .addon-modal) - without these, the
+      // 440px/85vh targets alone would still overflow a viewport narrower/shorter than
+      // that. panelClass hooks the mobile bottom-sheet positioning in styles.scss (the
+      // CDK overlay pane it targets sits outside this component's own view, so that
+      // override has to live globally rather than in this dialog's own stylesheet).
       maxWidth: '95vw',
+      maxHeight: '90vh',
+      panelClass: 'addon-dialog-panel',
+      autoFocus: false,
       data: { menuItem: item }
     });
   }

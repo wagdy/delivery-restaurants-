@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -60,6 +60,17 @@ export class AppComponent {
   // through false is needed on a persistent, never-recreated component like this one.
   readonly categoryDrawerAnimate = signal(false);
 
+  // Bounces the header cart badge whenever the item count actually changes. Driven by
+  // an effect() rather than calling this explicitly wherever the count changes - the
+  // count is mutated from many unrelated places (menu cards' Smart Add, the cart
+  // drawer's own stepper, checkout), and this is the one place that owns the badge.
+  readonly cartBadgeBump = signal(false);
+  // Seeded from the cart's actual starting count (not e.g. -1) so the effect's own
+  // first run - which always fires immediately on creation, before anything has really
+  // "changed" - doesn't mistake the initial value for a change and bump on page load.
+  private previousCartCount = this.cart.itemCount();
+  private cartBadgeBumpTimer: ReturnType<typeof setTimeout> | null = null;
+
   // True for the fully public, chrome-free pages: "/rate/store", "/customer-review/:id"
   // (reached from a WhatsApp link by a customer who may not even be logged in - the
   // app-wide toolbar/sidenav would look completely out of place there), plus the
@@ -83,6 +94,14 @@ export class AppComponent {
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => {
       this.isBarePage.set(AppComponent.isBareUrl((event as NavigationEnd).urlAfterRedirects));
+    });
+
+    effect(() => {
+      const count = this.cart.itemCount();
+      if (count !== this.previousCartCount) {
+        this.previousCartCount = count;
+        this.pulseCartBadge();
+      }
     });
 
     // The service worker (see app.config.ts's provideServiceWorker) caches the whole app
@@ -135,5 +154,16 @@ export class AppComponent {
 
   protected iconFor(category: string): string {
     return iconForCategory(category);
+  }
+
+  // Same false -> (next tick) -> true round trip as the add-ons dialog's own price
+  // pulse - a plain set(true) would silently no-op if two cart changes land close
+  // enough together that the first bump's (animationend) hasn't reset the signal yet.
+  private pulseCartBadge(): void {
+    this.cartBadgeBump.set(false);
+    if (this.cartBadgeBumpTimer !== null) {
+      clearTimeout(this.cartBadgeBumpTimer);
+    }
+    this.cartBadgeBumpTimer = setTimeout(() => this.cartBadgeBump.set(true), 0);
   }
 }

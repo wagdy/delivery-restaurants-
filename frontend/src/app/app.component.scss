@@ -183,15 +183,22 @@
 // what gives `.brand`'s `height: 100%` below a real, fixed reference to fill - without
 // it, "make the logo match the header's full height" has no fixed height to match.
 .app-header {
-  // Left/right groups stay in normal flex flow; .brand is taken out of flow and
-  // centered against this toolbar regardless of how wide either side is.
+  // A real 3-item flex row (hamburger/logout group, brand, cart/account group) - see
+  // .brand below for why this replaced the old "absolutely position the brand over a
+  // two-item flex row" approach. A subtle frosted-glass layer (slightly translucent
+  // admin-configured color + backdrop blur) on top of the solid --app-header-color
+  // background below via styles.scss, rather than a heavily transparent header that
+  // would fight the admin's own color choice and unpredictably tank text contrast
+  // depending on what scrolls underneath.
+  display: flex;
+  align-items: center;
   position: sticky;
   top: 0;
   z-index: 50;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 24px -8px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.08);
   height: 64px;
   min-height: 64px;
-  padding: 8px 16px;
+  padding: 8px 12px;
 
   @media (min-width: 1120px) {
     height: 80px;
@@ -200,29 +207,24 @@
   }
 }
 
-// Equivalent to Tailwind's `absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
-// h-full w-auto`. Matches .app-header's own height in literal px (64px/80px), not a
-// percentage - a percentage here still visually equals 100%, but browsers can't reliably
-// resolve the prominent logo's aspect-ratio-driven width (height:100% -> width:auto)
-// against a height that is *itself* a percentage during .brand's own shrink-to-fit width
-// pass (confirmed empirically: it silently collapsed to a stray fixed width from an
-// unrelated rule and clipped almost the entire logo). A literal, non-percentage height
-// here breaks that circularity. Width stays auto/content-sized, with max-width +
-// overflow: hidden below as the anti-overlap safety net (unchanged, already empirically
-// tuned - see the max-width: 1119px block further down) rather than a dimension the logo
-// itself is stretched or squeezed to fit.
+// A genuine flex sibling of the two icon groups now, not an absolutely-positioned
+// overlay guessing a percentage of the toolbar's total width - flex: 1 1 auto means it
+// gets exactly whatever space the (flex: 0 0 auto, never-shrinking) icon groups on
+// either side actually leave behind, which varies a lot by who's logged in (a guest
+// sees far fewer icons than an authenticated admin) instead of one fixed guess that's
+// either too tight or too generous depending on who's viewing. min-width is a
+// legibility floor: past that point the header would rather run slightly tight than
+// crush the logo unreadably thin in a worst-case icon combination.
 .brand {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  flex: 1 1 auto;
+  min-width: 110px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   height: 64px;
-  width: auto;
-  max-width: min(55%, 320px);
   overflow: hidden;
+  padding: 0 6px;
   color: inherit;
   text-decoration: none;
   font-weight: 500;
@@ -230,6 +232,7 @@
 
   @media (min-width: 1120px) {
     height: 80px;
+    min-width: 160px;
   }
 }
 
@@ -246,15 +249,16 @@
   justify-content: center;
   flex-shrink: 0;
 
-  // Equivalent to Tailwind's `absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
-  // h-full flex items-center py-1` - fills the `.brand` link's own full height (see
-  // above) with no width cap of its own, so the img's width: auto below is free to
-  // follow the logo's real aspect ratio; `.brand`'s max-width + overflow: hidden is the
-  // only width boundary, same anti-overlap safety net as before. box-sizing: border-box
-  // keeps the py-1 breathing room from pushing the total box past that 100% height.
+  // Fills the `.brand` link's own full height, width free to follow the logo's real
+  // aspect ratio - max-width: 100% is what makes it actually shrink to fit whatever
+  // width `.brand` (now a real flex item with a definite computed width, not an
+  // absolutely-positioned one guessing at a percentage) has left over, instead of
+  // overflowing and getting clipped by `.brand`'s own overflow: hidden. box-sizing:
+  // border-box keeps the py-1 breathing room from pushing the total box past 100% height.
   &.prominent {
     height: 100%;
     width: auto;
+    max-width: 100%;
     padding: 4px 0;
     box-sizing: border-box;
   }
@@ -263,23 +267,21 @@
 // Equivalent to Tailwind's `w-full h-full object-contain` for the small 28px brand-mark
 // case (unchanged - this one is forced to fill a fixed square, not scaled by aspect
 // ratio, since it sits next to text rather than being the header's sole centerpiece).
-// This is also the prominent center-header logo's own mobile/narrow fallback below
-// 1120px (see the override further down and .logo-wrapper.prominent's own mobile width):
-// letterboxed via object-fit: contain to fit that bounded box, so a wide logo shrinks
-// (shorter than the header) instead of being cropped by .brand's tightened 16%
-// anti-overlap cap at these sizes.
+// This is also the prominent center-header logo's own default sizing: letterboxed via
+// object-fit: contain to fit whatever width .logo-wrapper.prominent's max-width: 100%
+// leaves it, so a wide logo shrinks proportionally instead of being cropped.
 .brand-logo {
   width: 100%;
   height: 100%;
   object-fit: contain;
 
   // Equivalent to Tailwind's `h-full w-auto max-w-none object-contain` - only from
-  // 1120px up, where .brand's max-width (55%/320px) is generous enough that a logo
-  // scaled to the header's full height essentially never needs to shrink further to
-  // avoid overlapping the header's other content. The prominent center-header logo
-  // stretches to the wrapper's full height and lets the browser compute a proportional
-  // width from the image's natural aspect ratio, with no max-width of its own capping
-  // that computed width (see .logo-wrapper.prominent above for where that boundary lives).
+  // 1120px up, where .brand's min-width (160px) plus the icon groups' own tighter
+  // gaps below that breakpoint mean there's essentially always enough room for a logo
+  // scaled to the header's full height without needing to shrink further. The
+  // prominent center-header logo stretches to the wrapper's full height and lets the
+  // browser compute a proportional width from the image's natural aspect ratio, with
+  // no max-width of its own capping that computed width.
   @media (min-width: 1120px) {
     .logo-wrapper.prominent & {
       width: auto;
@@ -307,10 +309,6 @@
   }
 }
 
-.spacer {
-  flex: 1 1 auto;
-}
-
 // Equivalent to Tailwind's `flex items-center gap-2 md:gap-4`.
 .header-actions {
   display: flex;
@@ -330,10 +328,33 @@
 // tint would barely show or look muddy - white-on-color is the standard Material
 // pattern for hover feedback on a colored surface.
 .icon-hover {
-  transition: background-color 150ms ease;
+  transition: background-color 150ms ease, transform 150ms ease;
+
+  mat-icon {
+    transition: color 150ms ease, transform 150ms ease;
+  }
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.16);
+    transform: scale(1.08);
+
+    // !important to outrank styles.scss's own .mat-toolbar.mat-primary .mat-icon rule
+    // (also !important - it's what recolors every header icon from the admin-configured
+    // --app-icon-color in the first place), not for specificity here.
+    mat-icon {
+      color: var(--app-accent-color, #ff4081) !important;
+    }
+
+    // The hamburger's bars aren't mat-icon elements (see the 3-bar morph above), so
+    // they don't need to fight that !important rule - this just recolors their own
+    // background: currentColor fill directly.
+    .hamburger-bar {
+      background-color: var(--app-accent-color, #ff4081);
+    }
+  }
+
+  &:active {
+    transform: scale(0.94);
   }
 }
 
@@ -352,14 +373,39 @@
   text-decoration: none;
   font: inherit;
   cursor: pointer;
-  transition: background-color 150ms ease;
+  transition: background-color 150ms ease, transform 150ms ease;
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.16);
+    transform: scale(1.06);
+
+    mat-icon {
+      color: var(--app-accent-color, #ff4081) !important;
+    }
+  }
+
+  &:active {
+    transform: scale(0.96);
   }
 
   mat-icon {
     flex-shrink: 0;
+    transition: color 150ms ease;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-hover,
+  .icon-hover mat-icon,
+  .action-link {
+    transition: none !important;
+  }
+
+  .icon-hover:hover,
+  .action-link:hover,
+  .icon-hover:active,
+  .action-link:active {
+    transform: none !important;
   }
 }
 
@@ -398,6 +444,31 @@
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
+
+  &.bump {
+    animation: cartBadgeBump 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+@keyframes cartBadgeBump {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.5);
+  }
+  60% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cart-badge.bump {
+    animation: none !important;
+  }
 }
 
 // The footer is position: fixed, so page content needs matching bottom
@@ -407,35 +478,39 @@
   padding-bottom: var(--footer-height, 160px);
 }
 
-// Below 1120px: tighter gaps/padding and a smaller brand cap so the hamburger+Logout on
-// the left and cart+Admin (or cart+Login+Register for a guest) on the right - all
-// icon-only here - don't overlap the centered brand. Verified against every right-side
-// composition (guest, customer, admin) at 375, 640, 767, 1024, 1080, 1119, and 1120px
-// before landing on this threshold.
+// Below 1120px: tighter icon-group gaps/padding so the hamburger+Logout on the left and
+// cart+Admin (or cart+account for a guest) on the right - all icon-only here - leave the
+// centered brand (a real flex item now, sized from whatever these groups don't take -
+// see .brand above) as much room as possible instead of overlapping it. Verified against
+// every right-side composition (guest, customer, admin) at 375, 640, 767, 1024, 1080,
+// 1119, and 1120px before landing on this threshold.
 @media (max-width: 1119px) {
-  .brand {
-    max-width: 16%;
-  }
-
-  // Gives the prominent center-header logo's wrapper a concrete, self-contained width
-  // (a real vw value, not a percentage of .brand - .brand's own width is itself "auto"/
-  // shrink-to-fit, so a percentage here would hit the same circular-sizing problem the
-  // literal px height fix above already worked around) so .brand-logo's width: 100%
-  // fallback just above has something definite to letterbox against below 1120px.
-  // Roughly matches .brand's own 16% cap - close enough that .brand's overflow: hidden
-  // rarely needs to trim more than a couple of stray pixels - and is itself capped at
-  // 120px (matching this project's own previous fixed-size implementation) so a tablet
-  // just under 1120px doesn't get an oversized logo.
-  .logo-wrapper.prominent {
-    width: 16vw;
-    max-width: 120px;
-  }
-
   .header-actions {
     gap: 2px;
   }
 
   .action-link {
     padding: 4px;
+  }
+}
+
+// The narrowest real phones (320-374px) - logo legibility takes priority over the
+// header's own side padding and icon-group spacing here, per the spec: reclaim width
+// from the chrome around the logo rather than letting the logo itself keep shrinking.
+// Verified against the worst realistic case - an authenticated admin (hamburger+Logout
+// left, Cart+Admin+Account right, five icon-buttons total) - at exactly 320px.
+@media (max-width: 374px) {
+  .app-header {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .header-actions {
+    gap: 0;
+  }
+
+  .brand {
+    min-width: 84px;
+    padding: 0 4px;
   }
 }

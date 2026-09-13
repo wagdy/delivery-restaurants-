@@ -44,6 +44,19 @@ body {
   color: #fff !important;
 }
 
+// The customer-facing header specifically (not the admin/captain toolbars that also
+// match .mat-toolbar.mat-primary above) gets a subtle frosted-glass treatment: mostly
+// the admin's own configured color (92% opacity) with a hint of blur, rather than a
+// heavily transparent header that would fight the admin's color choice and
+// unpredictably affect text/icon contrast depending on what scrolls underneath. The
+// extra .app-header class gives this rule higher specificity than the shared one
+// above, which is what lets it win despite both using !important.
+.mat-toolbar.mat-primary.app-header {
+  background-color: color-mix(in srgb, var(--app-header-color) 92%, transparent) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
 // Every icon in the storefront header (hamburger, logout, cart, admin, the auth/profile
 // icon, the restaurant fallback brand-mark) recolored independently of the toolbar's own
 // text color above - --app-icon-color, not #fff, is the source of truth for icons
@@ -102,5 +115,26 @@ body {
 
   .mdc-evolution-chip__text-label {
     color: #fff !important;
+  }
+}
+
+// Mobile bottom-sheet feel for the Add-ons modal (MenuItemDetailsDialogComponent).
+// panelClass lands on .cdk-overlay-pane, which sits outside any component's own view
+// encapsulation boundary, so this override has to live globally rather than in the
+// dialog's own stylesheet. Anchoring the pane itself to the bottom edge (rather than
+// fighting Material's default centered-flex overlay wrapper with plain CSS from
+// inside) is what turns an ordinary centered dialog into a full-width sheet that
+// slides up from the bottom on narrow screens; desktop keeps Material's normal
+// centered placement untouched.
+@media (max-width: 599px) {
+  .addon-dialog-panel {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+    margin: 0 !important;
   }
 }
