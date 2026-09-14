@@ -20,6 +20,7 @@ import { MenuItemDetailsDialogComponent } from './menu-item-details-dialog/menu-
 import { MyOrdersComponent } from '../my-orders/my-orders.component';
 import { LoyaltyRewardsComponent } from './loyalty-rewards/loyalty-rewards.component';
 import { iconForCategory } from '../../shared/utils/category-icon.util';
+import { deriveActiveCategoryNames } from '../../shared/utils/active-categories.util';
 
 export type MenuViewMode = 'list' | 'grid';
 export type HeroTab = 'menu' | 'rewards' | 'orders';
@@ -106,20 +107,11 @@ export class StorefrontComponent {
   // in display order.
   private readonly subCategories = signal<SubCategory[]>([]);
 
-  readonly categories = computed(() => {
-    const order = this.categoryDisplayOrder().map((c) => c.name);
-    const present = new Set(this.menuItems().map((m) => m.category));
-    // Only categories that actually have menu items right now, in admin-configured
-    // order. Any item category with no matching Category row (a data edge case, since
-    // MenuItem.category is a free-text field, not a foreign key) is appended
-    // alphabetically at the end rather than silently dropped from the grid/rail.
-    const ordered = order.filter((name) => present.has(name));
-    const knownNames = new Set(order);
-    const extras = Array.from(present)
-      .filter((name) => !knownNames.has(name))
-      .sort();
-    return [...ordered, ...extras];
-  });
+  // Only categories that actually have menu items right now, in admin-configured order -
+  // see deriveActiveCategoryNames's own comment for the full rule (including free-text
+  // extras). Shared with the hamburger drawer's own category list via CategoryService's
+  // activeCategoryNames, so the two can't drift out of sync.
+  readonly categories = computed(() => deriveActiveCategoryNames(this.categoryDisplayOrder(), this.menuItems()));
 
   // Raw (never search-filtered) per-category item counts - used for both the landing
   // grid's card counts and the item view's rail badges, which should stay stable

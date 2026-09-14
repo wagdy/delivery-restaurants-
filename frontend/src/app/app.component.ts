@@ -13,7 +13,6 @@ import { CartService } from './core/services/cart.service';
 import { SettingsService } from './core/services/settings.service';
 import { CategoryService } from './core/services/category.service';
 import { LoyaltyRealtimeService } from './core/services/loyalty-realtime.service';
-import { Category } from './core/models/category.model';
 import { CartDrawerComponent } from './features/storefront/cart-drawer/cart-drawer.component';
 import { AppFooterComponent } from './shared/app-footer/app-footer.component';
 import { iconForCategory } from './shared/utils/category-icon.util';
@@ -49,9 +48,11 @@ export class AppComponent {
   // would never actually run until something else happened to need it.
   private readonly loyaltyRealtimeService = inject(LoyaltyRealtimeService);
 
-  // The hamburger's category drawer - best-effort, same "don't block the app on this"
-  // reasoning as StorefrontComponent's own category fetch.
-  readonly categories = signal<Category[]>([]);
+  // The hamburger's category drawer - CategoryService's own activeCategoryNames is the
+  // single source of truth for "which categories actually have items right now" (see
+  // that service and shared/utils/active-categories.util.ts), so this list can never
+  // show an empty category the Menu's own category rail/grid already hides.
+  readonly categoryNames = this.categoryService.activeCategoryNames;
 
   // Replays the category list's entrance stagger every time the drawer opens (rather
   // than once at app init) - see cart-drawer's own shake signals for why a round trip
@@ -88,11 +89,7 @@ export class AppComponent {
   protected readonly isBarePage = signal(AppComponent.isBareUrl(this.router.url));
 
   constructor() {
-    this.categoryService.getAll().subscribe({
-      next: (categories) => {
-        this.categories.set([...categories].sort((a, b) => a.displayOrder - b.displayOrder));
-      }
-    });
+    this.categoryService.loadActiveCategoryNames();
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => {
       this.isBarePage.set(AppComponent.isBareUrl((event as NavigationEnd).urlAfterRedirects));

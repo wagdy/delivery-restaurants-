@@ -63,15 +63,15 @@
       @if (!authService.isCaptain()) {
         <div class="drawer-section-label">Browse by category</div>
 
-        @for (category of categories(); track category.id; let i = $index) {
+        @for (name of categoryNames(); track name; let i = $index) {
           <a
             mat-list-item
             class="category-nav-item"
             [style.animation-delay.ms]="i * 40"
-            (click)="selectCategory(category.name, drawer)"
+            (click)="selectCategory(name, drawer)"
           >
-            <mat-icon matListItemIcon>{{ iconFor(category.name) }}</mat-icon>
-            <span matListItemTitle>{{ category.name }}</span>
+            <mat-icon matListItemIcon>{{ iconFor(name) }}</mat-icon>
+            <span matListItemTitle>{{ name }}</span>
           </a>
         } @empty {
           <p class="drawer-empty">No categories yet.</p>
