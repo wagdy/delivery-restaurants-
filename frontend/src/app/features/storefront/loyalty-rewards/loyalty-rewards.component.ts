@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,6 +17,10 @@ import { TiltDirective } from '../../../shared/directives/tilt.directive';
   selector: 'app-loyalty-rewards',
   standalone: true,
   imports: [CommonModule, MatIconModule, MatButtonModule, MatProgressSpinnerModule, QRCodeComponent, TiltDirective],
+  // OnPush: every piece of state this component renders is a signal, so Angular
+  // can skip it entirely unless one of them actually changed. Without it, the rewards tab
+  // was re-checked on every unrelated async event anywhere in the app.
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './loyalty-rewards.component.html',
   styleUrl: './loyalty-rewards.component.scss'
 })

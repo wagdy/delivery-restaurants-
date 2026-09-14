@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -21,6 +21,10 @@ export interface DrawerHandle {
   selector: 'app-cart-drawer',
   standalone: true,
   imports: [CommonModule, MatButtonModule, MatIconModule, AddOnNamesPipe],
+  // OnPush: every piece of state this component renders is a signal, so Angular
+  // can skip it entirely unless one of them actually changed. Without it, the cart sheet, re-rendered on every quantity change
+  // was re-checked on every unrelated async event anywhere in the app.
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './cart-drawer.component.html',
   styleUrl: './cart-drawer.component.scss'
 })

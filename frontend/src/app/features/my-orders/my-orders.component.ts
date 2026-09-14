@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -23,6 +23,10 @@ import { AddOnNamesPipe } from '../../shared/pipes/add-on-names.pipe';
     MatExpansionModule,
     AddOnNamesPipe
   ],
+  // OnPush: every piece of state this component renders is a signal, so Angular
+  // can skip it entirely unless one of them actually changed. Without it, a paginated accordion of orders
+  // was re-checked on every unrelated async event anywhere in the app.
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './my-orders.component.html',
   styleUrl: './my-orders.component.scss'
 })

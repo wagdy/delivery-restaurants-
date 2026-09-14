@@ -1,4 +1,4 @@
-import { Component, ElementRef, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -67,6 +67,10 @@ export interface CategoryCard {
     MyOrdersComponent,
     LoyaltyRewardsComponent
   ],
+  // OnPush: every piece of state this component renders is a signal, so Angular
+  // can skip it entirely unless one of them actually changed. Without it, the 300+ card menu grid this app spends most of its render budget on
+  // was re-checked on every unrelated async event anywhere in the app.
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './storefront.component.html',
   // Two files rather than one - see storefront-category-grid.scss's own comment for why
   // (Angular's per-component style budget is checked per stylesheet file).

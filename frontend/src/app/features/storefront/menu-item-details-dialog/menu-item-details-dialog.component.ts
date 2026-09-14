@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,6 +15,10 @@ export interface MenuItemDetailsDialogData {
   selector: 'app-menu-item-details-dialog',
   standalone: true,
   imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule],
+  // OnPush: every piece of state this component renders is a signal, so Angular
+  // can skip it entirely unless one of them actually changed. Without it, the item dialog
+  // was re-checked on every unrelated async event anywhere in the app.
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './menu-item-details-dialog.component.html',
   styleUrl: './menu-item-details-dialog.component.scss'
 })
