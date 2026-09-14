@@ -96,9 +96,26 @@ public class FileUploadService : IFileUploadService
                 }));
             }
 
+            // EXIF/XMP carry camera and location metadata that has no business being
+            // served to customers, and cost ~1.5 KB on every image for nothing.
+            image.Metadata.ExifProfile = null;
+            image.Metadata.XmpProfile = null;
+
             var fileName = $"{Guid.NewGuid()}.webp";
             var filePath = Path.Combine(uploadsFolder, fileName);
-            await image.SaveAsync(filePath, new WebpEncoder { Quality = WebpQuality });
+
+            // FileFormat must be set explicitly. Left unset, ImageSharp encoded these as
+            // LOSSLESS WebP (a VP8L chunk), and Quality only applies to lossy encoding -
+            // so the 75 below was silently doing nothing at all. The result looked
+            // compressed because the file was .webp, while a photo barely shrank: measured
+            // on a real 1080x1350 upload from this app, lossless produced 612 KB where
+            // lossy produces a small fraction of that. Category images escaped notice only
+            // because they are downscaled to 200px first, where even lossless is small.
+            await image.SaveAsync(filePath, new WebpEncoder
+            {
+                FileFormat = WebpFileFormatType.Lossy,
+                Quality = WebpQuality
+            });
 
             return FileUploadResult.Success($"/uploads/{subfolder}/{fileName}");
         }
