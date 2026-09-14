@@ -154,13 +154,47 @@ public class AuthService : IAuthService
             ? await _userManager.FindByEmailAsync(identifier)
             : await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == identifier);
 
+        var genericFailure = isEmail ? "Invalid email or password." : "Invalid phone number or password.";
+
         // A soft-deleted account fails the same generic message as a wrong password - not
         // a distinct "this account was deleted" error, to avoid leaking account status to
         // whoever's typing (see AppUser.IsDeleted).
-        if (user is null || user.IsDeleted || !await _userManager.CheckPasswordAsync(user, request.Password))
+        if (user is null || user.IsDeleted)
         {
+            return ServiceResult<AuthResponse>.Failure(genericFailure);
+        }
+
+        // Brute-force guard. UserManager's lockout primitives are used directly rather
+        // than SignInManager.CheckPasswordSignInAsync: SignInManager expects cookie
+        // authentication scheme infrastructure this JWT-only API never registers, and
+        // these three calls are exactly what it would do internally anyway.
+        //
+        // Checked before the password comparison, so a locked account stays locked for the
+        // full window even if the attacker later guesses correctly within it.
+        if (await _userManager.IsLockedOutAsync(user))
+        {
+            // Deliberately distinct from the generic failure above - this one is only ever
+            // reachable by someone who already knows the account exists (they've just
+            // triggered 5 failures against it), so it leaks nothing new, and a real user
+            // locked out by a typo needs to be told to wait rather than left retrying a
+            // password they know is correct.
             return ServiceResult<AuthResponse>.Failure(
-                isEmail ? "Invalid email or password." : "Invalid phone number or password.");
+                "This account is temporarily locked after too many failed sign-in attempts. Please try again in a few minutes.");
+        }
+
+        if (!await _userManager.CheckPasswordAsync(user, request.Password))
+        {
+            // Increments the failure count and applies the lockout once it crosses
+            // MaxFailedAccessAttempts (configured in Program.cs).
+            await _userManager.AccessFailedAsync(user);
+            return ServiceResult<AuthResponse>.Failure(genericFailure);
+        }
+
+        // A successful sign-in clears the running failure count - otherwise five failed
+        // attempts spread over weeks would eventually lock out a legitimate user.
+        if (await _userManager.GetAccessFailedCountAsync(user) > 0)
+        {
+            await _userManager.ResetAccessFailedCountAsync(user);
         }
 
         // RememberMe is nullable and opt-in: an older/other client that never sends it
