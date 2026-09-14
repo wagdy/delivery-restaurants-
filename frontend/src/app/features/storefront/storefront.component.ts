@@ -210,7 +210,9 @@ export class StorefrontComponent {
   });
 
   constructor() {
-    this.menuItemService.getAll({ isAvailable: true }).subscribe({
+    // Shared with the sidebar's own category list (CategoryService), so the two are one
+    // request rather than two identical ones on every page load.
+    this.menuItemService.getAvailable().subscribe({
       next: (items) => {
         this.menuItems.set(items);
         this.loading.set(false);
@@ -223,7 +225,8 @@ export class StorefrontComponent {
 
     // Best-effort: if this fails, categories() falls back to alphabetical via its
     // "extras" branch rather than the whole page erroring out.
-    this.categoryService.getAll().subscribe({
+    // Shared with the sidebar's own category list, same reasoning as getAvailable above.
+    this.categoryService.getAllShared().subscribe({
       next: (categories) => {
         this.categoryDisplayOrder.set([...categories].sort((a, b) => a.displayOrder - b.displayOrder));
       }

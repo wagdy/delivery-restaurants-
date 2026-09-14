@@ -1,10 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { forkJoin, Observable } from 'rxjs';
+import { forkJoin, Observable, shareReplay, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Category } from '../models/category.model';
 import { MenuItemService } from './menu-item.service';
 import { deriveActiveCategoryNames } from '../../shared/utils/active-categories.util';
+
+// Matches MenuItemService's own window, and the server-side cache on this data.
+const CATEGORIES_TTL_MS = 60_000;
 
 @Injectable({ providedIn: 'root' })
 export class CategoryService {
@@ -29,6 +32,36 @@ export class CategoryService {
     return this.http.get<Category[]>(this.baseUrl);
   }
 
+  // Same story as MenuItemService.getAvailable, and the same page load: this list is
+  // requested once here for the sidebar and once by StorefrontComponent for its display
+  // order. Small next to the menu payload, but it is the identical request twice, and the
+  // fix is the same. Dropped by every category write below.
+  getAllShared(): Observable<Category[]> {
+    const isFresh = this.allCategories$ !== null && Date.now() - this.allCategoriesFetchedAt < CATEGORIES_TTL_MS;
+
+    if (!isFresh) {
+      this.allCategoriesFetchedAt = Date.now();
+      this.allCategories$ = this.getAll().pipe(
+        tap({ error: () => this.invalidateShared() }),
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+    }
+
+    return this.allCategories$!;
+  }
+
+  private allCategories$: Observable<Category[]> | null = null;
+  private allCategoriesFetchedAt = 0;
+
+  // Drops the menu list as well as the category list, for the same reason the server
+  // does: renaming a category rewrites MenuItem.Category on every item beneath it, so a
+  // held menu would still be grouped under the old name.
+  private invalidateShared(): void {
+    this.allCategories$ = null;
+    this.allCategoriesFetchedAt = 0;
+    this.menuItemService.invalidateAvailable();
+  }
+
   // Called by the hamburger drawer (app.component.ts) on init. Guarded so a second
   // caller elsewhere is a no-op rather than re-fetching/re-deriving the same result -
   // this rarely changes within a single session.
@@ -38,11 +71,13 @@ export class CategoryService {
     }
     this.activeCategoryNamesRequested = true;
 
-    // { isAvailable: true } matches StorefrontComponent's own menu item fetch exactly -
-    // without it, a category whose items are all currently marked unavailable (out of
-    // stock) would count as "active" here while the Menu itself already treats it as
-    // empty, reintroducing the same drift this change exists to eliminate.
-    forkJoin([this.getAll(), this.menuItemService.getAll({ isAvailable: true })]).subscribe(([categories, menuItems]) => {
+    // getAvailable() rather than a second getAll({ isAvailable: true }): it is the same
+    // query StorefrontComponent runs moments later for the grid, so sharing it means one
+    // request per page load instead of two identical ones. It also guarantees both derive
+    // from byte-identical data - a category whose items are all out of stock has to look
+    // empty in the sidebar and the Menu alike, which is the drift this whole path exists
+    // to prevent.
+    forkJoin([this.getAllShared(), this.menuItemService.getAvailable()]).subscribe(([categories, menuItems]) => {
       const ordered = [...categories].sort((a, b) => a.displayOrder - b.displayOrder);
       this._activeCategoryNames.set(deriveActiveCategoryNames(ordered, menuItems));
     });
@@ -51,18 +86,18 @@ export class CategoryService {
   // FormData, not JSON - the backend binds these as [FromForm] CategoryFormRequest so it
   // can accept an optional image file (multipart/form-data) alongside the name.
   create(formData: FormData): Observable<Category> {
-    return this.http.post<Category>(this.baseUrl, formData);
+    return this.http.post<Category>(this.baseUrl, formData).pipe(tap(() => this.invalidateShared()));
   }
 
   update(id: number, formData: FormData): Observable<Category> {
-    return this.http.put<Category>(`${this.baseUrl}/${id}`, formData);
+    return this.http.put<Category>(`${this.baseUrl}/${id}`, formData).pipe(tap(() => this.invalidateShared()));
   }
 
   delete(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+    return this.http.delete<void>(`${this.baseUrl}/${id}`).pipe(tap(() => this.invalidateShared()));
   }
 
   reorder(orderedIds: number[]): Observable<void> {
-    return this.http.put<void>(`${this.baseUrl}/reorder`, { orderedIds });
+    return this.http.put<void>(`${this.baseUrl}/reorder`, { orderedIds }).pipe(tap(() => this.invalidateShared()));
   }
 }
