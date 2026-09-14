@@ -1,6 +1,9 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
 using Lib.Net.Http.WebPush;
 using Lib.Net.Http.WebPush.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -67,12 +70,34 @@ builder.Services
         options.Password.RequiredLength = 8;
         options.Password.RequireNonAlphanumeric = false;
         options.User.RequireUniqueEmail = true;
+
+        // Brute-force guard for the password login path - AuthService.LoginAsync records
+        // each failure via UserManager.AccessFailedAsync and refuses a locked-out account,
+        // mirroring what the OTP reset flow already did with its own MaxOtpAttempts cap.
+        // 15 minutes is short enough that a staff member who fat-fingers their password at
+        // the start of a shift isn't locked out for the rest of it, and long enough that an
+        // online guessing attack is reduced to a few hundred attempts a day.
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+        options.Lockout.AllowedForNewUsers = true;
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Jwt:Key is not configured.");
+
+// HMAC-SHA256 derives its strength from the key's length, and a short key silently
+// weakens every token the API issues - there's no runtime symptom, so the only place this
+// can be caught is here. 32 bytes matches the algorithm's own output size, which is the
+// usual floor for HS256. Failing at startup means a misconfigured deploy never serves
+// traffic at all, rather than serving forgeable tokens.
+if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
+{
+    throw new InvalidOperationException(
+        "Jwt:Key must be at least 32 bytes (256 bits) for HMAC-SHA256. " +
+        $"The configured key is {Encoding.UTF8.GetByteCount(jwtKey)} bytes.");
+}
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -106,6 +131,76 @@ builder.Services
             }
         };
     });
+
+// Per-IP rate limiting for the endpoints reachable without a token (see
+// RateLimitPolicies for why only those). Partitioning on the client IP relies on
+// UseForwardedHeaders running first in the pipeline below - without it every request
+// would look like it came from Railway's edge and share a single bucket.
+//
+// Each of these costs something real when abused: a WhatsApp message, a kitchen ticket,
+// a row in the customers table, or a guess at a password or promo code. The windows below
+// are sized so a normal customer or staff member never notices them.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Without this the client just gets a bare 429 with no idea when to try again - the
+    // Angular error interceptor can show "try again in N seconds" instead of a generic
+    // failure. Only set for fixed windows, which are the only kind used here.
+    options.OnRejected = async (context, ct) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers.RetryAfter =
+                ((int)retryAfter.TotalSeconds).ToString(NumberFormatInfo.InvariantInfo);
+        }
+
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new { errors = new[] { "Too many requests. Please wait a moment and try again." } }, ct);
+    };
+
+    // These four are only ever reached by a caller who has no token yet, so every request
+    // is limited.
+    AddFixedWindowPerIp(options, RateLimitPolicies.Login, permit: 20, windowMinutes: 5);
+    AddFixedWindowPerIp(options, RateLimitPolicies.Register, permit: 5, windowMinutes: 15);
+    AddFixedWindowPerIp(options, RateLimitPolicies.OtpRequest, permit: 3, windowMinutes: 15);
+    AddFixedWindowPerIp(options, RateLimitPolicies.OtpVerify, permit: 10, windowMinutes: 15);
+
+    // These two are anonymous for guest checkout but are also used by signed-in staff -
+    // the admin "Create Order" screen takes phone-in orders through the very same
+    // endpoint, and validates promo codes against the same one. A flat per-IP budget
+    // would throttle the restaurant's own till during exactly the dinner rush it's meant
+    // to protect, since all its terminals share one connection. Authenticated callers are
+    // therefore exempt: they already had to sign in, and an abusive account can be
+    // disabled, which is not true of an anonymous flood.
+    AddFixedWindowPerIpForAnonymous(options, RateLimitPolicies.PromoValidate, permit: 20, windowMinutes: 5);
+    AddFixedWindowPerIpForAnonymous(options, RateLimitPolicies.OrderCreate, permit: 10, windowMinutes: 10);
+
+    // Local functions rather than six near-identical lambdas - the only things that vary
+    // between these policies are the budget and whether signed-in callers are exempt.
+    static void AddFixedWindowPerIp(RateLimiterOptions options, string policyName, int permit, int windowMinutes) =>
+        options.AddPolicy(policyName, httpContext => PerIpWindow(httpContext, permit, windowMinutes));
+
+    static void AddFixedWindowPerIpForAnonymous(RateLimiterOptions options, string policyName, int permit, int windowMinutes) =>
+        options.AddPolicy(policyName, httpContext => httpContext.User.Identity?.IsAuthenticated == true
+            ? RateLimitPartition.GetNoLimiter("authenticated")
+            : PerIpWindow(httpContext, permit, windowMinutes));
+
+    static RateLimitPartition<string> PerIpWindow(HttpContext httpContext, int permit, int windowMinutes) =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            // A request with no resolvable remote IP (rare, but possible behind an
+            // unusual proxy setup) falls into one shared "unknown" bucket rather than
+            // silently skipping the limit entirely.
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = permit,
+                Window = TimeSpan.FromMinutes(windowMinutes),
+                // No queueing: a caller over budget should be told so immediately, not
+                // held open on a connection waiting for a slot.
+                QueueLimit = 0
+            });
+});
 
 builder.Services.AddAuthorization(options =>
 {
@@ -292,6 +387,16 @@ app.UseStaticFiles();
 app.UseCors(AngularClientCorsPolicy);
 
 app.UseAuthentication();
+
+// Deliberately placed after UseAuthentication, not before: the OrderCreate and
+// PromoValidate policies exempt signed-in staff, and HttpContext.User isn't populated
+// until the authentication middleware has run - limiting earlier would make every caller
+// look anonymous and throttle the restaurant's own till. Still after UseForwardedHeaders
+// (so per-IP partitions see the real client address rather than Railway's edge) and after
+// UseCors (so a rejected request keeps the CORS headers the browser needs to surface the
+// 429 to the Angular client instead of reporting an opaque network error).
+app.UseRateLimiter();
+
 app.UseAuthorization();
 
 app.MapControllers();

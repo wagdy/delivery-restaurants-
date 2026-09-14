@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using RestaurantDelivery.Api.Configuration;
 using RestaurantDelivery.Core.DTOs.Auth;
 using RestaurantDelivery.Core.Interfaces;
 
@@ -17,6 +19,7 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    [EnableRateLimiting(RateLimitPolicies.Register)]
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register(RegisterRequest request)
     {
@@ -32,6 +35,7 @@ public class AuthController : ControllerBase
     // Always 200 with the same generic message, whether or not this phone number is
     // actually registered - see AuthService.ForgotPasswordAsync's anti-enumeration
     // reasoning. There is deliberately no error branch here to report back.
+    [EnableRateLimiting(RateLimitPolicies.OtpRequest)]
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
     {
@@ -39,6 +43,7 @@ public class AuthController : ControllerBase
         return Ok(new { message = "If this phone number is registered, a verification code has been sent." });
     }
 
+    [EnableRateLimiting(RateLimitPolicies.OtpVerify)]
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
     {
@@ -53,6 +58,7 @@ public class AuthController : ControllerBase
 
     // Single sign-in entry point for every account - customers and staff alike. See
     // LoginRequest.Identifier and AuthService.LoginAsync for the email-vs-phone detection.
+    [EnableRateLimiting(RateLimitPolicies.Login)]
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request)
     {

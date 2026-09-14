@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using RestaurantDelivery.Api.Configuration;
 using RestaurantDelivery.Core.DTOs.Orders;
 using RestaurantDelivery.Core.Enums;
 using RestaurantDelivery.Core.Interfaces;
@@ -28,6 +30,9 @@ public class OrdersController : ControllerBase
     // to the customer on the form, and a captain has no business placing personal orders here.
     // request.CustomerId only takes effect in that admin/captain/guest branch - a real customer's
     // own checkout always uses their own JWT identity, never a client-supplied id.
+    // Per-IP limited for guests only - signed-in staff taking phone-in orders through this
+    // same endpoint are exempt (see RateLimitPolicies.OrderCreate).
+    [EnableRateLimiting(RateLimitPolicies.OrderCreate)]
     [HttpPost]
     public async Task<ActionResult<OrderResponse>> Create(CreateOrderRequest request)
     {

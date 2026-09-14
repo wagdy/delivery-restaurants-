@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using RestaurantDelivery.Api.Configuration;
 using RestaurantDelivery.Core.DTOs.Checkout;
 using RestaurantDelivery.Core.Interfaces;
 
@@ -17,6 +19,7 @@ public class CheckoutController : ControllerBase
 
     // Public: guests must be able to apply a promo code at checkout too, exactly like
     // POST /api/orders itself.
+    [EnableRateLimiting(RateLimitPolicies.PromoValidate)]
     [HttpPost("validate-promo")]
     public async Task<ActionResult<ValidatePromoResponse>> ValidatePromo(ValidatePromoRequest request)
     {
