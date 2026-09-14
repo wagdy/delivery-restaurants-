@@ -5,7 +5,6 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatListModule } from '@angular/material/list';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { AuthService } from './core/services/auth.service';
@@ -26,7 +25,6 @@ import { iconForCategory } from './shared/utils/category-icon.util';
     MatButtonModule,
     MatIconModule,
     MatSidenavModule,
-    MatListModule,
     CartDrawerComponent,
     AppFooterComponent
   ],

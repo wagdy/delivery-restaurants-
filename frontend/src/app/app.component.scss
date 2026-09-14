@@ -302,9 +302,28 @@
   padding: 8px 0;
 }
 
+// Plain <a>/<button> rows rather than mat-list-item. MatListModule was used here and
+// nowhere else in the app, and it drags the whole of @angular/forms into the initial
+// bundle - MatSelectionList implements ControlValueAccessor - for a list that is pure
+// navigation and never bound to a form. The rules below are what Material was actually
+// contributing: the icon/label row, the sizing, and a pointer cursor on an anchor with
+// no href. Everything past that was already styled here, which is why the old height and
+// padding needed !important to win against it.
 .category-nav-item {
-  height: auto !important;
-  padding: 14px 16px !important;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  background: none;
+  text-align: left;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+
+  padding: 14px 16px;
   font-size: 1.05rem;
   font-weight: 500;
   border-radius: 0 999px 999px 0;
@@ -312,6 +331,7 @@
   transition: background-color 150ms ease, transform 150ms ease;
 
   mat-icon {
+    flex-shrink: 0;
     color: rgba(0, 0, 0, 0.45);
     transition: color 150ms ease;
   }

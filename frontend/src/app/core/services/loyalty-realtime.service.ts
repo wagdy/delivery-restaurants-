@@ -1,5 +1,9 @@
 import { Injectable, effect, inject } from '@angular/core';
-import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+// `import type` only - the runtime pieces are pulled in by the dynamic import inside
+// connect(). A value import here would put all 55 kB of @microsoft/signalr in the initial
+// bundle, downloaded by every anonymous visitor who never signs in and so never opens a
+// hub connection at all.
+import type { HubConnection } from '@microsoft/signalr';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 import { LoyaltyService } from './loyalty.service';
@@ -19,27 +23,52 @@ export class LoyaltyRealtimeService {
 
   private connection: HubConnection | null = null;
 
+  // Guards against a second connect() starting while the first is still awaiting the
+  // dynamic import - the effect below can fire again in that window.
+  private connecting = false;
+
   constructor() {
     effect(() => {
       if (this.authService.token()) {
-        this.connect();
+        void this.connect();
       } else {
         this.disconnect();
       }
     });
   }
 
-  private connect(): void {
-    if (this.connection) {
+  // Async because the SignalR client is fetched on demand. The guard below is re-checked
+  // after the await: a customer who signs out while the chunk is still downloading would
+  // otherwise end up with a connection nobody asked for, opened with a token that no
+  // longer exists.
+  private async connect(): Promise<void> {
+    if (this.connection || this.connecting) {
+      return;
+    }
+
+    this.connecting = true;
+
+    let signalR: typeof import('@microsoft/signalr');
+    try {
+      signalR = await import('@microsoft/signalr');
+    } catch (err) {
+      this.connecting = false;
+      console.error('Loyalty realtime client failed to load.', err);
+      return;
+    }
+
+    this.connecting = false;
+
+    if (this.connection || !this.authService.token()) {
       return;
     }
 
     const hubUrl = `${environment.apiUrl.replace(/\/api$/, '')}/hubs/loyalty`;
 
-    const connection = new HubConnectionBuilder()
+    const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, { accessTokenFactory: () => this.authService.token() ?? '' })
       .withAutomaticReconnect()
-      .configureLogging(LogLevel.Warning)
+      .configureLogging(signalR.LogLevel.Warning)
       .build();
 
     connection.on('PointsUpdated', (event: PointsUpdatedEvent) => this.loyaltyService.applyPointsUpdate(event));

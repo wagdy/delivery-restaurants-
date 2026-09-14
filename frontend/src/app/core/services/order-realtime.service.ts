@@ -1,5 +1,8 @@
 import { Injectable, effect, inject } from '@angular/core';
-import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
+// `import type` only - see loyalty-realtime.service.ts. The runtime pieces arrive via the
+// dynamic import in connect(), so the SignalR client is never in the initial bundle: only
+// an admin or captain who actually signs in pays for it.
+import type { HubConnection } from '@microsoft/signalr';
 import { Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
@@ -30,13 +33,16 @@ export class OrderRealtimeService {
 
   private connection: HubConnection | null = null;
 
+  // Guards a second connect() while the first is still awaiting the dynamic import.
+  private connecting = false;
+
   constructor() {
     effect(() => {
       // Defensive admin-only check on top of AdminLayoutComponent being the only
       // injection point - OrderHub itself also enforces "OrdersAccess" server-side, so
       // a non-admin connection attempt would fail there regardless.
       if (this.authService.token() && this.authService.isAdmin()) {
-        this.connect();
+        void this.connect();
       } else {
         this.disconnect();
       }
@@ -65,11 +71,13 @@ export class OrderRealtimeService {
     }
 
     if (!this.connection) {
-      this.connect();
+      await this.connect();
       return;
     }
 
-    if (this.connection.state === HubConnectionState.Disconnected) {
+    // String literal rather than the HubConnectionState enum, which would be a runtime
+    // import and pull the client back into the initial bundle.
+    if (this.connection.state === 'Disconnected') {
       try {
         await this.connection.start();
       } catch (err) {
@@ -81,17 +89,35 @@ export class OrderRealtimeService {
     this.connectionRestoredSubject.next();
   }
 
-  private connect(): void {
-    if (this.connection) {
+  private async connect(): Promise<void> {
+    if (this.connection || this.connecting) {
+      return;
+    }
+
+    this.connecting = true;
+
+    let signalR: typeof import('@microsoft/signalr');
+    try {
+      signalR = await import('@microsoft/signalr');
+    } catch (err) {
+      this.connecting = false;
+      console.error('Order realtime client failed to load.', err);
+      return;
+    }
+
+    this.connecting = false;
+
+    // Re-checked after the await: the admin may have signed out while the chunk loaded.
+    if (this.connection || !this.authService.token()) {
       return;
     }
 
     const hubUrl = `${environment.apiUrl.replace(/\/api$/, '')}/hubs/orders`;
 
-    const connection = new HubConnectionBuilder()
+    const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, { accessTokenFactory: () => this.authService.token() ?? '' })
       .withAutomaticReconnect()
-      .configureLogging(LogLevel.Warning)
+      .configureLogging(signalR.LogLevel.Warning)
       .build();
 
     connection.on('NewOrderReceived', (payload: NewOrderNotification) =>
