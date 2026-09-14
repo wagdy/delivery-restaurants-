@@ -5,7 +5,7 @@
 }
 
 .hero {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 
   h1 {
     margin: 0 0 16px;
@@ -92,11 +92,22 @@ $hero-tab-active-color: #7a2e22;
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
-  flex-wrap: wrap;
+  // Not flex-wrap: wrap - .category-rail's sticky top offset below is calibrated
+  // against this row's single-line height, and "wrap" would trigger on some real phone
+  // widths from the search bar's own unshrunk flex-basis alone, even with room to
+  // shrink into instead - silently overlapping the rail with this panel.
+  flex-wrap: nowrap;
 }
 
 .search-bar {
   flex: 1 1 240px;
+  // border-box: without it, content-box sizing adds this element's own padding/border
+  // on top of the 240px flex-basis when checking if .menu-toolbar's row still fits,
+  // inflating it enough to wrongly force a two-line wrap on real phone widths.
+  // min-width: 0 overrides flex's own default "don't shrink below content size" floor,
+  // needed alongside border-box so this can still shrink narrower than 240px.
+  box-sizing: border-box;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -171,9 +182,13 @@ $hero-tab-active-color: #7a2e22;
   }
 }
 
+// top is .app-header's own height (64px / 80px from 1120px) PLUS .menu-sticky-panel's
+// own rendered height (a consistent ~95px at every breakpoint - see .menu-toolbar's own
+// flex-wrap: nowrap comment for why that height needed to be made reliable first) so
+// this rail sits directly beneath that panel instead of overlapping it.
 .category-rail {
   position: sticky;
-  top: 64px;
+  top: 160px;
   z-index: 5;
   display: flex;
   gap: 8px;
@@ -192,10 +207,9 @@ $hero-tab-active-color: #7a2e22;
 
 @media (min-width: 1024px) {
   .category-rail {
-    top: 88px;
     flex-direction: column;
     overflow-x: visible;
-    max-height: calc(100vh - 112px);
+    max-height: calc(100vh - 184px);
     overflow-y: auto;
     background: transparent;
     backdrop-filter: none;
@@ -206,7 +220,7 @@ $hero-tab-active-color: #7a2e22;
 
 @media (min-width: 1120px) {
   .category-rail {
-    top: 104px;
+    top: 176px;
   }
 }
 
@@ -336,6 +350,11 @@ $hero-tab-active-color: #7a2e22;
 .menu-card {
   display: flex;
   flex-direction: column;
+  // Grid's own default align-items: stretch already equalizes every card's outer
+  // height to the tallest one in its row, but without this, .items-grid.list-view's
+  // flex (not grid) layout wouldn't - height: 100% makes both view modes explicit and
+  // consistent rather than relying on that difference in default behavior.
+  height: 100%;
   overflow: hidden;
   cursor: pointer;
   border-radius: 16px;
@@ -344,6 +363,17 @@ $hero-tab-active-color: #7a2e22;
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
   animation: cardEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
   animation-delay: var(--enter-delay, 0ms);
+
+  // Pushes mat-card-actions to the card's true bottom edge regardless of how much
+  // (or little) text mat-card-content above it has - an item with "N add-ons
+  // available" or a longer description no longer pushes its own Add button lower than
+  // a neighboring card without that line, so every button in a grid row lands on the
+  // same horizontal axis. Harmless in .list-view's own row-direction layout below
+  // (that flex-direction: row context already stretches this via align-items: stretch,
+  // leaving no leftover cross-axis space for the auto margin to consume).
+  mat-card-actions {
+    margin-top: auto;
+  }
 
   &:hover {
     transform: translateY(-4px);

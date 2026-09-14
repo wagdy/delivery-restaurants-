@@ -5,7 +5,16 @@
     } @else {
       <h1>Welcome to {{ settingsService.settings().restaurantName }}!</h1>
     }
+  </div>
 
+  <!-- Single sticky control panel: the Menu/Rewards/My Orders tabs are always in it
+       (reachable from anywhere on this page, not just while browsing items), and the
+       search bar + view toggle join it only in the item view, where they actually exist
+       - see storefront.component.scss for how .category-rail's own top offset is
+       calibrated to stack directly beneath this panel with no gap or overlap, rather
+       than folding the rail into this same container (it stays a sidebar on desktop,
+       where there's room for one, and a horizontal bar on mobile/tablet). -->
+  <div class="menu-sticky-panel">
     <nav class="hero-tabs">
       <button type="button" class="hero-tab" [class.active]="activeTab() === 'menu'" (click)="activeTab.set('menu')">
         Menu
@@ -17,6 +26,44 @@
         My Orders
       </button>
     </nav>
+
+    @if (activeTab() === 'menu' && !loading() && !errorMessage() && menuView() === 'items') {
+      <div class="menu-toolbar">
+        <div class="search-bar">
+          <mat-icon class="search-icon">search</mat-icon>
+          <input
+            type="text"
+            class="search-input"
+            [placeholder]="'Search in ' + selectedCategory()"
+            [value]="searchTerm()"
+            (input)="searchTerm.set($any($event.target).value)"
+          />
+        </div>
+
+        <div class="view-toggles">
+          <button
+            type="button"
+            class="view-toggle-btn"
+            [class.active]="viewMode() === 'grid'"
+            [attr.aria-pressed]="viewMode() === 'grid'"
+            aria-label="Grid view"
+            (click)="viewMode.set('grid')"
+          >
+            <mat-icon>grid_view</mat-icon>
+          </button>
+          <button
+            type="button"
+            class="view-toggle-btn"
+            [class.active]="viewMode() === 'list'"
+            [attr.aria-pressed]="viewMode() === 'list'"
+            aria-label="List view"
+            (click)="viewMode.set('list')"
+          >
+            <mat-icon>view_list</mat-icon>
+          </button>
+        </div>
+      </div>
+    }
   </div>
 
   @if (activeTab() === 'menu') {
@@ -64,45 +111,11 @@
         </div>
       }
     } @else {
-      <!-- Step 2: one category's own items, with a sticky rail (back-to-categories +
-           every other category, so the user can jump sideways without retreating to the
-           grid) always reachable at the top. -->
-      <div class="menu-toolbar">
-        <div class="search-bar">
-          <mat-icon class="search-icon">search</mat-icon>
-          <input
-            type="text"
-            class="search-input"
-            [placeholder]="'Search in ' + selectedCategory()"
-            [value]="searchTerm()"
-            (input)="searchTerm.set($any($event.target).value)"
-          />
-        </div>
-
-        <div class="view-toggles">
-          <button
-            type="button"
-            class="view-toggle-btn"
-            [class.active]="viewMode() === 'grid'"
-            [attr.aria-pressed]="viewMode() === 'grid'"
-            aria-label="Grid view"
-            (click)="viewMode.set('grid')"
-          >
-            <mat-icon>grid_view</mat-icon>
-          </button>
-          <button
-            type="button"
-            class="view-toggle-btn"
-            [class.active]="viewMode() === 'list'"
-            [attr.aria-pressed]="viewMode() === 'list'"
-            aria-label="List view"
-            (click)="viewMode.set('list')"
-          >
-            <mat-icon>view_list</mat-icon>
-          </button>
-        </div>
-      </div>
-
+      <!-- Step 2: one category's own items. The search bar + view toggle now live in
+           the sticky panel above (see the top of this template) - this rail keeps its
+           own independent sticky behavior, calibrated to sit directly beneath that
+           panel (back-to-categories + every other category, so the user can jump
+           sideways without retreating to the grid, always reachable at the top). -->
       <div class="menu-layout">
         <nav class="category-rail" aria-label="Menu categories">
           <button type="button" class="category-chip back-chip" (click)="backToCategories()">
@@ -146,7 +159,7 @@
                       <mat-icon>restaurant</mat-icon>
                     </div>
                   }
-                  @if (item.addOns.length > 0 && quantityFor(item.id) > 0) {
+                  @if (quantityFor(item.id) > 0) {
                     <span class="in-cart-badge">{{ quantityFor(item.id) }} in cart</span>
                   }
                 </div>

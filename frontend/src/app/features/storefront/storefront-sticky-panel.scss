@@ -1,0 +1,29 @@
+// The sticky Tabs + Search + view-toggle control panel - split into its own stylesheet
+// (added alongside storefront.component.scss and storefront-category-grid.scss - see
+// storefront.component.ts's styleUrls) purely to stay under Angular's per-file
+// component style budget; there's no functional reason these rules couldn't live in
+// the main file.
+//
+// Tabs are always in it; Search + view toggle join in only while browsing one
+// category's items (see storefront.component.html), so none of the three ever scroll
+// out of reach. A solid, page-matching background (not the translucent blur
+// .category-rail uses) is what makes menu cards slide cleanly underneath instead of
+// showing through, and the shadow is what visually separates the panel from that
+// scrolling content once it's actually stuck. top matches .app-header's own height
+// exactly (64px / 80px from 1120px - see app.component.scss) so the panel sits flush
+// beneath it with no gap; z-index sits just under the header (50) and well under the
+// cart bottom sheet/backdrop (1001/1002) or any modal, but above ordinary content and
+// .category-rail's own lower z-index.
+.menu-sticky-panel {
+  position: sticky;
+  top: 64px;
+  z-index: 40;
+  background: var(--app-body-color, #fafafa);
+  box-shadow: 0 4px 12px -6px rgba(0, 0, 0, 0.12);
+  padding-top: 12px;
+  margin-bottom: 20px;
+
+  @media (min-width: 1120px) {
+    top: 80px;
+  }
+}
