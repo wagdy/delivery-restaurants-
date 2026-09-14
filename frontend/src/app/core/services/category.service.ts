@@ -38,7 +38,11 @@ export class CategoryService {
     }
     this.activeCategoryNamesRequested = true;
 
-    forkJoin([this.getAll(), this.menuItemService.getAll()]).subscribe(([categories, menuItems]) => {
+    // { isAvailable: true } matches StorefrontComponent's own menu item fetch exactly -
+    // without it, a category whose items are all currently marked unavailable (out of
+    // stock) would count as "active" here while the Menu itself already treats it as
+    // empty, reintroducing the same drift this change exists to eliminate.
+    forkJoin([this.getAll(), this.menuItemService.getAll({ isAvailable: true })]).subscribe(([categories, menuItems]) => {
       const ordered = [...categories].sort((a, b) => a.displayOrder - b.displayOrder);
       this._activeCategoryNames.set(deriveActiveCategoryNames(ordered, menuItems));
     });
