@@ -13,7 +13,17 @@ public class MenuItemRepository : GenericRepository<MenuItem>, IMenuItemReposito
 
     public async Task<List<MenuItem>> GetFilteredAsync(string? category, string? searchQuery, bool? isAvailable, bool? hasAddons)
     {
+        // AsNoTracking because every caller of this method maps straight to
+        // MenuItemResponse and never writes back - MenuItemService.GetAllAsync is the only
+        // one. This is the app's hottest query (the full menu with its add-ons and
+        // sub-categories, on every storefront page load), so tracking several hundred
+        // entities plus their join rows was pure overhead on a request that never saves.
+        //
+        // Deliberately NOT applied to GetByIdWithAddOnsAsync below: that one also backs
+        // UpdateAsync, where the returned entity IS mutated and saved. Adding it there
+        // would make edits silently do nothing.
         var query = DbSet
+            .AsNoTracking()
             .Include(m => m.MenuItemAddOns)
             .ThenInclude(ma => ma.AddOn)
             .Include(m => m.SubCategory)

@@ -11,9 +11,15 @@ public class CategoryRepository : GenericRepository<Category>, ICategoryReposito
     {
     }
 
+    // AsNoTracking: all three callers read only - GetAllAsync maps to DTOs, CreateAsync
+    // reads the last DisplayOrder to pick the next one, and ReorderAsync uses it purely
+    // for a count check. The reorder's actual DisplayOrder writes go through
+    // GetByIdsAsync below, which is why that one stays tracked.
     public Task<List<Category>> GetAllOrderedAsync() =>
-        DbSet.OrderBy(c => c.DisplayOrder).ToListAsync();
+        DbSet.AsNoTracking().OrderBy(c => c.DisplayOrder).ToListAsync();
 
+    // Tracked on purpose: CategoryService.ReorderAsync mutates DisplayOrder on these
+    // entities and relies on the change tracker to persist it.
     public Task<List<Category>> GetByIdsAsync(List<int> ids) =>
         DbSet.Where(c => ids.Contains(c.Id)).ToListAsync();
 
