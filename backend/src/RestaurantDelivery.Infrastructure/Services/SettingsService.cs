@@ -74,7 +74,16 @@ public class SettingsService : ISettingsService
 
     private async Task<RestaurantSettings> GetOrCreateAsync()
     {
-        var settings = await _context.RestaurantSettings.FirstOrDefaultAsync();
+        // OrderBy(Id) so "the settings row" resolves to the same row every time.
+        // RestaurantSettings is a singleton by convention rather than by constraint - Id is
+        // an identity column with nothing stopping a second row - and an unordered
+        // FirstOrDefault against more than one row may return either, which is what EF
+        // warns about here ("uses First/FirstOrDefault without OrderBy"). Today there is
+        // exactly one row, so this changes nothing; the point is that if a duplicate ever
+        // appeared (a hand-run insert, or two concurrent first-touches racing through the
+        // create path below), every request would still agree on which row is authoritative
+        // instead of branding and tax rates flickering between two answers.
+        var settings = await _context.RestaurantSettings.OrderBy(s => s.Id).FirstOrDefaultAsync();
         if (settings is not null)
         {
             return settings;

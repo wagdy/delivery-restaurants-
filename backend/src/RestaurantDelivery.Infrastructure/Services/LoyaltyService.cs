@@ -494,7 +494,11 @@ public class LoyaltyService : ILoyaltyService
     // odds of a genuine concurrent first-touch are negligible.
     private async Task<LoyaltySettings> GetOrCreateSettingsEntityAsync(CancellationToken ct)
     {
-        var settings = await _context.LoyaltySettings.FirstOrDefaultAsync(ct);
+        // OrderBy(Id) for the same reason as SettingsService.GetOrCreateAsync - a singleton
+        // by convention, not by constraint, so an unordered FirstOrDefault has no defined
+        // answer if a second row ever exists. It matters more here than there: these values
+        // decide how many points an order earns and what a redemption is worth.
+        var settings = await _context.LoyaltySettings.OrderBy(s => s.Id).FirstOrDefaultAsync(ct);
         if (settings is not null)
         {
             return settings;
