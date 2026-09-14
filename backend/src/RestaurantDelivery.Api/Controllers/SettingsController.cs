@@ -13,6 +13,14 @@ public class SettingsController : ControllerBase
 {
     private const long MaxImageSizeBytes = 5 * 1024 * 1024; // 5 MB
 
+    // Longest edge for the full-viewport page background. The logo uploads deliberately
+    // keep their original file: they are already small (the current centre logo is 23 KB),
+    // and re-encoding a brand mark risks visible artefacting for no meaningful saving. The
+    // favicon is left alone for a harder reason - FileUploadService cannot decode .ico at
+    // all, and the frontend maps the stored extension to a <link type>, which a silent
+    // rewrite to .webp would break.
+    private const int BackgroundImageMaxDimension = 1920;
+
     private readonly ISettingsService _service;
     private readonly IFileUploadService _fileUploadService;
 
@@ -61,7 +69,13 @@ public class SettingsController : ControllerBase
     [RequestSizeLimit(MaxImageSizeBytes)]
     public async Task<ActionResult<ImageUploadResponse>> UploadBackgroundImage(IFormFile file)
     {
-        var result = await _fileUploadService.SaveImageAsync(file, "branding");
+        // The page background is stretched over the whole viewport with background-size:
+        // cover (see styles.scss), so it is downloaded by every visitor on every page.
+        // Stored unprocessed it was the single largest asset the site served - the one in
+        // production right now is a 2.1 MB PNG. 1920 on the longest edge covers any
+        // realistic screen; cover-scaling hides the difference either way.
+        var result = await _fileUploadService.SaveImageAsync(
+            file, "branding", maxDimension: BackgroundImageMaxDimension, convertToWebp: true);
         if (!result.Succeeded)
         {
             return BadRequest(new { errors = new[] { result.Error } });
