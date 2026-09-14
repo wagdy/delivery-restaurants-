@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -77,6 +77,7 @@ export class StorefrontComponent {
   private readonly subCategoryService = inject(SubCategoryService);
   private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
+  private readonly elementRef = inject(ElementRef<HTMLElement>);
   protected readonly cart = inject(CartService);
   protected readonly authService = inject(AuthService);
   protected readonly settingsService = inject(SettingsService);
@@ -265,6 +266,18 @@ export class StorefrontComponent {
       if (params.get('tab') === 'orders') {
         this.activeTab.set('orders');
       }
+
+      // Lets the sidebar's own "Menu" header act as a Home button (app.component.html)
+      // - same deep-link mechanism as ?tab=rewards/orders above, but also resets back
+      // to the category landing grid via backToCategories() rather than just switching
+      // tabs, since a plain routerLink="/" wouldn't otherwise do anything if the user
+      // was already sitting on this route mid-category or on a different tab (Angular
+      // reuses this component instance rather than reloading it for a same-route
+      // navigation with no path change).
+      if (params.get('tab') === 'menu') {
+        this.activeTab.set('menu');
+        this.backToCategories();
+      }
     });
   }
 
@@ -276,6 +289,42 @@ export class StorefrontComponent {
     this.selectedCategory.set(category);
     this.menuView.set('items');
     this.searchTerm.set('');
+    this.scrollToCategoryTop();
+  }
+
+  // Without this, switching categories while scrolled deep into the previous one's item
+  // list leaves the browser's scroll position untouched, so the newly-rendered (usually
+  // differently sized) section lands wherever that same scrollY happens to fall - often
+  // its middle or bottom - instead of at its own top. scrollIntoView({block:'start'})
+  // can't be used here since it has no way to account for .menu-sticky-panel's (and, on
+  // mobile, .category-rail's) own sticky height - it would tuck the section title
+  // directly under them, hiding it.
+  private scrollToCategoryTop(): void {
+    // Deferred one macrotask so this runs after Angular's change detection has
+    // re-rendered .menu-content for the just-selected category - measuring rects
+    // synchronously here would still see the previous category's layout.
+    setTimeout(() => {
+      const root = this.elementRef.nativeElement;
+      const sectionTitle = root.querySelector('.menu-section-title') as HTMLElement | null;
+      const stickyPanel = root.querySelector('.menu-sticky-panel') as HTMLElement | null;
+      if (!sectionTitle || !stickyPanel) {
+        return;
+      }
+
+      // The rail only stacks ABOVE the content (eating into this offset too) below the
+      // 1024px breakpoint where .menu-layout switches from a block stack to a sidebar +
+      // content grid - see storefront.component.scss's own .menu-layout media query. On
+      // the desktop grid the rail sits in its own column beside .menu-content, not on
+      // top of it, so counting its height there would overshoot past the section title.
+      const rail = root.querySelector('.category-rail') as HTMLElement | null;
+      const railStackedAboveContent = window.innerWidth < 1024;
+      const railHeight = railStackedAboveContent ? (rail?.getBoundingClientRect().height ?? 0) : 0;
+
+      const stickyOffset = stickyPanel.getBoundingClientRect().height + railHeight;
+      const targetTop = sectionTitle.getBoundingClientRect().top + window.scrollY - stickyOffset;
+
+      window.scrollTo({ top: Math.max(targetTop, 0), behavior: 'smooth' });
+    });
   }
 
   backToCategories(): void {

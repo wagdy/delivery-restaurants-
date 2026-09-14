@@ -10,10 +10,14 @@
     (closed)="categoryDrawerAnimate.set(false)"
   >
     <div class="drawer-header">
-      <span class="drawer-title">
+      <!-- Acts as a Home button: back to the main Menu (category landing grid) for a
+           customer/admin, or the captain's own deliveries screen for a captain - see
+           goHome() for why this needs to be a method (a two-step navigate that resets
+           query params) rather than a plain [routerLink]. -->
+      <button type="button" class="drawer-title" (click)="goHome(drawer)">
         <mat-icon>restaurant_menu</mat-icon>
         Menu
-      </span>
+      </button>
       <button mat-icon-button class="drawer-close-btn" (click)="drawer.close()" aria-label="Close menu">
         <mat-icon>close</mat-icon>
       </button>

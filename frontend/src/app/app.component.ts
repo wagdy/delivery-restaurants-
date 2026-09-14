@@ -148,6 +148,33 @@ export class AppComponent {
     this.router.navigate(['/'], { queryParams: { category: name } });
   }
 
+  // The drawer's own "Menu" header, doubling as a Home button - navigates to the main
+  // storefront (or the captain's own deliveries screen for a captain, mirroring the
+  // header brand logo's own routing) and resets StorefrontComponent back to its
+  // default category-landing view via its ?tab=menu handling.
+  //
+  // The two-step navigate (clear query params, then set tab=menu) isn't decorative -
+  // Angular's Router simply doesn't re-emit ActivatedRoute.queryParamMap for a
+  // navigation whose resulting params are identical to the current ones (confirmed:
+  // even passing onSameUrlNavigation: 'reload' doesn't help - that only forces the
+  // navigation pipeline itself, guards/resolvers, to rerun, not the param observable to
+  // emit a "changed" value when nothing about the params actually differs). Clicking
+  // this a second time - or any time the URL already happens to be exactly
+  // "/?tab=menu" from an earlier click, even if the user has since switched to
+  // Rewards/My Orders entirely client-side with no URL change - would otherwise
+  // silently do nothing. Clearing first guarantees each step's target state genuinely
+  // differs from whatever came immediately before it, so the reset fires every time.
+  goHome(drawer: { close: () => void }): void {
+    drawer.close();
+    if (this.authService.isCaptain()) {
+      this.router.navigate(['/captain']);
+      return;
+    }
+    this.router.navigate(['/']).then(() => {
+      this.router.navigate(['/'], { queryParams: { tab: 'menu' } });
+    });
+  }
+
   // The sidebar's own auth quick-link target (see the drawer's "Login / Register"/"My
   // Orders" item in app.component.html). An authenticated (non-captain, non-admin-
   // specific) user goes to their own orders rather than back through the auth form;

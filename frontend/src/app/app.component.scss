@@ -222,14 +222,41 @@
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
+// Doubles as a Home button now (see app.component.html) - padding/negative-margin
+// widens the actual tap target a bit beyond the icon+text's own visible size without
+// shifting their position, matching this app's general touch-target conventions
+// elsewhere (e.g. .drawer-close-btn's explicit 44px sizing just below).
 .drawer-title {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 6px 4px;
+  margin: -6px -4px;
+  border: none;
+  background: none;
+  font: inherit;
+  border-radius: 8px;
   color: var(--app-primary-color, #3a2a1c);
+  cursor: pointer;
+  transition: opacity 150ms ease, background-color 150ms ease;
 
   mat-icon {
     color: inherit;
+  }
+
+  &:hover {
+    opacity: 0.7;
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  &:active {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer-title {
+    transition: none !important;
   }
 }
 
