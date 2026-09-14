@@ -18,6 +18,14 @@
   display: inline-block;
   width: 20px;
   height: 16px;
+
+  // .hamburger-bar below paints itself via `background: currentColor`, so it needs its
+  // own `color` here - without it, it would silently inherit .mat-toolbar.mat-primary's
+  // hardcoded `color: #fff !important` (styles.scss) instead of the admin-configured
+  // --app-icon-color. That hardcoded rule only gets overridden for actual `mat-icon`
+  // elements (see styles.scss's dedicated `.mat-toolbar.mat-primary .mat-icon` rule) -
+  // these plain <span> bars aren't one, so they need this explicit opt-in instead.
+  color: var(--app-icon-color, #fff);
 }
 
 .hamburger-bar {
