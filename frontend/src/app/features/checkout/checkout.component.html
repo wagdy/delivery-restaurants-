@@ -35,38 +35,101 @@
 
         <form [formGroup]="form" (ngSubmit)="placeOrder()">
           <mat-card-content>
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Full name</mat-label>
-              <mat-icon matPrefix>person_outline</mat-icon>
-              <input matInput formControlName="customerName" />
-              @if (form.controls.customerName.hasError('required') && form.controls.customerName.touched) {
-                <mat-error>Name is required</mat-error>
-              }
-              @if (form.controls.customerName.hasError('pattern') && form.controls.customerName.touched) {
-                <mat-error>Name can only contain letters</mat-error>
-              }
-            </mat-form-field>
+            <!-- Signed in with a usable profile: nothing to re-type but the address.
+                 Falls through to the full form when the stored name or phone doesn't pass
+                 validation, so a customer is never shown an uneditable summary of the very
+                 values blocking their order - see profileContactIsValid(). -->
+            @if (showContactSummary()) {
+              <div class="contact-summary">
+                <div class="contact-summary-icon">
+                  <mat-icon>verified_user</mat-icon>
+                </div>
+                <div class="contact-summary-body">
+                  <span class="contact-summary-label">Delivering to</span>
+                  <span class="contact-summary-name">{{ authService.currentUser()?.fullName }}</span>
+                  <span class="contact-summary-phone">{{ authService.currentUser()?.phoneNumber }}</span>
+                </div>
+                <button
+                  type="button"
+                  class="contact-summary-edit"
+                  (click)="editingContact.set(true)"
+                  aria-label="Change the name and phone for this order"
+                >
+                  Change
+                </button>
+              </div>
+            } @else {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Full name</mat-label>
+                <mat-icon matPrefix>person_outline</mat-icon>
+                <input matInput formControlName="customerName" autocomplete="name" />
+              </mat-form-field>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Phone</mat-label>
-              <mat-icon matPrefix>call</mat-icon>
-              <input matInput formControlName="customerPhone" />
-              @if (form.controls.customerPhone.hasError('required') && form.controls.customerPhone.touched) {
-                <mat-error>Phone is required</mat-error>
+              @if (form.controls.customerName.touched && form.controls.customerName.invalid) {
+                <div class="field-alert" role="alert">
+                  <mat-icon aria-hidden="true">warning</mat-icon>
+                  <span>
+                    @if (form.controls.customerName.hasError('required')) {
+                      Please enter your full name so the driver knows who to ask for.
+                    } @else if (form.controls.customerName.hasError('pattern')) {
+                      Letters and spaces only — Arabic or English. No numbers or symbols.
+                    } @else {
+                      That name is too long. Please keep it under 200 characters.
+                    }
+                  </span>
+                </div>
               }
-              @if (form.controls.customerPhone.hasError('pattern') && form.controls.customerPhone.touched) {
-                <mat-error>Phone number must contain only numbers</mat-error>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Phone</mat-label>
+                <mat-icon matPrefix>call</mat-icon>
+                <!-- inputmode numeric brings up the digit keypad on a phone; onPhoneInput
+                     strips anything non-numeric so a pasted "+20 10 1234 5678" is cleaned
+                     rather than rejected. -->
+                <input
+                  matInput
+                  formControlName="customerPhone"
+                  inputmode="numeric"
+                  autocomplete="tel"
+                  maxlength="11"
+                  placeholder="01xxxxxxxxx"
+                  (input)="onPhoneInput($event)"
+                />
+              </mat-form-field>
+
+              @if (form.controls.customerPhone.touched && form.controls.customerPhone.invalid) {
+                <div class="field-alert" role="alert">
+                  <mat-icon aria-hidden="true">warning</mat-icon>
+                  <span>
+                    @if (form.controls.customerPhone.hasError('required')) {
+                      Please enter your mobile number — we send your order confirmation there.
+                    } @else {
+                      That doesn't look like an Egyptian mobile number. It should be 11 digits
+                      starting with 010, 011, 012 or 015.
+                    }
+                  </span>
+                </div>
               }
-            </mat-form-field>
+            }
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Delivery address</mat-label>
               <mat-icon matPrefix>location_on</mat-icon>
-              <input matInput formControlName="deliveryAddress" />
-              @if (form.controls.deliveryAddress.hasError('required') && form.controls.deliveryAddress.touched) {
-                <mat-error>Delivery address is required</mat-error>
-              }
+              <input matInput formControlName="deliveryAddress" autocomplete="street-address" />
             </mat-form-field>
+
+            @if (form.controls.deliveryAddress.touched && form.controls.deliveryAddress.invalid) {
+              <div class="field-alert" role="alert">
+                <mat-icon aria-hidden="true">warning</mat-icon>
+                <span>
+                  @if (form.controls.deliveryAddress.hasError('required')) {
+                    Please enter the street and area we're delivering to.
+                  } @else {
+                    That address is too long. Please keep it under 500 characters.
+                  }
+                </span>
+              </div>
+            }
 
             @if (!showDeliveryNotes()) {
               <button type="button" class="add-notes-toggle" (click)="showDeliveryNotes.set(true)">

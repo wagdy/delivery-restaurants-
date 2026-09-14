@@ -132,6 +132,117 @@
   }
 }
 
+// Shown instead of the name/phone inputs for a signed-in customer whose profile already
+// holds valid values. Tinted with the restaurant's own primary colour rather than a fixed
+// hue so it reads as part of the brand on whatever palette the admin has set.
+.contact-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--app-primary-color, #3f51b5) 24%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--app-primary-color, #3f51b5) 5%, transparent);
+}
+
+.contact-summary-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--app-primary-color, #3f51b5);
+  color: #fff;
+
+  mat-icon {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+  }
+}
+
+.contact-summary-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  // min-width:0 so a long name wraps inside the card instead of forcing it wider
+  // than the form - flex items refuse to shrink below their content without it.
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.contact-summary-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.contact-summary-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.87);
+  overflow-wrap: anywhere;
+}
+
+.contact-summary-phone {
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.6);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.contact-summary-edit {
+  flex: 0 0 auto;
+  align-self: center;
+  border: 1px solid color-mix(in srgb, var(--app-primary-color, #3f51b5) 40%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--app-primary-color, #3f51b5);
+  cursor: pointer;
+  transition: background-color 120ms ease;
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in srgb, var(--app-primary-color, #3f51b5) 12%, transparent);
+  }
+}
+
+// Validation messages deliberately sit outside mat-form-field rather than in <mat-error>:
+// Material renders those at 75% size in the field's subscript, which customers were
+// missing entirely. Pulled up by 14px to sit in the empty subscript row the outline
+// appearance already reserves, so adding one doesn't shift the rest of the form.
+.field-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: -14px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #f3b9b5;
+  border-radius: 10px;
+  background: #fdecea;
+  color: #a1241c;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.45;
+
+  mat-icon {
+    flex: 0 0 auto;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: #d32f2f;
+  }
+}
+
 .place-order-button {
   width: 100%;
   padding: 6px 0;

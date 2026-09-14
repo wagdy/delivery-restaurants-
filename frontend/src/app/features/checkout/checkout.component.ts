@@ -40,11 +40,21 @@ import { estimatedDeliveryLabel as formatDeliveryLabel } from '../../shared/util
   styleUrl: './checkout.component.scss'
 })
 export class CheckoutComponent {
-  // Kept identical to the [RegularExpression] patterns on CreateOrderRequest
-  // (backend/.../DTOs/Orders/CreateOrderRequest.cs) — client-side validation is only a
-  // fast-feedback convenience, the backend re-checks the same rule regardless.
-  static readonly NAME_PATTERN = /^[A-Za-z ]+$/;
-  static readonly PHONE_PATTERN = /^[0-9]+$/;
+  // Arabic (؀-ۿ) as well as Latin letters. The old pattern was Latin-only,
+  // which rejected any customer who typed their name in Arabic - and because this form
+  // prefills the name from the signed-in profile, and registration has always ALLOWED
+  // Arabic, a customer registered as "محمد" had their own name filled in and then
+  // refused. Kept identical to CreateOrderRequest's [RegularExpression], which had the
+  // same Latin-only bug and was rejecting these orders server-side regardless of what
+  // the client did.
+  static readonly NAME_PATTERN = /^[a-zA-Z\u0600-\u06FF\s]+$/;
+
+  // Egyptian mobile numbers: 010/011/012/015 followed by 8 digits, 11 in total. Stricter
+  // than the backend's own ^[0-9]+$, deliberately - that rule is shared with the admin
+  // "Create Order" screen and the POS sync, which legitimately carry landlines and
+  // foreign numbers. This is the customer-facing form, where a typo means the delivery
+  // driver cannot call and the WhatsApp confirmation never arrives.
+  static readonly PHONE_PATTERN = /^(010|011|012|015)\d{8}$/;
 
   protected readonly cart = inject(CartService);
   protected readonly authService = inject(AuthService);
@@ -56,6 +66,21 @@ export class CheckoutComponent {
 
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
+
+  // A signed-in customer's name and phone come from their profile and are shown as a
+  // summary rather than as editable fields - there is nothing for them to fill in but the
+  // address. The controls still exist and are still validated, because the request body
+  // needs both values and because a profile saved before these rules existed could hold
+  // something that no longer passes - see profileContactIsValid below, which falls back to
+  // the editable form in exactly that case rather than trapping the customer behind a
+  // summary card they cannot correct.
+  readonly isSignedIn = computed(() => this.authService.isAuthenticated());
+
+  // Set by the summary card's "Change" button. There is no profile-editing screen in this
+  // app (see app.routes.ts - my-orders is a read-only list), so the only way to let a
+  // signed-in customer deliver under a different name or number is to reveal the same
+  // fields a guest gets. This is per-order only; it does not write back to the profile.
+  readonly editingContact = signal(false);
 
   readonly form = this.fb.nonNullable.group({
     customerName: [
@@ -75,6 +100,65 @@ export class CheckoutComponent {
     // CreateOrderRequest has just the one free-text address column.
     deliveryNotes: ['', [Validators.maxLength(200)]]
   });
+
+  // Whether the profile's stored name and phone actually satisfy the rules above. A
+  // profile predating them - a name with a digit in it, a phone saved as +20... or a
+  // landline - would otherwise render a read-only summary card with no way to fix the
+  // very values blocking the order. When this is false the full editable form is shown
+  // instead, prefilled, so the customer can correct it and continue.
+  readonly profileContactIsValid = computed(() => {
+    const user = this.authService.currentUser();
+    if (!user) {
+      return false;
+    }
+
+    return (
+      !!user.fullName?.trim() &&
+      CheckoutComponent.NAME_PATTERN.test(user.fullName) &&
+      !!user.phoneNumber?.trim() &&
+      CheckoutComponent.PHONE_PATTERN.test(user.phoneNumber)
+    );
+  });
+
+  // The summary card replaces the name/phone inputs only when both are present and valid,
+  // and only until the customer asks to change them for this order.
+  readonly showContactSummary = computed(
+    () => this.isSignedIn() && this.profileContactIsValid() && !this.editingContact()
+  );
+
+  // Strips anything that isn't a digit as the customer types, so a stray letter or the
+  // spaces in "010 1234 5678" never reach the validator as a confusing error - the field
+  // simply cannot hold a non-digit. Capped at 11, the full length of an Egyptian mobile
+  // number; the pattern validator still enforces the 010/011/012/015 prefix.
+  protected onPhoneInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const cleaned = CheckoutComponent.normalizePhone(input.value);
+
+    if (cleaned !== input.value) {
+      input.value = cleaned;
+      // Written back through the control, not just the DOM, so the form's validity and
+      // what is on screen never disagree.
+      this.form.controls.customerPhone.setValue(cleaned);
+    }
+  }
+
+  // Digits only, with the international form folded back to the local one. Numbers copied
+  // out of a WhatsApp contact arrive as "+20 101 234 5678" or "00201012345678", which is
+  // the same number as 01012345678 - rejecting it as "not an Egyptian mobile" would be
+  // both wrong and baffling. Only an exactly-12-digit 20-prefixed string is treated this
+  // way, so a customer typing their number one digit at a time never trips it.
+  private static normalizePhone(raw: string): string {
+    let digits = raw.replace(/\D/g, '');
+
+    if (digits.startsWith('00')) {
+      digits = digits.slice(2);
+    }
+    if (digits.length === 12 && digits.startsWith('20')) {
+      digits = `0${digits.slice(2)}`;
+    }
+
+    return digits.slice(0, 11);
+  }
 
   // Collapsed by default so the form doesn't look longer than it needs to for the
   // common case of an address that's already complete on its own.
