@@ -9,7 +9,7 @@ import {
   UpdateRestaurantSettingsRequest
 } from '../models/restaurant-settings.model';
 
-const DEFAULT_TAB_TITLE = 'Restaurant Delivery';
+const DEFAULT_TAB_TITLE = 'Otantik | Order now';
 
 // Maps a favicon file's extension to the <link rel="icon"> tag's own `type` attribute -
 // browsers are lenient about this and mostly sniff the real content anyway, but setting
