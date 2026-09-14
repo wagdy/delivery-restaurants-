@@ -188,10 +188,7 @@ builder.Services.AddRateLimiter(options =>
 
     static RateLimitPartition<string> PerIpWindow(HttpContext httpContext, int permit, int windowMinutes) =>
         RateLimitPartition.GetFixedWindowLimiter(
-            // A request with no resolvable remote IP (rare, but possible behind an
-            // unusual proxy setup) falls into one shared "unknown" bucket rather than
-            // silently skipping the limit entirely.
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            partitionKey: ClientIpFor(httpContext),
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = permit,
@@ -200,6 +197,30 @@ builder.Services.AddRateLimiter(options =>
                 // held open on a connection waiting for a slot.
                 QueueLimit = 0
             });
+
+    // The partition key every policy above buckets on.
+    //
+    // X-Real-IP, not Connection.RemoteIpAddress: Railway's edge documents X-Real-IP as
+    // the client's address (https://docs.railway.com/networking/public-networking/specs-and-limits),
+    // and it is the edge that sets it, so a client cannot forge it. RemoteIpAddress is
+    // not usable here - it resolved to a per-connection internal peer address in
+    // production, which gave every new TCP connection its own fresh budget and made the
+    // limiter trivially bypassable by reconnecting. That was only visible against the
+    // deployed environment: locally, where nothing sits in front of Kestrel, the same
+    // code partitioned correctly on the loopback address.
+    //
+    // Falls back to RemoteIpAddress and then to a single shared bucket, so an
+    // unattributable request is still counted rather than exempted.
+    static string ClientIpFor(HttpContext httpContext)
+    {
+        var realIp = httpContext.Request.Headers["X-Real-IP"].ToString();
+        if (!string.IsNullOrWhiteSpace(realIp))
+        {
+            return realIp;
+        }
+
+        return httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    }
 });
 
 builder.Services.AddAuthorization(options =>
