@@ -343,6 +343,7 @@ builder.Services.AddSingleton<IReadThroughCache, ReadThroughCache>();
 
 builder.Services.AddScoped<ISettingsService, SettingsService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
+builder.Services.AddScoped<IImageBackfillService, ImageBackfillService>();
 
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
