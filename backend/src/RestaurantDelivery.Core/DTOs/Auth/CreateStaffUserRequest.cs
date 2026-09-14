@@ -6,7 +6,11 @@ namespace RestaurantDelivery.Core.DTOs.Auth;
 public class CreateStaffUserRequest
 {
     [Required, MaxLength(200)]
-    [RegularExpression(@"^[A-Za-z ]+$", ErrorMessage = "Name can only contain letters and spaces.")]
+    // Arabic letters as well as Latin - this restaurant's customers and staff write
+    // their names in both. Matches the pattern RegisterRequest/RegisterCustomerRequest
+    // already used, which is how the mismatch showed up: someone could register as
+    // "محمد" and then be unable to place an order under their own name.
+    [RegularExpression(@"^[a-zA-Z\u0600-\u06FF\s]+$", ErrorMessage = "Please enter a valid name without numbers or symbols.")]
     public string FullName { get; set; } = string.Empty;
 
     // Staff accounts log in with phone number, not email - see AuthService.LoginAsync's
