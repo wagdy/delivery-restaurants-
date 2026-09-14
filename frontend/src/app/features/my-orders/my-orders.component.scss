@@ -59,3 +59,76 @@
   margin-top: 6px;
   padding-top: 8px;
 }
+
+// ---------------------------------------------------------------------------
+// Pagination - client-side, 5 orders per page (see MyOrdersComponent.pagedOrders).
+// Numbered pill buttons mirror .category-chip's own look (storefront.component.scss)
+// for visual consistency, rather than the admin dashboard's plain "Page X of Y" text
+// (CustomerReviewsComponent) - customers benefit from jumping straight to a page, not
+// just stepping one at a time through a short, friendly list.
+// ---------------------------------------------------------------------------
+.orders-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+// 44px matches this app's general touch-target convention elsewhere (e.g.
+// app.component.scss's .drawer-close-btn) - comfortably tappable on mobile even
+// though these render as a tight row of pills.
+.page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 4px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #fff;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.65);
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: var(--app-primary-color, #f68d83);
+    color: var(--app-primary-color, #f68d83);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  // The active page - solid warm brand fill, matching .category-chip.active's own
+  // treatment for the current category.
+  &.active {
+    background: var(--app-primary-color, #f68d83);
+    border-color: var(--app-primary-color, #f68d83);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-btn {
+    transition: none !important;
+  }
+}

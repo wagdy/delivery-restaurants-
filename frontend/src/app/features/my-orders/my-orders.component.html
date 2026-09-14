@@ -14,7 +14,7 @@
     </div>
   } @else {
     <mat-accordion>
-      @for (order of orders(); track order.id) {
+      @for (order of pagedOrders(); track order.id) {
         <mat-expansion-panel>
           <mat-expansion-panel-header>
             <!-- Status, not the order number/ID - customers never see an order ID
@@ -47,5 +47,41 @@
         </mat-expansion-panel>
       }
     </mat-accordion>
+
+    @if (totalPages() > 1) {
+      <nav class="orders-pagination" aria-label="Orders pages">
+        <button
+          type="button"
+          class="page-btn page-nav"
+          [disabled]="currentPage() === 1"
+          (click)="goToPage(currentPage() - 1)"
+          aria-label="Previous page"
+        >
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+
+        @for (num of pageNumbers(); track num) {
+          <button
+            type="button"
+            class="page-btn"
+            [class.active]="num === currentPage()"
+            [attr.aria-current]="num === currentPage() ? 'page' : null"
+            (click)="goToPage(num)"
+          >
+            {{ num }}
+          </button>
+        }
+
+        <button
+          type="button"
+          class="page-btn page-nav"
+          [disabled]="currentPage() === totalPages()"
+          (click)="goToPage(currentPage() + 1)"
+          aria-label="Next page"
+        >
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </nav>
+    }
   }
 </div>
