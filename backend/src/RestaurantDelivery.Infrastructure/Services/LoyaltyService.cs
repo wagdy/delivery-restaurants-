@@ -58,9 +58,26 @@ public class LoyaltyService : ILoyaltyService
 
         var previousTier = profile.MembershipTier;
 
-        profile.CurrentPoints += pointsEarned;
-        profile.TotalLifetimePoints += pointsEarned;
-        profile.LastActivityDate = DateTime.UtcNow;
+        await using var transaction = await _context.Database.BeginTransactionAsync(ct);
+
+        // Incremented by the database rather than read-modify-written in memory, for the
+        // same reason as RedeemPointsAsync below. The failure here is quieter but just as
+        // wrong: two grants landing together both read the same balance and both wrote
+        // their own total back, so one grant vanished from the balance while its ledger row
+        // stayed - leaving the running total and its own audit trail permanently disagreeing.
+        await _context.LoyaltyProfiles
+            .Where(p => p.AppUserId == profile.AppUserId)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(p => p.CurrentPoints, p => p.CurrentPoints + pointsEarned)
+                    .SetProperty(p => p.TotalLifetimePoints, p => p.TotalLifetimePoints + pointsEarned)
+                    .SetProperty(p => p.LastActivityDate, p => DateTime.UtcNow),
+                ct);
+
+        // Reloaded before resolving the tier so it's derived from the authoritative running
+        // total, not from this request's stale view of it. TotalLifetimePoints only ever
+        // increases, so concurrent grants converge on the same tier regardless of order.
+        await _context.Entry(profile).ReloadAsync(ct);
         profile.MembershipTier = await ResolveTierNameAsync(profile.TotalLifetimePoints, ct);
 
         _context.LoyaltyPointTransactions.Add(new LoyaltyPointTransaction
@@ -74,6 +91,7 @@ public class LoyaltyService : ILoyaltyService
         });
 
         await _context.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         var tierUpgraded = profile.MembershipTier != previousTier;
 
@@ -162,17 +180,43 @@ public class LoyaltyService : ILoyaltyService
         }
 
         var profile = await GetOrCreateProfileEntityAsync(request.CustomerId, ct);
-
-        if (profile.CurrentPoints < request.PointsToRedeem)
-        {
-            return ServiceResult<LoyaltyTransactionResponse>.Failure("Customer does not have enough points for this redemption.");
-        }
-
         var settings = await GetOrCreateSettingsEntityAsync(ct);
         var discountAmount = (request.PointsToRedeem / 100m) * settings.RedemptionValuePer100Points;
 
-        profile.CurrentPoints -= request.PointsToRedeem;
-        profile.LastActivityDate = DateTime.UtcNow;
+        // The deduction and its ledger row commit together or not at all - a crash between
+        // them would otherwise leave points spent with no audit trail of where they went.
+        await using var transaction = await _context.Database.BeginTransactionAsync(ct);
+
+        // The balance check and the deduction are one atomic statement, evaluated by the
+        // database rather than in memory:
+        //
+        //   UPDATE "LoyaltyProfiles"
+        //   SET "CurrentPoints" = "CurrentPoints" - @n
+        //   WHERE "AppUserId" = @id AND "CurrentPoints" >= @n
+        //
+        // The previous version read the balance, compared it in C#, subtracted in C#, then
+        // wrote the result back. Two redemptions arriving together both read the same
+        // balance, both passed the check, and both wrote the same post-deduction value -
+        // so a customer with 100 points could spend 200. Nothing about that was visible in
+        // a single-threaded test; it needs two requests genuinely in flight at once.
+        //
+        // Expressing it as one guarded UPDATE makes the row itself the arbiter: whichever
+        // transaction gets there second re-evaluates "CurrentPoints >= @n" against the
+        // first one's committed result, matches no rows, and is rejected below. There is no
+        // window between the check and the write for a second request to slip into.
+        var rowsDeducted = await _context.LoyaltyProfiles
+            .Where(p => p.AppUserId == profile.AppUserId && p.CurrentPoints >= request.PointsToRedeem)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(p => p.CurrentPoints, p => p.CurrentPoints - request.PointsToRedeem)
+                    .SetProperty(p => p.LastActivityDate, p => DateTime.UtcNow),
+                ct);
+
+        if (rowsDeducted == 0)
+        {
+            await transaction.RollbackAsync(ct);
+            return ServiceResult<LoyaltyTransactionResponse>.Failure("Customer does not have enough points for this redemption.");
+        }
 
         _context.LoyaltyPointTransactions.Add(new LoyaltyPointTransaction
         {
@@ -184,6 +228,12 @@ public class LoyaltyService : ILoyaltyService
         });
 
         await _context.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+
+        // ExecuteUpdateAsync writes straight to the database without going through the
+        // change tracker, so the tracked entity still holds the pre-deduction balance -
+        // refresh it before it's read back into the response and the realtime payload.
+        await _context.Entry(profile).ReloadAsync(ct);
 
         await _realtimeNotifier.NotifyPointsUpdatedAsync(profile.AppUserId, new PointsUpdatedPayload
         {
@@ -219,12 +269,17 @@ public class LoyaltyService : ILoyaltyService
     {
         var result = new OrderLoyaltyResult();
 
-        // Re-checked here (OrderService.UpdateStatusAsync already checks this once before
-        // calling in) as a defense against two concurrent requests both reading the flag
-        // as false before either commits. Set immediately, in the same tracked-entity
-        // change set as everything below, so it's part of the one SaveChangesAsync at the
-        // end - if that save fails for any reason, PointsAwarded is never persisted as
-        // true either, so a genuine failure can still be retried by a later status change.
+        // A cheap early-out for the common sequential case (OrderService.UpdateStatusAsync
+        // already checks this once before calling in), NOT a concurrency guard - on its own
+        // it stops nothing, because two requests can both read the flag as false before
+        // either commits and both then set it to true. What actually makes this safe under
+        // concurrency is the unique index on LoyaltyPointTransaction.OrderId (and on
+        // LoyaltyPunchTransaction's OrderId/ProgressId pair): the loser's insert violates
+        // it, and because everything below lands in one SaveChangesAsync, that failure
+        // rolls back the points and the flag together. See the catch at the end.
+        //
+        // Set immediately, in the same tracked-entity change set as everything below, so a
+        // genuine failure leaves PointsAwarded false and a later status change can retry.
         if (order.PointsAwarded)
         {
             return result;
