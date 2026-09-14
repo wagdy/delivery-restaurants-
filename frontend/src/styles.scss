@@ -88,6 +88,29 @@ body {
   overflow: visible !important;
 }
 
+// The cost of the two overrides above, paid back here. Material positions the drawer and
+// its backdrop absolutely inside the container; normally that container is also the
+// scroll context, so "absolute" and "in view" amount to the same thing. Once the window
+// scrolls instead, the container spans the whole document and the drawer scrolls away
+// with it - opening the menu anywhere but the very top of the page left its header and
+// first items above the viewport entirely (measured: 446px off at a scroll of 446).
+//
+// Anchoring both to the viewport restores what Material's own scrolling used to provide,
+// without giving back window-level scrolling or sticky positioning. The drawer's
+// mat-drawer-inner-container already carries overflow: auto, so a category list taller
+// than the screen keeps scrolling inside the drawer now that its height is the
+// viewport's rather than the document's.
+.mat-sidenav-container > .mat-drawer-backdrop,
+.mat-sidenav-container > .mat-drawer {
+  position: fixed;
+}
+
+.mat-sidenav-container > .mat-drawer {
+  top: 0;
+  bottom: 0;
+  height: auto;
+}
+
 .mat-mdc-unelevated-button.mat-primary,
 .mat-mdc-raised-button.mat-primary,
 .mat-mdc-fab.mat-primary,
