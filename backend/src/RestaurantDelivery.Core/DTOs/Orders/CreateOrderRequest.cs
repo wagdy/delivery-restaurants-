@@ -26,8 +26,11 @@ public class CreateOrderRequest
     [MaxLength(50)]
     public string? PromoCodeText { get; set; }
 
-    // See Order.DeliveryFee's own doc comment - the frontend's known delivery fee,
-    // passed through so the persisted total's breakdown is internally consistent.
+    // Honored ONLY for staff-created orders (see OrderService.CreateAsync) - the admin
+    // "Create Order" screen sets a per-order fee for pickups and out-of-range addresses.
+    // A customer's own checkout has this ignored entirely in favour of
+    // RestaurantSettings.BaseDeliveryFee; this endpoint takes guest orders with no token
+    // at all, so a client-supplied fee was simply a way to skip the delivery charge.
     [Range(0, double.MaxValue)]
     public decimal DeliveryFee { get; set; }
 

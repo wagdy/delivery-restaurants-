@@ -89,9 +89,26 @@ public class OrderService : IOrderService
         var discountAmount = 0m;
         var deliveryDiscountAmount = 0m;
 
+        // Fetched before the promo block below because the delivery fee feeds into
+        // free-delivery promo resolution as well as the final total.
+        var settings = await _settingsService.GetAsync();
+
+        // A customer's own delivery fee comes from settings, never from their request.
+        // This endpoint accepts guest orders without a token, so honoring the posted value
+        // let anyone send 0 and skip the charge - every other money value here was already
+        // recomputed server-side (item prices, add-on prices, promo discounts, tax) and
+        // this was the one that wasn't.
+        //
+        // Staff keep the override, gated the same way IsNewCustomer and CustomerId already
+        // are: the admin "Create Order" screen legitimately sets a per-order fee (0 for a
+        // pickup, a higher one for an address outside the normal range), and isStaffCreated
+        // is derived from the caller's own JWT role in OrdersController, not from anything
+        // in the request body.
+        var deliveryFee = isStaffCreated ? request.DeliveryFee : settings.BaseDeliveryFee;
+
         if (!string.IsNullOrWhiteSpace(request.PromoCodeText))
         {
-            var promoResult = await ResolveAndApplyPromoAsync(request.PromoCodeText, orderItems, request.DeliveryFee);
+            var promoResult = await ResolveAndApplyPromoAsync(request.PromoCodeText, orderItems, deliveryFee);
             if (!promoResult.Succeeded)
             {
                 return ServiceResult<OrderResponse>.Failure(promoResult.Errors.ToArray());
@@ -100,10 +117,9 @@ public class OrderService : IOrderService
             (promoCodeText, discountAmount, deliveryDiscountAmount) = promoResult.Data;
         }
 
-        var settings = await _settingsService.GetAsync();
         var taxableAmount = subtotal - discountAmount;
         var taxAmount = Math.Round(taxableAmount * (settings.TaxPercentage / 100m), 2);
-        var deliveryFeeAfterDiscount = request.DeliveryFee - deliveryDiscountAmount;
+        var deliveryFeeAfterDiscount = deliveryFee - deliveryDiscountAmount;
 
         var order = new Order
         {
@@ -116,7 +132,7 @@ public class OrderService : IOrderService
             PromoCodeText = promoCodeText,
             DiscountAmount = discountAmount,
             TaxAmount = taxAmount,
-            DeliveryFee = request.DeliveryFee,
+            DeliveryFee = deliveryFee,
             PaymentMethod = request.PaymentMethod,
             PaymentStatus = request.PaymentMethod == PaymentMethod.Visa ? PaymentStatus.Pending : PaymentStatus.Confirmed,
             OrderItems = orderItems
