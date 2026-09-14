@@ -2,8 +2,13 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
+using RestaurantDelivery.Api.Infrastructure;
+using Serilog;
+using Serilog.Events;
+using Serilog.Formatting.Compact;
 using Lib.Net.Http.WebPush;
 using Lib.Net.Http.WebPush.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -29,6 +34,34 @@ using RestaurantDelivery.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Structured logging. Railway parses single-line JSON from stdout into searchable fields,
+// so Production writes compact JSON while local development keeps the readable console
+// format - the same events either way, only the rendering differs.
+//
+// EF Core's command logging is pinned to Warning: at Information it prints every SQL
+// statement with its parameters, which buried real events under pages of query text and
+// put customer data (phone numbers, addresses) into the log stream. Raise it deliberately
+// and temporarily when debugging a query, rather than leaving it on by default.
+builder.Services.AddSerilog((services, config) =>
+{
+    config
+        .ReadFrom.Configuration(builder.Configuration)
+        .ReadFrom.Services(services)
+        .MinimumLevel.Information()
+        .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+        .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
+        .Enrich.FromLogContext();
+
+    if (builder.Environment.IsProduction())
+    {
+        config.WriteTo.Console(new CompactJsonFormatter());
+    }
+    else
+    {
+        config.WriteTo.Console();
+    }
+});
+
 // Add services to the container.
 
 builder.Services.AddControllers()
@@ -39,6 +72,29 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Two endpoints with different jobs, mapped further down:
+//
+//   /health        liveness  - is this process running? No dependency checks, so a
+//                              database blip never makes Railway kill a healthy container
+//                              that would have recovered on its own.
+//   /health/ready  readiness - can it actually serve? Opens a real connection to Postgres,
+//                              so a container that boots but can't reach its database is
+//                              reported unhealthy instead of quietly accepting orders it
+//                              cannot store.
+//
+// Railway's healthcheck path should point at /health/ready: a failing deploy then rolls
+// back on its own instead of replacing a working release with a broken one.
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<ApplicationDbContext>(
+        name: "database",
+        tags: ["ready"]);
+
+// Global exception handling. AddProblemDetails supplies the RFC 7807 responses for
+// framework-generated failures (404s, 415s); GlobalExceptionHandler covers anything a
+// controller throws.
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 const string AngularClientCorsPolicy = "AngularClient";
 
@@ -320,7 +376,20 @@ builder.Services.AddSingleton<ILoyaltyRealtimeNotifier, LoyaltyRealtimeNotifier>
 builder.Services.AddSingleton<IOrderRealtimeNotifier, OrderRealtimeNotifier>();
 
 builder.Services.Configure<DgteraOptions>(builder.Configuration.GetSection("Dgtera"));
-builder.Services.AddHttpClient<IDgteraClient, DgteraClient>();
+builder.Services.AddHttpClient<IDgteraClient, DgteraClient>(client =>
+    {
+        // The POS sync pulls a batch of orders in one JSON-RPC call, so it gets a longer
+        // ceiling than the WhatsApp clients below - but a ceiling nonetheless, rather than
+        // HttpClient's 100-second default.
+        client.Timeout = TimeSpan.FromSeconds(60);
+    })
+    .AddStandardResilienceHandler(options =>
+    {
+        options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(30);
+        options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(60);
+        // Must exceed AttemptTimeout or the handler rejects the configuration outright.
+        options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(60);
+    });
 builder.Services.AddScoped<IDgteraSyncService, DgteraSyncService>();
 
 // WhatsApp:UseOpenWa is a plain config toggle (appsettings.json / WhatsApp__UseOpenWa on
@@ -330,16 +399,42 @@ builder.Services.AddScoped<IDgteraSyncService, DgteraSyncService>();
 // implementation behind IWhatsAppNotificationService at a time - registering both would leave
 // whichever call happened to run second silently shadowing the first for every caller
 // (AuthService, LoyaltyService, OrderService) with no error to signal the conflict.
+// Whichever provider is active gets the same resilience treatment (see
+// AddWhatsAppResilience below for why these numbers, and why it matters more here than
+// anywhere else in the app).
 if (builder.Configuration.GetValue<bool>("WhatsApp:UseOpenWa"))
 {
     builder.Services.Configure<OpenWaSettings>(builder.Configuration.GetSection("OpenWa"));
-    builder.Services.AddHttpClient<IWhatsAppNotificationService, OpenWaWhatsAppNotificationService>();
+    AddWhatsAppResilience(builder.Services.AddHttpClient<IWhatsAppNotificationService, OpenWaWhatsAppNotificationService>());
 }
 else
 {
     builder.Services.Configure<GreenApiOptions>(builder.Configuration.GetSection("GreenApi"));
-    builder.Services.AddHttpClient<IWhatsAppNotificationService, WhatsAppNotificationService>();
+    AddWhatsAppResilience(builder.Services.AddHttpClient<IWhatsAppNotificationService, WhatsAppNotificationService>());
 }
+
+// These calls are fire-and-forget (see OrderService and LoyaltyService, which never await
+// them), which is exactly why they need a hard ceiling: nothing downstream is waiting to
+// time them out. On HttpClient's 100-second default, a degraded provider during a dinner
+// rush meant every order left a request hanging for a minute and a half with nothing
+// bounding how many piled up.
+//
+// The retry matters just as much in the other direction: a single transient 502 used to
+// lose a kitchen's "new order" alert permanently, with the failure visible only as a line
+// in a log nobody was reading.
+static void AddWhatsAppResilience(IHttpClientBuilder clientBuilder) =>
+    clientBuilder
+        .ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(30))
+        .AddStandardResilienceHandler(options =>
+        {
+            options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(10);
+            options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(30);
+            options.Retry.MaxRetryAttempts = 3;
+            // Sampling window must be at least double the attempt timeout; the breaker
+            // then stops hammering a provider that is already down, so an outage costs one
+            // failed call per half-open probe instead of one per notification.
+            options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
+        });
 
 // The WhatsApp broadcast queue/worker (new Promo Code / Campaign announcements to every
 // registered customer) - registered regardless of which WhatsApp provider is active above,
@@ -385,6 +480,42 @@ forwardedHeadersOptions.KnownIPNetworks.Clear();
 forwardedHeadersOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedHeadersOptions);
 
+// One structured line per request (method, path, status, duration) in place of the pages
+// of raw SQL that used to fill the logs. The health endpoints are dropped to Verbose so
+// Railway's own probe polling every few seconds doesn't drown out real traffic.
+//
+// Sits OUTSIDE UseExceptionHandler below, which is what keeps each failure to a single
+// stack trace: the handler catches the exception and turns it into a 500 before this
+// middleware ever sees one, so this logs a one-line "responded 500" while the handler logs
+// the stack. With the order reversed, the exception passes through here on its way out and
+// both write the full trace - doubling the log volume of exactly the events worth reading.
+app.UseSerilogRequestLogging(options =>
+{
+    options.GetLevel = (httpContext, elapsed, ex) =>
+    {
+        if (ex is not null || httpContext.Response.StatusCode >= 500)
+        {
+            return LogEventLevel.Error;
+        }
+
+        return httpContext.Request.Path.StartsWithSegments("/health")
+            ? LogEventLevel.Verbose
+            : LogEventLevel.Information;
+    };
+
+    // Attached to every request line so a failure reported by a customer (who only has the
+    // trace id from the error response) can be found alongside the exception it caused.
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        diagnosticContext.Set("TraceId", httpContext.TraceIdentifier);
+        diagnosticContext.Set("ClientIp", httpContext.Request.Headers["X-Real-IP"].ToString());
+    };
+});
+
+// Wraps everything downstream, so an exception from authentication or model binding is
+// caught here too, not only one thrown inside a controller action.
+app.UseExceptionHandler();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -423,5 +554,46 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<LoyaltyHub>("/hubs/loyalty");
 app.MapHub<OrderHub>("/hubs/orders");
+
+// Liveness: no dependency checks at all (Predicate excludes every registered check), so
+// this answers only "is the process up and able to respond". A database hiccup must not
+// make the platform kill a container that would have recovered by itself.
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    Predicate = _ => false
+});
+
+// Readiness: runs the checks tagged "ready", currently a real connection to Postgres.
+// This is the one Railway's healthcheck should target - a container that starts but can't
+// reach its database reports unhealthy rather than accepting orders it cannot store.
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+
+    // The default body is the bare word "Healthy". This returns which check failed and
+    // how long it took, so a failing deploy says what is actually wrong without needing
+    // someone to open a shell inside the container.
+    ResponseWriter = async (httpContext, report) =>
+    {
+        httpContext.Response.ContentType = "application/json";
+        await httpContext.Response.WriteAsJsonAsync(new
+        {
+            status = report.Status.ToString(),
+            totalDurationMs = report.TotalDuration.TotalMilliseconds,
+            checks = report.Entries.Select(entry => new
+            {
+                name = entry.Key,
+                status = entry.Value.Status.ToString(),
+                durationMs = entry.Value.Duration.TotalMilliseconds,
+                // Both, because they populate in different failure modes: a database that
+                // refuses the connection reports a Description with no exception, while one
+                // that throws mid-query reports the exception. Exception text only, never
+                // the stack - this endpoint is unauthenticated.
+                description = entry.Value.Description,
+                error = entry.Value.Exception?.Message
+            })
+        });
+    }
+});
 
 app.Run();

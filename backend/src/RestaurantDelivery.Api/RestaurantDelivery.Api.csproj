@@ -16,6 +16,9 @@
     </PackageReference>
     <PackageReference Include="dotnet-passbook" Version="4.0.1" />
     <PackageReference Include="Google.Apis.Walletobjects.v1" Version="1.75.0.4235" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
   </ItemGroup>
 
