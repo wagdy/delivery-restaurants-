@@ -335,6 +335,12 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IBulkOrderImportService, BulkOrderImportService>();
 
+// Singleton so the cache outlives the request that populated it - the whole point. The
+// data behind it (menu, categories, settings) is read on nearly every request and written
+// only from the admin screens, which invalidate their group explicitly on save.
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IReadThroughCache, ReadThroughCache>();
+
 builder.Services.AddScoped<ISettingsService, SettingsService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 

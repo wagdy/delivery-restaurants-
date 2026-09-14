@@ -8,16 +8,33 @@ namespace RestaurantDelivery.Infrastructure.Services;
 public class CategoryService : ICategoryService
 {
     private readonly ICategoryRepository _repository;
+    private readonly IReadThroughCache _cache;
 
-    public CategoryService(ICategoryRepository repository)
+    public CategoryService(ICategoryRepository repository, IReadThroughCache cache)
     {
         _repository = repository;
+        _cache = cache;
     }
 
     public async Task<List<CategoryResponse>> GetAllAsync()
     {
-        var categories = await _repository.GetAllOrderedAsync();
-        return categories.Select(MapResponse).ToList();
+        // Read on every storefront page load and changed only when an admin edits the
+        // category list, so it is served from cache and dropped by the writes below.
+        return await _cache.GetOrCreateAsync(CacheGroup.Categories, "all", async () =>
+        {
+            var categories = await _repository.GetAllOrderedAsync();
+            return categories.Select(MapResponse).ToList();
+        });
+    }
+
+    // Every category write drops the menu cache as well as the category cache: renaming a
+    // category rewrites MenuItem.Category on every item under it (see
+    // RenameMenuItemsCategoryAsync), so a stale menu would still be grouped under the old
+    // name. Deleting or reordering changes what the storefront shows just as directly.
+    private void InvalidateCategoryCaches()
+    {
+        _cache.Invalidate(CacheGroup.Categories);
+        _cache.Invalidate(CacheGroup.Menu);
     }
 
     public async Task<ServiceResult<CategoryResponse>> CreateAsync(CategoryRequest request)
@@ -35,6 +52,7 @@ public class CategoryService : ICategoryService
         var category = new Category { Name = name, DisplayOrder = nextDisplayOrder, ImageUrl = request.ImageUrl };
         await _repository.AddAsync(category);
         await _repository.SaveChangesAsync();
+        InvalidateCategoryCaches();
 
         return ServiceResult<CategoryResponse>.Success(MapResponse(category));
     }
@@ -67,6 +85,7 @@ public class CategoryService : ICategoryService
         }
 
         await _repository.SaveChangesAsync();
+        InvalidateCategoryCaches();
 
         return ServiceResult<CategoryResponse>.Success(MapResponse(category));
     }
@@ -88,6 +107,7 @@ public class CategoryService : ICategoryService
 
         _repository.Remove(category);
         await _repository.SaveChangesAsync();
+        InvalidateCategoryCaches();
 
         return ServiceResult<bool>.Success(true);
     }
@@ -120,6 +140,7 @@ public class CategoryService : ICategoryService
         // One SaveChangesAsync call commits every DisplayOrder update together in a
         // single transaction - either the whole new order lands, or none of it does.
         await _repository.SaveChangesAsync();
+        InvalidateCategoryCaches();
 
         return ServiceResult<bool>.Success(true);
     }

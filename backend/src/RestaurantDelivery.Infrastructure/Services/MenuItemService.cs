@@ -14,16 +14,20 @@ public class MenuItemService : IMenuItemService
     private readonly ICategoryRepository _categoryRepository;
     private readonly ISubCategoryRepository _subCategoryRepository;
 
+    private readonly IReadThroughCache _cache;
+
     public MenuItemService(
         IMenuItemRepository repository,
         IAddOnRepository addOnRepository,
         ICategoryRepository categoryRepository,
-        ISubCategoryRepository subCategoryRepository)
+        ISubCategoryRepository subCategoryRepository,
+        IReadThroughCache cache)
     {
         _repository = repository;
         _addOnRepository = addOnRepository;
         _categoryRepository = categoryRepository;
         _subCategoryRepository = subCategoryRepository;
+        _cache = cache;
     }
 
     public async Task<List<MenuItemResponse>> GetAllAsync(MenuItemFilterRequest filter)
@@ -44,8 +48,25 @@ public class MenuItemService : IMenuItemService
             categoryName = category.Name;
         }
 
-        var items = await _repository.GetFilteredAsync(categoryName, filter.SearchQuery, filter.IsAvailable, filter.HasAddons);
-        return items.Select(MapResponse).ToList();
+        // The app's hottest read: the whole menu, on every storefront page load, for every
+        // visitor. Cached on everything except a search, which is deliberately left to go
+        // straight to the database - search text is free-form, so caching per term would
+        // let any caller grow the cache (and ReadThroughCache's per-key locks) without
+        // limit. The remaining key space is category x availability x has-addons: a few
+        // dozen combinations at most.
+        if (!string.IsNullOrWhiteSpace(filter.SearchQuery))
+        {
+            var searchResults = await _repository.GetFilteredAsync(categoryName, filter.SearchQuery, filter.IsAvailable, filter.HasAddons);
+            return searchResults.Select(MapResponse).ToList();
+        }
+
+        var cacheKey = $"{categoryName ?? "*"}|{filter.IsAvailable?.ToString() ?? "*"}|{filter.HasAddons?.ToString() ?? "*"}";
+
+        return await _cache.GetOrCreateAsync(CacheGroup.Menu, cacheKey, async () =>
+        {
+            var items = await _repository.GetFilteredAsync(categoryName, null, filter.IsAvailable, filter.HasAddons);
+            return items.Select(MapResponse).ToList();
+        });
     }
 
     public async Task<ServiceResult<MenuItemResponse>> GetByIdAsync(int id)
@@ -87,6 +108,7 @@ public class MenuItemService : IMenuItemService
 
         await _repository.AddAsync(item);
         await _repository.SaveChangesAsync();
+        _cache.Invalidate(CacheGroup.Menu);
 
         return ServiceResult<MenuItemResponse>.Success(MapResponse(item));
     }
@@ -126,6 +148,7 @@ public class MenuItemService : IMenuItemService
         }
 
         await _repository.SaveChangesAsync();
+        _cache.Invalidate(CacheGroup.Menu);
 
         return ServiceResult<MenuItemResponse>.Success(MapResponse(item));
     }
@@ -143,6 +166,7 @@ public class MenuItemService : IMenuItemService
         try
         {
             await _repository.SaveChangesAsync();
+            _cache.Invalidate(CacheGroup.Menu);
         }
         catch (DbUpdateException)
         {

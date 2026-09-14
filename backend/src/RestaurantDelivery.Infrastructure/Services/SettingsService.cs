@@ -10,16 +10,28 @@ namespace RestaurantDelivery.Infrastructure.Services;
 public class SettingsService : ISettingsService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IReadThroughCache _cache;
 
-    public SettingsService(ApplicationDbContext context)
+    public SettingsService(ApplicationDbContext context, IReadThroughCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
+    // Branding, tax rate and delivery fee - read by nearly every request (order creation
+    // alone reads it twice) and written only from the admin settings screen.
+    //
+    // Only this mapped response is cached, never the tracked entity behind it:
+    // GetOrCreateAsync is shared with UpdateAsync, which mutates what it returns, so
+    // handing a cached entity to a second request would let two callers write through the
+    // same instance.
     public async Task<RestaurantSettingsResponse> GetAsync()
     {
-        var settings = await GetOrCreateAsync();
-        return MapResponse(settings);
+        return await _cache.GetOrCreateAsync(CacheGroup.Settings, "current", async () =>
+        {
+            var settings = await GetOrCreateAsync();
+            return MapResponse(settings);
+        });
     }
 
     public async Task<ServiceResult<RestaurantSettingsResponse>> UpdateAsync(UpdateRestaurantSettingsRequest request)
@@ -55,6 +67,7 @@ public class SettingsService : ISettingsService
         settings.ManagerWhatsApp3 = request.ManagerWhatsApp3;
 
         await _context.SaveChangesAsync();
+        _cache.Invalidate(CacheGroup.Settings);
 
         return ServiceResult<RestaurantSettingsResponse>.Success(MapResponse(settings));
     }
@@ -70,6 +83,7 @@ public class SettingsService : ISettingsService
         settings = new RestaurantSettings();
         _context.RestaurantSettings.Add(settings);
         await _context.SaveChangesAsync();
+        _cache.Invalidate(CacheGroup.Settings);
         return settings;
     }
 
