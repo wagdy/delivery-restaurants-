@@ -106,6 +106,26 @@ public class OrderService : IOrderService
         // in the request body.
         var deliveryFee = isStaffCreated ? request.DeliveryFee : settings.BaseDeliveryFee;
 
+        // Pickup is re-checked against the live setting rather than taken on trust. A
+        // client that posts IsPickup while the branch has pickup switched off would
+        // otherwise pay no delivery fee for an order a driver still has to deliver, and
+        // this endpoint accepts guest orders with no token at all. Refusing outright (as
+        // opposed to silently downgrading to delivery) is deliberate: the customer chose
+        // pickup, and quietly charging them for delivery instead would be worse than an
+        // error they can act on.
+        if (request.IsPickup && !settings.IsPickupEnabled)
+        {
+            return ServiceResult<OrderResponse>.Failure("Store pickup is currently unavailable. Please choose delivery.");
+        }
+
+        // Nothing is being delivered, so nothing is charged for delivery - applied after
+        // the staff override above so an admin cannot accidentally leave a fee on a
+        // pickup order either.
+        if (request.IsPickup)
+        {
+            deliveryFee = 0m;
+        }
+
         if (!string.IsNullOrWhiteSpace(request.PromoCodeText))
         {
             var promoResult = await ResolveAndApplyPromoAsync(request.PromoCodeText, orderItems, deliveryFee);
@@ -133,6 +153,7 @@ public class OrderService : IOrderService
             DiscountAmount = discountAmount,
             TaxAmount = taxAmount,
             DeliveryFee = deliveryFee,
+            IsPickup = request.IsPickup,
             PaymentMethod = request.PaymentMethod,
             PaymentStatus = request.PaymentMethod == PaymentMethod.Visa ? PaymentStatus.Pending : PaymentStatus.Confirmed,
             OrderItems = orderItems
@@ -477,6 +498,7 @@ public class OrderService : IOrderService
         DiscountAmount = order.DiscountAmount,
         TaxAmount = order.TaxAmount,
         DeliveryFee = order.DeliveryFee,
+        IsPickup = order.IsPickup,
         PaymentMethod = order.PaymentMethod,
         PaymentStatus = order.PaymentStatus,
         IsAcknowledged = order.IsAcknowledged,

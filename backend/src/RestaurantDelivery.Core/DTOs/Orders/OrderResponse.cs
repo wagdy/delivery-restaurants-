@@ -27,6 +27,10 @@ public class OrderResponse
     public decimal DiscountAmount { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal DeliveryFee { get; set; }
+
+    // Store pickup rather than delivery - the admin order list, captain dispatch view and
+    // receipt all need to tell the two apart.
+    public bool IsPickup { get; set; }
     public PaymentMethod PaymentMethod { get; set; }
     public PaymentStatus PaymentStatus { get; set; }
 

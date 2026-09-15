@@ -24,6 +24,8 @@ public class RestaurantSettingsResponse
     public string? VisaFawryUrl { get; set; }
     public bool IsInstapayEnabled { get; set; }
     public string? InstapayAccount { get; set; }
+    public bool IsPickupEnabled { get; set; }
+    public string? PickupDuration { get; set; }
     public decimal BaseDeliveryFee { get; set; }
     public int EstimatedDeliveryMinMinutes { get; set; }
     public int EstimatedDeliveryMaxMinutes { get; set; }

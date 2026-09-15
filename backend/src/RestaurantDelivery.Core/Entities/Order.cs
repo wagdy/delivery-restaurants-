@@ -26,10 +26,18 @@ public class Order
     public decimal DiscountAmount { get; set; }
     public decimal TaxAmount { get; set; }
 
-    // No backend-side delivery-fee configuration exists (CartService.DELIVERY_FEE is a
-    // frontend constant) - snapshotted here purely so TotalAmount's breakdown always
-    // adds up on a receipt, not because delivery pricing itself is now server-driven.
+    // Snapshotted so TotalAmount's breakdown always adds up on a receipt. The live rate
+    // comes from RestaurantSettings.BaseDeliveryFee for a customer checkout, or from the
+    // request for a staff-created one (see OrderService.CreateAsync). Always 0 when
+    // IsPickup - there is nothing to deliver.
     public decimal DeliveryFee { get; set; }
+
+    // True when the customer chose "Store Pickup" instead of delivery. Without this the
+    // kitchen, the captain dispatch list and the receipt would all read a pickup order as
+    // an ordinary delivery and send a driver to an address the customer never gave.
+    // DeliveryAddress still carries text for these orders - the branch address and the
+    // chosen pickup time - so staff can read the detail without a second column.
+    public bool IsPickup { get; set; }
 
     public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
 

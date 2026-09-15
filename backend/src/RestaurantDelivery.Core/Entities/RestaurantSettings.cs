@@ -76,6 +76,18 @@ public class RestaurantSettings
     // in the Instapay reveal block at checkout so they know where to send payment.
     public string? InstapayAccount { get; set; }
 
+    // Whether customers may choose "Store Pickup" instead of delivery at checkout. When
+    // false the option still renders (faded) so customers learn the service exists, but
+    // the server refuses a pickup order outright - see OrderService.CreateAsync. The
+    // client-side guard is a courtesy; this flag is the enforcement.
+    public bool IsPickupEnabled { get; set; }
+
+    // Free text like "15-20 mins", shown on the pickup card at checkout. Deliberately a
+    // string rather than min/max ints like the delivery estimate below: a pickup window
+    // is a single short phrase the admin writes once, not a computed range, and it wants
+    // to be able to say things like "ready when you arrive".
+    public string? PickupDuration { get; set; }
+
     // The flat delivery fee applied to every order today - named "Base" rather than just
     // "DeliveryFee" because the natural next step, if per-area pricing is ever needed, is a
     // separate DeliveryZones table (AreaName, Fee) that checkout looks up by the customer's

@@ -59,6 +59,8 @@ public class SettingsService : ISettingsService
         settings.VisaFawryUrl = request.VisaFawryUrl;
         settings.IsInstapayEnabled = request.IsInstapayEnabled;
         settings.InstapayAccount = request.InstapayAccount;
+        settings.IsPickupEnabled = request.IsPickupEnabled;
+        settings.PickupDuration = OptionalText.NullIfBlank(request.PickupDuration);
         settings.BaseDeliveryFee = request.BaseDeliveryFee;
         settings.EstimatedDeliveryMinMinutes = request.EstimatedDeliveryMinMinutes;
         settings.EstimatedDeliveryMaxMinutes = request.EstimatedDeliveryMaxMinutes;
@@ -119,6 +121,8 @@ public class SettingsService : ISettingsService
         VisaFawryUrl = settings.VisaFawryUrl,
         IsInstapayEnabled = settings.IsInstapayEnabled,
         InstapayAccount = settings.InstapayAccount,
+        IsPickupEnabled = settings.IsPickupEnabled,
+        PickupDuration = settings.PickupDuration,
         BaseDeliveryFee = settings.BaseDeliveryFee,
         EstimatedDeliveryMinMinutes = settings.EstimatedDeliveryMinMinutes,
         EstimatedDeliveryMaxMinutes = settings.EstimatedDeliveryMaxMinutes,

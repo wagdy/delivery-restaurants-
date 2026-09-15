@@ -64,6 +64,11 @@ public class UpdateRestaurantSettingsRequest : IValidatableObject
     [MaxLength(200)]
     public string? InstapayAccount { get; set; }
 
+    public bool IsPickupEnabled { get; set; }
+
+    [MaxLength(100)]
+    public string? PickupDuration { get; set; }
+
     [Range(0, double.MaxValue, ErrorMessage = "Delivery fee cannot be negative.")]
     public decimal BaseDeliveryFee { get; set; }
 

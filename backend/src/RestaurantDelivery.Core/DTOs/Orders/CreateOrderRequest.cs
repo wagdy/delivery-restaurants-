@@ -30,6 +30,12 @@ public class CreateOrderRequest
     [MaxLength(50)]
     public string? PromoCodeText { get; set; }
 
+    // Store pickup instead of delivery. Re-validated server-side against
+    // RestaurantSettings.IsPickupEnabled (see OrderService.CreateAsync) rather than
+    // trusted: this endpoint takes guest orders with no token at all, so an unchecked
+    // flag would be a way to skip the delivery charge on a real delivery.
+    public bool IsPickup { get; set; }
+
     // Honored ONLY for staff-created orders (see OrderService.CreateAsync) - the admin
     // "Create Order" screen sets a per-order fee for pickups and out-of-range addresses.
     // A customer's own checkout has this ignored entirely in favour of
