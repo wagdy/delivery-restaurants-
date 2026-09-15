@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/services/auth.service';
 import { AuthShellComponent } from '../auth-shell/auth-shell.component';
+import { EGYPT_MOBILE_PATTERN, normalizeEgyptMobile } from '../../../shared/utils/validation-patterns.util';
 
 // A two-step OTP reset flow reached from AuthComponent's Login tab. Step 1 requests a
 // WhatsApp code for a phone number; Step 2 verifies it and sets a new password. Advancing
@@ -34,12 +35,11 @@ import { AuthShellComponent } from '../auth-shell/auth-shell.component';
   styleUrl: './forgot-password.component.scss'
 })
 export class ForgotPasswordComponent {
-  // Matches AuthComponent's own PHONE_PATTERN (and the backend's [RegularExpression] on
-  // RegisterRequest.cs) - this field never had it, so an obviously-malformed number only
-  // surfaced as a generic "failed to send the code" after a round trip. Fast client-side
-  // feedback only; ForgotPasswordAsync itself never reveals whether a number is registered.
-  static readonly PHONE_PATTERN = /^01[0125][0-9]{8}$/;
-
+  // The rule comes from shared/utils/validation-patterns.util.ts, which is also what the
+  // register and checkout forms use - this was the last form still carrying its own copy.
+  // The old spelling /^01[0125][0-9]{8}$/ matches exactly the same numbers, so no number
+  // that could request a code yesterday is turned away today. Fast client-side feedback
+  // only; ForgotPasswordAsync itself never reveals whether a number is registered.
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
@@ -58,8 +58,25 @@ export class ForgotPasswordComponent {
   readonly resetShake = signal(false);
 
   readonly requestForm = this.fb.nonNullable.group({
-    phone: ['', [Validators.required, Validators.pattern(ForgotPasswordComponent.PHONE_PATTERN)]]
+    phone: ['', [Validators.required, Validators.pattern(EGYPT_MOBILE_PATTERN)]]
   });
+
+  // Same treatment as the register and checkout forms: non-digits are stripped as they
+  // are typed, and a number pasted from a WhatsApp contact as "+20 101 234 5678" becomes
+  // 01012345678 instead of being refused. That matters more here than anywhere else -
+  // this is the WhatsApp reset flow, so the number a customer reaches for is very likely
+  // the one they just copied out of WhatsApp.
+  protected onPhoneInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const cleaned = normalizeEgyptMobile(input.value);
+
+    if (cleaned !== input.value) {
+      input.value = cleaned;
+      // Written back through the control, not just the DOM, so the form's validity and
+      // what is on screen never disagree.
+      this.requestForm.controls.phone.setValue(cleaned);
+    }
+  }
 
   readonly resetLoading = signal(false);
   readonly resetError = signal<string | null>(null);
