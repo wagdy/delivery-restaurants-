@@ -16,6 +16,7 @@ import { RoleService } from '../../../core/services/role.service';
 import { Role } from '../../../core/models/role.model';
 import { StaffAccount } from '../../../core/models/auth.model';
 import { RoleManagementDialogComponent } from '../role-management-dialog/role-management-dialog.component';
+import { NAME_PATTERN } from '../../../shared/utils/validation-patterns.util';
 
 // The Role <mat-select> needs one bindable value, but the domain has two orthogonal
 // facts (UserRole + optional custom RoleId) - this sentinel represents "Captain Order",
@@ -42,10 +43,18 @@ const CAPTAIN_OPTION_VALUE = 'captain';
   styleUrl: './staff-accounts.component.scss'
 })
 export class StaffAccountsComponent {
-  // Kept identical to the [RegularExpression] patterns on CreateStaffUserRequest/
+  // Kept in step with the [RegularExpression] patterns on CreateStaffUserRequest/
   // UpdateStaffUserRequest (backend/.../DTOs/Auth/) — client-side validation is only a
   // fast-feedback convenience, the backend re-checks the same rule regardless.
-  static readonly NAME_PATTERN = /^[A-Za-z ]+$/;
+  //
+  // The name rule was /^[A-Za-z ]+$/ here, which stopped being true of those DTOs when
+  // they were widened to accept Arabic: this form was refusing to create a staff member
+  // named "محمد" that the server would have accepted, and no error the admin saw said
+  // the rule was the browser's rather than the system's.
+  //
+  // The phone rule stays digits-only rather than the customer-facing Egyptian mobile
+  // pattern, deliberately and to match the backend: staff records legitimately carry
+  // landlines and foreign numbers, which 010/011/012/015 would reject.
   static readonly PHONE_PATTERN = /^[0-9]+$/;
 
   readonly captainOptionValue = CAPTAIN_OPTION_VALUE;
@@ -72,7 +81,7 @@ export class StaffAccountsComponent {
   readonly form = this.fb.nonNullable.group({
     fullName: [
       '',
-      [Validators.required, Validators.maxLength(200), Validators.pattern(StaffAccountsComponent.NAME_PATTERN)]
+      [Validators.required, Validators.maxLength(200), Validators.pattern(NAME_PATTERN)]
     ],
     phoneNumber: ['', [Validators.required, Validators.pattern(StaffAccountsComponent.PHONE_PATTERN)]],
     password: ['', [Validators.required, Validators.minLength(8)]],
