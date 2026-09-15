@@ -25,19 +25,31 @@
               <mat-label>Email or Phone Number</mat-label>
               <mat-icon matPrefix>person_outline</mat-icon>
               <input matInput formControlName="identifier" autocomplete="username" />
-              @if (loginForm.controls.identifier.hasError('required') && loginForm.controls.identifier.touched) {
-                <mat-error>Email or phone number is required</mat-error>
-              }
             </mat-form-field>
+
+            <!-- Same .field-alert treatment as Register and checkout. No format rule on
+                 this field on purpose: it accepts either an email or a phone, and staff
+                 sign in here too, so anything stricter than "not empty" would lock out a
+                 credential that is genuinely valid. -->
+            @if (loginForm.controls.identifier.touched && loginForm.controls.identifier.invalid) {
+              <div class="field-alert" role="alert">
+                <mat-icon aria-hidden="true">warning</mat-icon>
+                <span>Please enter your email or phone number.</span>
+              </div>
+            }
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Password</mat-label>
               <mat-icon matPrefix>lock_outline</mat-icon>
               <input matInput type="password" formControlName="password" autocomplete="current-password" />
-              @if (loginForm.controls.password.hasError('required') && loginForm.controls.password.touched) {
-                <mat-error>Password is required</mat-error>
-              }
             </mat-form-field>
+
+            @if (loginForm.controls.password.touched && loginForm.controls.password.invalid) {
+              <div class="field-alert" role="alert">
+                <mat-icon aria-hidden="true">warning</mat-icon>
+                <span>Please enter your password.</span>
+              </div>
+            }
 
             <div class="login-options-row">
               <mat-checkbox formControlName="rememberMe">Remember me (تذكرني)</mat-checkbox>
@@ -45,10 +57,10 @@
             </div>
 
             @if (loginError()) {
-              <p class="error-text">
-                <mat-icon inline>error_outline</mat-icon>
-                {{ loginError() }}
-              </p>
+              <div class="field-alert standalone" role="alert">
+                <mat-icon aria-hidden="true">warning</mat-icon>
+                <span>{{ loginError() }}</span>
+              </div>
             }
           </mat-card-content>
 
@@ -81,37 +93,72 @@
               <mat-label>Full name</mat-label>
               <mat-icon matPrefix>person_outline</mat-icon>
               <input matInput formControlName="fullName" autocomplete="name" />
-              @if (registerForm.controls.fullName.hasError('required') && registerForm.controls.fullName.touched) {
-                <mat-error>Full name is required</mat-error>
-              }
-              @if (registerForm.controls.fullName.hasError('pattern') && registerForm.controls.fullName.touched) {
-                <mat-error>Please enter a valid name without numbers/symbols</mat-error>
-              }
             </mat-form-field>
+
+            @if (registerForm.controls.fullName.touched && registerForm.controls.fullName.invalid) {
+              <div class="field-alert" role="alert">
+                <mat-icon aria-hidden="true">warning</mat-icon>
+                <span>
+                  @if (registerForm.controls.fullName.hasError('required')) {
+                    Please enter your full name.
+                  } @else if (registerForm.controls.fullName.hasError('pattern')) {
+                    Letters and spaces only — Arabic or English. No numbers or symbols.
+                  } @else {
+                    That name is too long. Please keep it under 200 characters.
+                  }
+                </span>
+              </div>
+            }
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Phone number</mat-label>
               <mat-icon matPrefix>call</mat-icon>
-              <input matInput formControlName="phoneNumber" autocomplete="tel" />
-              @if (registerForm.controls.phoneNumber.hasError('required') && registerForm.controls.phoneNumber.touched) {
-                <mat-error>Phone number is required</mat-error>
-              }
-              @if (registerForm.controls.phoneNumber.hasError('pattern') && registerForm.controls.phoneNumber.touched) {
-                <mat-error>Please enter a valid 11-digit Egyptian mobile number starting with 01</mat-error>
-              }
+              <!-- inputmode numeric brings up the digit keypad on a phone; onPhoneInput
+                   strips anything non-numeric so a pasted "+20 10 1234 5678" is cleaned
+                   rather than rejected. Same handling as the checkout form. -->
+              <input
+                matInput
+                formControlName="phoneNumber"
+                inputmode="numeric"
+                autocomplete="tel"
+                maxlength="11"
+                placeholder="01xxxxxxxxx"
+                (input)="onPhoneInput($event)"
+              />
             </mat-form-field>
+
+            @if (registerForm.controls.phoneNumber.touched && registerForm.controls.phoneNumber.invalid) {
+              <div class="field-alert" role="alert">
+                <mat-icon aria-hidden="true">warning</mat-icon>
+                <span>
+                  @if (registerForm.controls.phoneNumber.hasError('required')) {
+                    Please enter your mobile number — you'll use it to sign in.
+                  } @else {
+                    That doesn't look like an Egyptian mobile number. It should be 11 digits
+                    starting with 010, 011, 012 or 015.
+                  }
+                </span>
+              </div>
+            }
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Password</mat-label>
               <mat-icon matPrefix>lock_outline</mat-icon>
               <input matInput type="password" formControlName="password" autocomplete="new-password" />
-              @if (registerForm.controls.password.hasError('required') && registerForm.controls.password.touched) {
-                <mat-error>Password is required</mat-error>
-              }
-              @if (registerForm.controls.password.hasError('minlength') && registerForm.controls.password.touched) {
-                <mat-error>Password must be at least 8 characters</mat-error>
-              }
             </mat-form-field>
+
+            @if (registerForm.controls.password.touched && registerForm.controls.password.invalid) {
+              <div class="field-alert" role="alert">
+                <mat-icon aria-hidden="true">warning</mat-icon>
+                <span>
+                  @if (registerForm.controls.password.hasError('required')) {
+                    Please choose a password.
+                  } @else {
+                    Your password must be at least 8 characters.
+                  }
+                </span>
+              </div>
+            }
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Delivery address (optional)</mat-label>
@@ -120,10 +167,10 @@
             </mat-form-field>
 
             @if (registerError()) {
-              <p class="error-text">
-                <mat-icon inline>error_outline</mat-icon>
-                {{ registerError() }}
-              </p>
+              <div class="field-alert standalone" role="alert">
+                <mat-icon aria-hidden="true">warning</mat-icon>
+                <span>{{ registerError() }}</span>
+              </div>
             }
           </mat-card-content>
 

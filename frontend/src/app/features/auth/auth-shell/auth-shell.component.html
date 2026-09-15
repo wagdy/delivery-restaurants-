@@ -1,13 +1,23 @@
 <div class="auth-shell">
   <div class="auth-form-side">
-    <a routerLink="/" class="auth-brand-link">
-      @if (settingsService.settings().logoUrl) {
-        <img [src]="settingsService.settings().logoUrl" [alt]="settingsService.settings().restaurantName ?? 'Home'" class="auth-brand-logo" />
-      } @else {
-        <mat-icon>restaurant</mat-icon>
-      }
-      <span>{{ settingsService.settings().restaurantName || 'Otantik' }}</span>
-    </a>
+    <!-- The logo has always linked home, but nothing said so - a customer who opened this
+         page and changed their mind had no visible way back. The explicit link beside it
+         is the discoverable one; both go to the same place. -->
+    <div class="auth-shell-header">
+      <a routerLink="/" class="auth-brand-link">
+        @if (settingsService.settings().logoUrl) {
+          <img [src]="settingsService.settings().logoUrl" [alt]="settingsService.settings().restaurantName ?? 'Home'" class="auth-brand-logo" />
+        } @else {
+          <mat-icon>restaurant</mat-icon>
+        }
+        <span>{{ settingsService.settings().restaurantName || 'Otantik' }}</span>
+      </a>
+
+      <a routerLink="/" class="auth-back-link">
+        <mat-icon aria-hidden="true">arrow_back</mat-icon>
+        <span>Back to menu</span>
+      </a>
+    </div>
 
     <div class="auth-form-content">
       <ng-content></ng-content>

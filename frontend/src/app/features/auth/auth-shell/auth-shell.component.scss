@@ -21,12 +21,51 @@
   background: #fffdfb;
 }
 
+.auth-shell-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+// Reads as a real control rather than a link buried in body text - this is the way out
+// for someone who decided not to sign in, so it should be as easy to spot as the form.
+.auth-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 7px 14px 7px 11px;
+  border: 1px solid color-mix(in srgb, var(--app-primary-color, #3f51b5) 32%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-primary-color, #3f51b5) 6%, transparent);
+  color: var(--app-primary-color, #3f51b5);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in srgb, var(--app-primary-color, #3f51b5) 14%, transparent);
+    transform: translateX(-2px);
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: inherit;
+  }
+}
+
 .auth-brand-link {
   display: flex;
   align-items: center;
   gap: 8px;
-  align-self: flex-start;
-  margin-bottom: 24px;
+  min-width: 0;
   padding: 6px 0;
   color: rgba(0, 0, 0, 0.8);
   text-decoration: none;
@@ -130,5 +169,19 @@
     color: rgba(255, 255, 255, 0.85);
     font-size: 1rem;
     line-height: 1.5;
+  }
+}
+
+// The rest of this component animates nothing, but the back link's hover nudge is motion
+// all the same - the auth card's own entrance and shake are already suppressed the same
+// way in auth.component.scss.
+@media (prefers-reduced-motion: reduce) {
+  .auth-back-link {
+    transition: none !important;
+
+    &:hover,
+    &:focus-visible {
+      transform: none !important;
+    }
   }
 }

@@ -1,3 +1,5 @@
+@use '../../shared/styles/field-alert';
+
 .checkout-page {
   max-width: 900px;
   margin: 0 auto;
@@ -213,33 +215,6 @@
   &:hover,
   &:focus-visible {
     background: color-mix(in srgb, var(--app-primary-color, #3f51b5) 12%, transparent);
-  }
-}
-
-// Validation messages deliberately sit outside mat-form-field rather than in <mat-error>:
-// Material renders those at 75% size in the field's subscript, which customers were
-// missing entirely. Pulled up by 14px to sit in the empty subscript row the outline
-// appearance already reserves, so adding one doesn't shift the rest of the form.
-.field-alert {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin: -14px 0 14px;
-  padding: 10px 12px;
-  border: 1px solid #f3b9b5;
-  border-radius: 10px;
-  background: #fdecea;
-  color: #a1241c;
-  font-size: 0.85rem;
-  font-weight: 600;
-  line-height: 1.45;
-
-  mat-icon {
-    flex: 0 0 auto;
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
-    color: #d32f2f;
   }
 }
 

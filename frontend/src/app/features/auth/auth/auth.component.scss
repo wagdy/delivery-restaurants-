@@ -1,3 +1,5 @@
+@use '../../../shared/styles/field-alert';
+
 .auth-card {
   width: 100%;
   max-width: 420px;
@@ -64,29 +66,19 @@
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--app-primary-color, #3f51b5) 55%, transparent);
 
+  // The glow is cast in the brand colour, so it survived the button going grey and left
+  // a coloured halo under a disabled control - the same "looks clickable" problem the
+  // :not(:disabled) guards in styles.scss fix for the fill.
+  &:disabled {
+    box-shadow: none;
+  }
+
   &:hover:not(:disabled) {
     transform: translateY(-1px);
   }
 
   &:active:not(:disabled) {
     transform: scale(0.98);
-  }
-}
-
-.error-text {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--mat-sys-error, #b3261e);
-  font-size: 0.875rem;
-  margin: 4px 0 0;
-  animation: errorEnter 0.25s ease;
-
-  mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
   }
 }
 
@@ -105,17 +97,6 @@
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes errorEnter {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 

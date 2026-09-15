@@ -12,6 +12,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/services/auth.service';
 import { AuthShellComponent } from '../auth-shell/auth-shell.component';
+import {
+  EGYPT_MOBILE_PATTERN,
+  NAME_PATTERN,
+  normalizeEgyptMobile
+} from '../../../shared/utils/validation-patterns.util';
 
 // Unified customer-facing sign-in/sign-up page - replaces the old separate
 // LoginComponent (phone-only) and RegisterComponent at the same /login and /register
@@ -38,9 +43,11 @@ import { AuthShellComponent } from '../auth-shell/auth-shell.component';
   styleUrl: './auth.component.scss'
 })
 export class AuthComponent {
-  static readonly NAME_PATTERN = /^[a-zA-Z\u0600-\u06FF\s]+$/;
-  static readonly PHONE_PATTERN = /^01[0125][0-9]{8}$/;
-
+  // The name and phone rules were written out inline here as well as in the checkout
+  // form; both now come from shared/utils/validation-patterns.util.ts so the two cannot
+  // drift apart. The phone rule used to be spelled /^01[0125][0-9]{8}$/, which matches
+  // exactly the same numbers as the shared /^(010|011|012|015)\d{8}$/ - no account that
+  // could register yesterday is rejected today.
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
@@ -71,11 +78,26 @@ export class AuthComponent {
   readonly registerError = signal<string | null>(null);
 
   readonly registerForm = this.fb.nonNullable.group({
-    fullName: ['', [Validators.required, Validators.maxLength(200), Validators.pattern(AuthComponent.NAME_PATTERN)]],
-    phoneNumber: ['', [Validators.required, Validators.pattern(AuthComponent.PHONE_PATTERN)]],
+    fullName: ['', [Validators.required, Validators.maxLength(200), Validators.pattern(NAME_PATTERN)]],
+    phoneNumber: ['', [Validators.required, Validators.pattern(EGYPT_MOBILE_PATTERN)]],
     password: ['', [Validators.required, Validators.minLength(8)]],
     address: ['']
   });
+
+  // Same treatment as the checkout form: non-digits are stripped as they are typed and
+  // "+20 101 234 5678" pasted from a WhatsApp contact becomes 01012345678, rather than
+  // being reported as "not an Egyptian mobile" when it plainly is one.
+  protected onPhoneInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const cleaned = normalizeEgyptMobile(input.value);
+
+    if (cleaned !== input.value) {
+      input.value = cleaned;
+      // Written back through the control, not just the DOM, so the form's validity and
+      // what is on screen never disagree.
+      this.registerForm.controls.phoneNumber.setValue(cleaned);
+    }
+  }
 
   submitLogin(): void {
     if (this.loginForm.invalid) {

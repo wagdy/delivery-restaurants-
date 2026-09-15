@@ -18,6 +18,11 @@ import { CreateOrderRequest } from '../../core/models/order.model';
 import { PaymentMethod, ValidatePromoResponse } from '../../core/models/checkout.model';
 import { AddOnNamesPipe } from '../../shared/pipes/add-on-names.pipe';
 import { estimatedDeliveryLabel as formatDeliveryLabel } from '../../shared/utils/delivery-time.util';
+import {
+  EGYPT_MOBILE_PATTERN,
+  NAME_PATTERN,
+  normalizeEgyptMobile
+} from '../../shared/utils/validation-patterns.util';
 
 @Component({
   selector: 'app-checkout',
@@ -40,22 +45,6 @@ import { estimatedDeliveryLabel as formatDeliveryLabel } from '../../shared/util
   styleUrl: './checkout.component.scss'
 })
 export class CheckoutComponent {
-  // Arabic (؀-ۿ) as well as Latin letters. The old pattern was Latin-only,
-  // which rejected any customer who typed their name in Arabic - and because this form
-  // prefills the name from the signed-in profile, and registration has always ALLOWED
-  // Arabic, a customer registered as "محمد" had their own name filled in and then
-  // refused. Kept identical to CreateOrderRequest's [RegularExpression], which had the
-  // same Latin-only bug and was rejecting these orders server-side regardless of what
-  // the client did.
-  static readonly NAME_PATTERN = /^[a-zA-Z\u0600-\u06FF\s]+$/;
-
-  // Egyptian mobile numbers: 010/011/012/015 followed by 8 digits, 11 in total. Stricter
-  // than the backend's own ^[0-9]+$, deliberately - that rule is shared with the admin
-  // "Create Order" screen and the POS sync, which legitimately carry landlines and
-  // foreign numbers. This is the customer-facing form, where a typo means the delivery
-  // driver cannot call and the WhatsApp confirmation never arrives.
-  static readonly PHONE_PATTERN = /^(010|011|012|015)\d{8}$/;
-
   protected readonly cart = inject(CartService);
   protected readonly authService = inject(AuthService);
   protected readonly settingsService = inject(SettingsService);
@@ -85,11 +74,11 @@ export class CheckoutComponent {
   readonly form = this.fb.nonNullable.group({
     customerName: [
       this.authService.currentUser()?.fullName ?? '',
-      [Validators.required, Validators.maxLength(200), Validators.pattern(CheckoutComponent.NAME_PATTERN)]
+      [Validators.required, Validators.maxLength(200), Validators.pattern(NAME_PATTERN)]
     ],
     customerPhone: [
       this.authService.currentUser()?.phoneNumber ?? '',
-      [Validators.required, Validators.maxLength(30), Validators.pattern(CheckoutComponent.PHONE_PATTERN)]
+      [Validators.required, Validators.maxLength(30), Validators.pattern(EGYPT_MOBILE_PATTERN)]
     ],
     deliveryAddress: [
       this.authService.currentUser()?.address ?? '',
@@ -114,9 +103,9 @@ export class CheckoutComponent {
 
     return (
       !!user.fullName?.trim() &&
-      CheckoutComponent.NAME_PATTERN.test(user.fullName) &&
+      NAME_PATTERN.test(user.fullName) &&
       !!user.phoneNumber?.trim() &&
-      CheckoutComponent.PHONE_PATTERN.test(user.phoneNumber)
+      EGYPT_MOBILE_PATTERN.test(user.phoneNumber)
     );
   });
 
@@ -132,7 +121,7 @@ export class CheckoutComponent {
   // number; the pattern validator still enforces the 010/011/012/015 prefix.
   protected onPhoneInput(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const cleaned = CheckoutComponent.normalizePhone(input.value);
+    const cleaned = normalizeEgyptMobile(input.value);
 
     if (cleaned !== input.value) {
       input.value = cleaned;
@@ -142,23 +131,6 @@ export class CheckoutComponent {
     }
   }
 
-  // Digits only, with the international form folded back to the local one. Numbers copied
-  // out of a WhatsApp contact arrive as "+20 101 234 5678" or "00201012345678", which is
-  // the same number as 01012345678 - rejecting it as "not an Egyptian mobile" would be
-  // both wrong and baffling. Only an exactly-12-digit 20-prefixed string is treated this
-  // way, so a customer typing their number one digit at a time never trips it.
-  private static normalizePhone(raw: string): string {
-    let digits = raw.replace(/\D/g, '');
-
-    if (digits.startsWith('00')) {
-      digits = digits.slice(2);
-    }
-    if (digits.length === 12 && digits.startsWith('20')) {
-      digits = `0${digits.slice(2)}`;
-    }
-
-    return digits.slice(0, 11);
-  }
 
   // Collapsed by default so the form doesn't look longer than it needs to for the
   // common case of an address that's already complete on its own.

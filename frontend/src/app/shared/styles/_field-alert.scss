@@ -1,0 +1,38 @@
+// High-visibility validation message, shared by the checkout and auth forms.
+//
+// Deliberately sits outside mat-form-field rather than inside <mat-error>: Material
+// renders those at 75% size in the field's subscript, which customers were missing
+// entirely. Pulled up by 14px to sit in the empty subscript row the outline appearance
+// already reserves, so showing one doesn't shift the rest of the form.
+//
+// @use'd by each component that needs it rather than living in global styles.scss, so it
+// stays inside component style encapsulation and off the initial CSS payload.
+.field-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: -14px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #f3b9b5;
+  border-radius: 10px;
+  background: #fdecea;
+  color: #a1241c;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.45;
+
+  mat-icon {
+    flex: 0 0 auto;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: #d32f2f;
+  }
+
+  // For an alert that doesn't follow a mat-form-field - a rejected sign-in, a failed
+  // order - there is no reserved subscript row above it to occupy, so the negative
+  // top margin would pull it into the element before it.
+  &.standalone {
+    margin-top: 4px;
+  }
+}

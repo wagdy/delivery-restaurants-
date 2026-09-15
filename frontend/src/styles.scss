@@ -111,18 +111,28 @@ body {
   height: auto;
 }
 
-.mat-mdc-unelevated-button.mat-primary,
-.mat-mdc-raised-button.mat-primary,
-.mat-mdc-fab.mat-primary,
-.mat-mdc-mini-fab.mat-primary {
+// The :not() guards matter. Without them this !important paint also covered DISABLED
+// buttons, so every disabled primary/accent button in the app - "Place order" on an
+// incomplete checkout, "Create account" on an empty register form - rendered in full
+// brand colour and looked perfectly clickable. Clicking did nothing, and on a form where
+// no field had been touched yet there were no validation messages either, so there was
+// nothing on screen explaining why. Exempting them here rather than hardcoding a grey
+// lets Material's own disabled tokens apply, which stay in step with the theme.
+//
+// Both states are covered because not every Material button is a <button>: the class is
+// what an <a mat-flat-button> gets, which cannot match :disabled.
+.mat-mdc-unelevated-button.mat-primary:not(:disabled):not(.mat-mdc-button-disabled),
+.mat-mdc-raised-button.mat-primary:not(:disabled):not(.mat-mdc-button-disabled),
+.mat-mdc-fab.mat-primary:not(:disabled):not(.mat-mdc-button-disabled),
+.mat-mdc-mini-fab.mat-primary:not(:disabled):not(.mat-mdc-button-disabled) {
   background-color: var(--app-primary-color) !important;
   color: #fff !important;
 }
 
-.mat-mdc-unelevated-button.mat-accent,
-.mat-mdc-raised-button.mat-accent,
-.mat-mdc-fab.mat-accent,
-.mat-mdc-mini-fab.mat-accent {
+.mat-mdc-unelevated-button.mat-accent:not(:disabled):not(.mat-mdc-button-disabled),
+.mat-mdc-raised-button.mat-accent:not(:disabled):not(.mat-mdc-button-disabled),
+.mat-mdc-fab.mat-accent:not(:disabled):not(.mat-mdc-button-disabled),
+.mat-mdc-mini-fab.mat-accent:not(:disabled):not(.mat-mdc-button-disabled) {
   background-color: var(--app-accent-color) !important;
   color: #fff !important;
 }

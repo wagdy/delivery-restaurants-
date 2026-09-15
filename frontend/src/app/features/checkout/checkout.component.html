@@ -178,7 +178,10 @@
             </div>
 
             @if (errorMessage()) {
-              <p class="error-text">{{ errorMessage() }}</p>
+              <div class="field-alert standalone" role="alert">
+                <mat-icon aria-hidden="true">warning</mat-icon>
+                <span>{{ errorMessage() }}</span>
+              </div>
             }
           </mat-card-content>
 
