@@ -97,6 +97,7 @@ public class MenuItemService : IMenuItemService
         var item = new MenuItem
         {
             Name = request.Name,
+            NameAr = OptionalText.NullIfBlank(request.NameAr),
             Description = request.Description,
             Price = request.Price,
             Category = request.Category,
@@ -134,6 +135,7 @@ public class MenuItemService : IMenuItemService
         }
 
         item.Name = request.Name;
+        item.NameAr = OptionalText.NullIfBlank(request.NameAr);
         item.Description = request.Description;
         item.Price = request.Price;
         item.Category = request.Category;
@@ -225,6 +227,7 @@ public class MenuItemService : IMenuItemService
     {
         Id = item.Id,
         Name = item.Name,
+        NameAr = item.NameAr,
         Description = item.Description,
         Price = item.Price,
         Category = item.Category,
@@ -233,7 +236,17 @@ public class MenuItemService : IMenuItemService
         ImageUrl = item.ImageUrl,
         IsAvailable = item.IsAvailable,
         AddOns = item.MenuItemAddOns
-            .Select(ma => new AddOnResponse { Id = ma.AddOn.Id, Name = ma.AddOn.Name, Price = ma.AddOn.Price })
+            .Select(ma => new AddOnResponse
+            {
+                Id = ma.AddOn.Id,
+                Name = ma.AddOn.Name,
+                NameAr = ma.AddOn.NameAr,
+                Price = ma.AddOn.Price
+            })
+            // Ordered by the English name in both languages, deliberately: a stable,
+            // predictable order beats one that reshuffles when the customer toggles
+            // language, and add-on lists are short enough that alphabetical-in-Arabic
+            // buys nothing.
             .OrderBy(a => a.Name)
             .ToList()
     };

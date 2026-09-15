@@ -49,7 +49,13 @@ public class CategoryService : ICategoryService
         var existingCategories = await _repository.GetAllOrderedAsync();
         var nextDisplayOrder = existingCategories.Count == 0 ? 0 : existingCategories[^1].DisplayOrder + 1;
 
-        var category = new Category { Name = name, DisplayOrder = nextDisplayOrder, ImageUrl = request.ImageUrl };
+        var category = new Category
+        {
+            Name = name,
+            NameAr = OptionalText.NullIfBlank(request.NameAr),
+            DisplayOrder = nextDisplayOrder,
+            ImageUrl = request.ImageUrl
+        };
         await _repository.AddAsync(category);
         await _repository.SaveChangesAsync();
         InvalidateCategoryCaches();
@@ -78,6 +84,11 @@ public class CategoryService : ICategoryService
             await _repository.RenameMenuItemsCategoryAsync(category.Name, name);
             category.Name = name;
         }
+
+        // No cascade needed for the Arabic name: MenuItem.Category stores the English
+        // name as its free-text link (hence RenameMenuItemsCategoryAsync above), and
+        // nothing anywhere keys off NameAr.
+        category.NameAr = OptionalText.NullIfBlank(request.NameAr);
 
         if (updateImage)
         {
@@ -149,6 +160,7 @@ public class CategoryService : ICategoryService
     {
         Id = category.Id,
         Name = category.Name,
+        NameAr = category.NameAr,
         DisplayOrder = category.DisplayOrder,
         ImageUrl = category.ImageUrl
     };

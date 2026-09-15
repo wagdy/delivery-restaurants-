@@ -40,7 +40,13 @@ public class SubCategoryService : ISubCategoryService
         var existingInCategory = await _repository.GetByCategoryIdOrderedAsync(request.CategoryId);
         var nextDisplayOrder = existingInCategory.Count == 0 ? 0 : existingInCategory[^1].DisplayOrder + 1;
 
-        var subCategory = new SubCategory { Name = name, CategoryId = request.CategoryId, DisplayOrder = nextDisplayOrder };
+        var subCategory = new SubCategory
+        {
+            Name = name,
+            NameAr = OptionalText.NullIfBlank(request.NameAr),
+            CategoryId = request.CategoryId,
+            DisplayOrder = nextDisplayOrder
+        };
         await _repository.AddAsync(subCategory);
         await _repository.SaveChangesAsync();
 
@@ -70,6 +76,7 @@ public class SubCategoryService : ISubCategoryService
         }
 
         subCategory.Name = name;
+        subCategory.NameAr = OptionalText.NullIfBlank(request.NameAr);
         subCategory.CategoryId = request.CategoryId;
 
         await _repository.SaveChangesAsync();
@@ -132,6 +139,7 @@ public class SubCategoryService : ISubCategoryService
     {
         Id = subCategory.Id,
         Name = subCategory.Name,
+        NameAr = subCategory.NameAr,
         DisplayOrder = subCategory.DisplayOrder,
         CategoryId = subCategory.CategoryId
     };

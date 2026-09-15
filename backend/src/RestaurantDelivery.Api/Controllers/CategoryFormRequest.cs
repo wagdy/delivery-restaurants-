@@ -11,6 +11,12 @@ public class CategoryFormRequest
     [Required, MaxLength(100)]
     public string Name { get; set; } = string.Empty;
 
+    // Optional Arabic display name, mirroring CategoryRequest.NameAr. Blank-but-present
+    // is normalised to null in CategoryService - a multipart form always sends the field,
+    // empty string and all, so it cannot simply be omitted the way a JSON body can.
+    [MaxLength(100)]
+    public string? NameAr { get; set; }
+
     // A newly-selected file to upload. Null means "leave the existing image as-is" on
     // update, or "no image" on create - there's no separate action to clear an image
     // once set.

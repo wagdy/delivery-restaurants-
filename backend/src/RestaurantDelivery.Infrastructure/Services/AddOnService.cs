@@ -29,7 +29,7 @@ public class AddOnService : IAddOnService
             return ServiceResult<AddOnResponse>.Failure("An add-on with this name already exists.");
         }
 
-        var addOn = new AddOn { Name = name, Price = request.Price };
+        var addOn = new AddOn { Name = name, NameAr = OptionalText.NullIfBlank(request.NameAr), Price = request.Price };
         await _repository.AddAsync(addOn);
         await _repository.SaveChangesAsync();
 
@@ -53,6 +53,7 @@ public class AddOnService : IAddOnService
         }
 
         addOn.Name = name;
+        addOn.NameAr = OptionalText.NullIfBlank(request.NameAr);
         addOn.Price = request.Price;
 
         await _repository.SaveChangesAsync();
@@ -85,6 +86,7 @@ public class AddOnService : IAddOnService
     {
         Id = addOn.Id,
         Name = addOn.Name,
+        NameAr = addOn.NameAr,
         Price = addOn.Price
     };
 }

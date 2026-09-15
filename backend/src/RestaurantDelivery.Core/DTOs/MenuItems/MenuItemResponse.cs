@@ -6,6 +6,9 @@ public class MenuItemResponse
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
+
+    // Null when no Arabic name has been entered - the client falls back to Name.
+    public string? NameAr { get; set; }
     public string? Description { get; set; }
     public decimal Price { get; set; }
     public string Category { get; set; } = string.Empty;

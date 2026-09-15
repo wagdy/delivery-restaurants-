@@ -50,7 +50,7 @@ public class CategoriesController : ControllerBase
             imageUrl = $"{Request.Scheme}://{Request.Host}{uploadResult.RelativePath}";
         }
 
-        var result = await _service.CreateAsync(new CategoryRequest { Name = form.Name, ImageUrl = imageUrl });
+        var result = await _service.CreateAsync(new CategoryRequest { Name = form.Name, NameAr = form.NameAr, ImageUrl = imageUrl });
         if (!result.Succeeded)
         {
             return BadRequest(new { errors = result.Errors });
@@ -91,7 +91,7 @@ public class CategoriesController : ControllerBase
             imageUrl = $"{Request.Scheme}://{Request.Host}{uploadResult.RelativePath}";
         }
 
-        var result = await _service.UpdateAsync(id, new CategoryRequest { Name = form.Name, ImageUrl = imageUrl }, updateImage);
+        var result = await _service.UpdateAsync(id, new CategoryRequest { Name = form.Name, NameAr = form.NameAr, ImageUrl = imageUrl }, updateImage);
         if (!result.Succeeded)
         {
             var message = result.Errors.FirstOrDefault() ?? string.Empty;
