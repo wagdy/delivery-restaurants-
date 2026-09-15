@@ -4,9 +4,15 @@
       <mat-icon class="success-icon">check_circle</mat-icon>
       <h1>Order placed!</h1>
       <p>Thanks{{ o.userId ? '' : ', ' + o.customerName }} — your order has been received.</p>
+      <!-- A pickup order has no delivery ETA, and telling the customer to expect one
+           after they chose to collect would contradict the choice they just made. -->
       <div class="delivery-time-banner">
-        <mat-icon>schedule</mat-icon>
-        Estimated delivery: {{ estimatedDeliveryLabel() }}
+        <mat-icon>{{ o.isPickup ? 'storefront' : 'schedule' }}</mat-icon>
+        @if (o.isPickup) {
+          Ready for pickup in: {{ pickupDuration() ?? 'the time shown at checkout' }}
+        } @else {
+          Estimated delivery: {{ estimatedDeliveryLabel() }}
+        }
       </div>
     </div>
 
@@ -17,7 +23,7 @@
       </mat-card-header>
       <mat-card-content>
         <div class="section">
-          <h3>Delivering to</h3>
+          <h3>{{ o.isPickup ? 'Collection details' : 'Delivering to' }}</h3>
           <p>{{ o.customerName }}</p>
           <p>{{ o.customerPhone }}</p>
           <p>{{ o.deliveryAddress }}</p>

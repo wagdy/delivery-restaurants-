@@ -1,0 +1,130 @@
+// Split out of checkout.component.scss purely to stay inside Angular's per-stylesheet
+// budget (8kB error) - the main file was 27 bytes over once these were added. Both files
+// are listed in the component's styleUrls, so the cascade is unchanged; the budget is
+// measured per file, not per component.
+//
+// Everything here belongs to the Delivery / Store Pickup choice at the top of the
+// delivery-details step.
+
+// Delivery / Store Pickup segmented control. Two equal halves rather than a radio group
+// so each option can carry its own sub-line (the ETA, the pickup window) and still read
+// as one control.
+.fulfilment-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.fulfilment-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 10px;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: 14px;
+  background: #fff;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+
+  &:hover {
+    border-color: var(--app-primary-color, #3f51b5);
+    transform: translateY(-1px);
+  }
+
+  &.active {
+    border-color: var(--app-primary-color, #3f51b5);
+    background: color-mix(in srgb, var(--app-primary-color, #3f51b5) 7%, transparent);
+  }
+
+  // Faded, not hidden and not disabled: the customer should see that pickup exists and
+  // be able to click it, because the click is what explains why it is unavailable (see
+  // selectFulfilment). A disabled button would swallow the click and say nothing.
+  &.unavailable {
+    opacity: 0.55;
+
+    &:hover {
+      border-color: rgba(0, 0, 0, 0.12);
+      transform: none;
+    }
+  }
+}
+
+.fulfilment-emoji {
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.fulfilment-label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.85);
+
+  .fulfilment-option.active & {
+    color: var(--app-primary-color, #3f51b5);
+  }
+}
+
+.fulfilment-sub {
+  font-size: 0.72rem;
+  color: rgba(0, 0, 0, 0.55);
+  text-align: center;
+}
+
+// Replaces the address field in pickup mode - a read-only statement of where and when,
+// tinted from the admin's own palette like the contact summary below it.
+.pickup-card {
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  border: 1px solid color-mix(in srgb, var(--app-primary-color, #3f51b5) 24%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--app-primary-color, #3f51b5) 5%, transparent);
+}
+
+.pickup-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.5);
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--app-primary-color, #3f51b5);
+  }
+}
+
+.pickup-address {
+  margin: 8px 0 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: rgba(0, 0, 0, 0.87);
+  overflow-wrap: anywhere;
+}
+
+.pickup-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.65);
+
+  + .pickup-meta {
+    margin-top: 4px;
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: rgba(0, 0, 0, 0.4);
+  }
+}

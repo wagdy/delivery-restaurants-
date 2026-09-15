@@ -89,6 +89,10 @@ export class SiteSettingsComponent {
     tabTitle: ['', [Validators.maxLength(100)]],
     taxPercentage: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
     baseDeliveryFee: [0, [Validators.required, Validators.min(0)]],
+    isPickupEnabled: [false],
+    // Required only while pickup is enabled - see updateConditionalValidators(), the same
+    // treatment visaFawryUrl and instapayAccount already get.
+    pickupDuration: ['', [Validators.maxLength(100)]],
     estimatedDeliveryMinMinutes: [30, [Validators.required, Validators.min(0)]],
     estimatedDeliveryMaxMinutes: [45, [Validators.required, Validators.min(0)]],
     managerWhatsApp1: ['', [Validators.maxLength(30)]],
@@ -107,6 +111,7 @@ export class SiteSettingsComponent {
     // the mat-error appears/disappears the instant an admin flips the switch.
     this.form.controls.isVisaEnabled.valueChanges.subscribe(() => this.updateConditionalValidators());
     this.form.controls.isInstapayEnabled.valueChanges.subscribe(() => this.updateConditionalValidators());
+    this.form.controls.isPickupEnabled.valueChanges.subscribe(() => this.updateConditionalValidators());
 
     this.settingsService.load().subscribe({
       next: (settings) => {
@@ -137,6 +142,8 @@ export class SiteSettingsComponent {
           isVisaEnabled: settings.isVisaEnabled,
           visaFawryUrl: settings.visaFawryUrl ?? '',
           isInstapayEnabled: settings.isInstapayEnabled,
+          isPickupEnabled: settings.isPickupEnabled,
+          pickupDuration: settings.pickupDuration ?? '',
           instapayAccount: settings.instapayAccount ?? ''
         });
         this.updateConditionalValidators();
@@ -181,6 +188,17 @@ export class SiteSettingsComponent {
       instapayAccount.clearValidators();
     }
     instapayAccount.updateValueAndValidity({ emitEvent: false });
+
+    // A pickup window is what the customer plans their trip around, so it is required
+    // the moment pickup goes live - switching the service on without one would show a
+    // pickup card with no answer to "when will it be ready?".
+    const pickupDuration = this.form.controls.pickupDuration;
+    if (this.form.controls.isPickupEnabled.value) {
+      pickupDuration.setValidators([Validators.required, Validators.maxLength(100)]);
+    } else {
+      pickupDuration.setValidators([Validators.maxLength(100)]);
+    }
+    pickupDuration.updateValueAndValidity({ emitEvent: false });
   }
 
   // Shared by every image upload below - returns an error message, or null if the file
@@ -369,6 +387,8 @@ export class SiteSettingsComponent {
         isVisaEnabled: raw.isVisaEnabled,
         visaFawryUrl: raw.visaFawryUrl || null,
         isInstapayEnabled: raw.isInstapayEnabled,
+        isPickupEnabled: raw.isPickupEnabled,
+        pickupDuration: raw.pickupDuration.trim() || null,
         instapayAccount: raw.instapayAccount || null
       })
       .subscribe({

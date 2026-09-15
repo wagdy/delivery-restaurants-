@@ -45,6 +45,11 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
   visaFawryUrl: null,
   isInstapayEnabled: false,
   instapayAccount: null,
+  // Off until an admin turns it on. This fallback is what renders if the settings call
+  // fails, and defaulting pickup to available would offer a service the branch may not
+  // run - the server would then refuse the order after the customer had committed to it.
+  isPickupEnabled: false,
+  pickupDuration: null,
   baseDeliveryFee: 4.99,
   estimatedDeliveryMinMinutes: 30,
   estimatedDeliveryMaxMinutes: 45,

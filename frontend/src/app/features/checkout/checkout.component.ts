@@ -9,6 +9,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { CartService } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
 import { OrderService } from '../../core/services/order.service';
@@ -26,6 +28,11 @@ import {
 import { LocalNamePipe } from '../../shared/pipes/local-name.pipe';
 import { LanguageService } from '../../core/services/language.service';
 
+// Delivery or collect-in-store. Kept as a string union rather than a boolean so the
+// template reads as what it is and a third mode (curbside, dine-in) is an addition
+// rather than a rewrite.
+export type Fulfilment = 'delivery' | 'pickup';
+
 @Component({
   selector: 'app-checkout',
   standalone: true,
@@ -41,11 +48,14 @@ import { LanguageService } from '../../core/services/language.service';
     MatButtonModule,
     MatProgressSpinnerModule,
     MatRadioModule,
-    MatIconModule
-  ,
-    LocalNamePipe],
+    MatIconModule,
+    MatSelectModule,
+    LocalNamePipe
+  ],
   templateUrl: './checkout.component.html',
-  styleUrl: './checkout.component.scss'
+  // Two stylesheets, not one, to stay inside the per-file style budget - see the header
+  // comment in checkout-fulfilment.component.scss.
+  styleUrls: ['./checkout.component.scss', './checkout-fulfilment.component.scss']
 })
 export class CheckoutComponent {
   protected readonly cart = inject(CartService);
@@ -56,6 +66,7 @@ export class CheckoutComponent {
   private readonly checkoutService = inject(CheckoutService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
+  private readonly snackBar = inject(MatSnackBar);
 
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -91,8 +102,107 @@ export class CheckoutComponent {
     // Optional apartment/floor/landmark detail - merged into deliveryAddress on submit
     // (see placeOrder()) rather than sent as its own field, since the backend's
     // CreateOrderRequest has just the one free-text address column.
-    deliveryNotes: ['', [Validators.maxLength(200)]]
+    deliveryNotes: ['', [Validators.maxLength(200)]],
+    // Pickup only. Folded into the same free-text address column on submit, for the same
+    // reason deliveryNotes is: there is no pickup-time field on the order, and a chosen
+    // time nobody in the branch can see would be worse than none at all.
+    pickupTime: ['asap', [Validators.maxLength(50)]]
   });
+
+  // ---------------------------------------------------------------------------
+  // Delivery vs store pickup
+  // ---------------------------------------------------------------------------
+
+  readonly fulfilment = signal<Fulfilment>('delivery');
+  readonly isPickup = computed(() => this.fulfilment() === 'pickup');
+
+  // Presentation only. The server re-checks this same setting when the order is posted
+  // (OrderService.CreateAsync), which is what actually prevents a pickup order while the
+  // branch has pickup switched off - this just stops the customer getting that far.
+  readonly pickupEnabled = computed(() => this.settingsService.settings().isPickupEnabled);
+
+  // The branch address the admin already maintains under Contact & Footer, rather than a
+  // second copy of it hardcoded here - one address to keep correct, not two.
+  readonly pickupLocation = computed(
+    () => this.settingsService.settings().address?.trim() || this.settingsService.settings().restaurantName?.trim() || null
+  );
+
+  readonly pickupDuration = computed(() => this.settingsService.settings().pickupDuration?.trim() || null);
+
+  // Shown inline next to the toggle when someone picks an unavailable option. Separate
+  // from the snackbar deliberately: a snackbar is transient and easy to miss if the tap
+  // scrolled the page, so the reason stays on screen until they choose something else.
+  readonly pickupUnavailableMessage = signal<string | null>(null);
+
+  // Rendered as-is; the customer-facing copy for this one is Arabic per the brief.
+  private static readonly PICKUP_UNAVAILABLE =
+    'عفواً، خدمة الاستلام من الفرع غير متاحة حالياً (Sorry, Store Pickup is currently unavailable.)';
+
+  // "As soon as possible" plus half-hour slots for the rest of the day. Built once at
+  // construction rather than as a computed: it is anchored to when the customer opened
+  // checkout, and a list that silently reshuffled underneath them mid-order would be
+  // worse than one that is a few minutes stale.
+  readonly pickupTimeOptions = CheckoutComponent.buildPickupTimes();
+
+  // The single entry point for changing mode - the template never sets fulfilment()
+  // directly, so the disabled-pickup interception below cannot be bypassed by a future
+  // caller forgetting to check.
+  protected selectFulfilment(next: Fulfilment): void {
+    if (next === 'pickup' && !this.pickupEnabled()) {
+      // Deliberately does NOT change fulfilment(): the form stays in delivery mode with
+      // its address validator intact, so an intercepted click can never leave the order
+      // in a half-configured state.
+      this.pickupUnavailableMessage.set(CheckoutComponent.PICKUP_UNAVAILABLE);
+      this.snackBar.open(CheckoutComponent.PICKUP_UNAVAILABLE, 'حسناً', { duration: 6000 });
+      return;
+    }
+
+    this.pickupUnavailableMessage.set(null);
+    this.fulfilment.set(next);
+    this.applyFulfilmentValidators();
+  }
+
+  // The address is required to deliver to and meaningless to collect from, so its
+  // validators move with the mode rather than being a permanent fixture. Cleared rather
+  // than disabled: a disabled control drops out of getRawValue()'s type in a way that
+  // would make placeOrder() read undefined, and the value is still wanted if the
+  // customer switches back to delivery.
+  private applyFulfilmentValidators(): void {
+    const address = this.form.controls.deliveryAddress;
+
+    if (this.isPickup()) {
+      address.clearValidators();
+    } else {
+      address.setValidators([Validators.required, Validators.maxLength(500)]);
+    }
+
+    // The address field is hidden in pickup mode, so any error it was showing has to go
+    // with it - otherwise switching to pickup leaves a red "address is required" alert
+    // pointing at a field that is no longer on screen.
+    address.markAsUntouched();
+    address.updateValueAndValidity();
+  }
+
+  private static buildPickupTimes(): { value: string; label: string }[] {
+    const options = [{ value: 'asap', label: 'As soon as possible' }];
+    const slot = new Date();
+
+    // Start at the next half hour that is at least 20 minutes out - enough lead time for
+    // the kitchen, and rounded so the list reads as times rather than odd minutes.
+    slot.setMinutes(slot.getMinutes() + 20);
+    slot.setMinutes(slot.getMinutes() > 30 ? 60 : 30, 0, 0);
+
+    const endOfDay = new Date(slot);
+    endOfDay.setHours(23, 30, 0, 0);
+
+    while (slot <= endOfDay) {
+      const label = slot.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      options.push({ value: label, label });
+      slot.setMinutes(slot.getMinutes() + 30);
+    }
+
+    return options;
+  }
 
   // Whether the profile's stored name and phone actually satisfy the rules above. A
   // profile predating them - a name with a digit in it, a phone saved as +20... or a
@@ -179,6 +289,12 @@ export class CheckoutComponent {
     return Math.round(this.cart.subtotal() * (this.settingsService.settings().taxPercentage / 100) * 100) / 100;
   });
 
+  // Nothing is delivered on a pickup order, so nothing is charged for delivery. The
+  // server applies the same rule independently (OrderService.CreateAsync zeroes it) -
+  // this is what keeps the summary the customer reads agreeing with what they are
+  // actually charged.
+  readonly effectiveDeliveryFee = computed(() => (this.isPickup() ? 0 : this.cart.deliveryFee()));
+
   readonly discountAmount = computed(() => this.promoResult()?.discountAmount ?? 0);
   readonly deliveryDiscountAmount = computed(() => this.promoResult()?.deliveryDiscountAmount ?? 0);
 
@@ -187,7 +303,7 @@ export class CheckoutComponent {
     if (promo) {
       return promo.total;
     }
-    return this.cart.subtotal() + this.taxAmount() + this.cart.deliveryFee();
+    return this.cart.subtotal() + this.taxAmount() + this.effectiveDeliveryFee();
   });
 
   constructor() {
@@ -217,7 +333,7 @@ export class CheckoutComponent {
     this.checkoutService
       .validatePromo({
         codeText,
-        deliveryFee: this.cart.deliveryFee(),
+        deliveryFee: this.effectiveDeliveryFee(),
         items: this.cart.lines().map((l) => ({
           menuItemId: l.menuItem.id,
           quantity: l.quantity,
@@ -250,19 +366,34 @@ export class CheckoutComponent {
       return;
     }
 
+    this.submitOrder(this.buildAddressLine(), method);
+  }
+
+  // The backend has exactly one free-text address column, so both modes have to say what
+  // they need inside it - see CreateOrderRequest.cs. Truncated to that column's own
+  // [MaxLength(500)] in both branches, since each control's maxLength validates its own
+  // part and not the concatenation.
+  private buildAddressLine(): string {
+    const raw = this.form.getRawValue();
+
+    // On a pickup order this is not an address at all: it is the only place the branch
+    // will see WHICH branch and WHEN, because the order has no pickup-time field of its
+    // own. Prefixed so nobody reads it as somewhere to drive to.
+    if (this.isPickup()) {
+      const when = raw.pickupTime === 'asap' ? 'as soon as possible' : `at ${raw.pickupTime}`;
+      const where = this.pickupLocation() ?? 'the branch';
+      return `STORE PICKUP - ${where} - ready ${when}`.slice(0, 500);
+    }
+
+    const notes = raw.deliveryNotes.trim();
+    return (notes ? `${raw.deliveryAddress} (${notes})` : raw.deliveryAddress).slice(0, 500);
+  }
+
+  private submitOrder(deliveryAddress: string, method: PaymentMethod): void {
     this.submitting.set(true);
     this.errorMessage.set(null);
 
     const raw = this.form.getRawValue();
-    const notes = raw.deliveryNotes.trim();
-    // Folded into the one free-text address field the backend actually has (see
-    // CreateOrderRequest.cs) rather than sent separately - there's no DeliveryNotes
-    // column to send it to. Truncated to the backend's own [MaxLength(500)] so a long
-    // address plus notes can never fail order placement on a limit the customer never
-    // saw enforced on this combined string (each field's own maxLength validates the
-    // parts, not the concatenation).
-    const deliveryAddress = (notes ? `${raw.deliveryAddress} (${notes})` : raw.deliveryAddress).slice(0, 500);
-
     const request: CreateOrderRequest = {
       customerName: raw.customerName,
       customerPhone: raw.customerPhone,
@@ -274,7 +405,8 @@ export class CheckoutComponent {
       })),
       paymentMethod: method,
       promoCodeText: this.promoResult() ? this.promoCodeInput().trim() : null,
-      deliveryFee: this.cart.deliveryFee()
+      deliveryFee: this.effectiveDeliveryFee(),
+      isPickup: this.isPickup()
     };
 
     this.orderService.create(request).subscribe({

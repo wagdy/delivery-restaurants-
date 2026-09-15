@@ -21,4 +21,8 @@ export class OrderConfirmationComponent {
 
   readonly order = signal<Order | null>((history.state?.order as Order) ?? null);
   readonly estimatedDeliveryLabel = computed(() => formatDeliveryLabel(this.settingsService.settings()));
+
+  // The admin-set pickup window, shown in place of the delivery ETA on a pickup
+  // order - see the banner in this component's template.
+  readonly pickupDuration = computed(() => this.settingsService.settings().pickupDuration?.trim() || null);
 }

@@ -419,6 +419,38 @@
                 </div>
 
                 <div class="settings-subsection">
+                  <h3 class="subsection-title">Pickup Configuration</h3>
+                  <p class="field-hint">
+                    Lets customers collect their order from the branch instead of having it delivered. Pickup orders
+                    are never charged the delivery fee above. While this is off, customers still see the Store Pickup
+                    option at checkout but are told it is unavailable - so they learn the service exists without being
+                    able to order it.
+                  </p>
+
+                  <div class="payment-toggle-row">
+                    <div class="payment-toggle-label">
+                      <span class="field-label">Store pickup</span>
+                      <p class="field-hint">Customer collects from the branch address set under Contact &amp; Footer.</p>
+                    </div>
+                    <mat-slide-toggle formControlName="isPickupEnabled"></mat-slide-toggle>
+                  </div>
+
+                  @if (form.controls.isPickupEnabled.value) {
+                    <mat-form-field appearance="outline" class="full-width conditional-field">
+                      <mat-label>Expected pickup time</mat-label>
+                      <input matInput formControlName="pickupDuration" placeholder="e.g. 15-20 mins" />
+                      <mat-hint>Shown on the pickup card at checkout, exactly as written here.</mat-hint>
+                      @if (form.controls.pickupDuration.hasError('required') && form.controls.pickupDuration.touched) {
+                        <mat-error>A pickup time is required while pickup is enabled</mat-error>
+                      }
+                      @if (form.controls.pickupDuration.hasError('maxlength')) {
+                        <mat-error>Must be 100 characters or fewer</mat-error>
+                      }
+                    </mat-form-field>
+                  }
+                </div>
+
+                <div class="settings-subsection">
                   <h3 class="subsection-title">Manager WhatsApp Notifications (Optional)</h3>
                   <p class="field-hint">
                     Each number below gets a detailed WhatsApp alert - order items, subtotal, tax, delivery, and

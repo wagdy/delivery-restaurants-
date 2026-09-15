@@ -35,6 +35,50 @@
 
         <form [formGroup]="form" (ngSubmit)="placeOrder()">
           <mat-card-content>
+            <!-- Both options always render. Store Pickup stays visible and clickable even
+                 when the branch has it switched off, so customers learn the service exists
+                 - selectFulfilment() intercepts the click and leaves the form in delivery
+                 mode rather than the option being hidden or inert. -->
+            <div class="fulfilment-toggle" role="group" aria-label="How would you like your order?">
+              <button
+                type="button"
+                class="fulfilment-option"
+                [class.active]="!isPickup()"
+                [attr.aria-pressed]="!isPickup()"
+                (click)="selectFulfilment('delivery')"
+              >
+                <span class="fulfilment-emoji" aria-hidden="true">🛵</span>
+                <span class="fulfilment-label">Delivery</span>
+                <span class="fulfilment-sub">{{ estimatedDeliveryLabel() }}</span>
+              </button>
+
+              <button
+                type="button"
+                class="fulfilment-option"
+                [class.active]="isPickup()"
+                [class.unavailable]="!pickupEnabled()"
+                [attr.aria-pressed]="isPickup()"
+                [attr.aria-disabled]="!pickupEnabled()"
+                (click)="selectFulfilment('pickup')"
+              >
+                <span class="fulfilment-emoji" aria-hidden="true">🏪</span>
+                <span class="fulfilment-label">Store Pickup</span>
+                <span class="fulfilment-sub">
+                  {{ pickupEnabled() ? (pickupDuration() ?? 'Collect in branch') : 'Unavailable right now' }}
+                </span>
+              </button>
+            </div>
+
+            <!-- Stays on screen until the customer picks something else, unlike the
+                 snackbar that fires alongside it - a transient toast is easy to miss if
+                 the tap scrolled the page. -->
+            @if (pickupUnavailableMessage(); as message) {
+              <div class="field-alert standalone" role="alert">
+                <mat-icon aria-hidden="true">warning</mat-icon>
+                <span>{{ message }}</span>
+              </div>
+            }
+
             <!-- Signed in with a usable profile: nothing to re-type but the address.
                  Falls through to the full form when the stored name or phone doesn't pass
                  validation, so a customer is never shown an uneditable summary of the very
@@ -112,36 +156,66 @@
               }
             }
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Delivery address</mat-label>
-              <mat-icon matPrefix>location_on</mat-icon>
-              <input matInput formControlName="deliveryAddress" autocomplete="street-address" />
-            </mat-form-field>
-
-            @if (form.controls.deliveryAddress.touched && form.controls.deliveryAddress.invalid) {
-              <div class="field-alert" role="alert">
-                <mat-icon aria-hidden="true">warning</mat-icon>
-                <span>
-                  @if (form.controls.deliveryAddress.hasError('required')) {
-                    Please enter the street and area we're delivering to.
-                  } @else {
-                    That address is too long. Please keep it under 500 characters.
-                  }
-                </span>
+            @if (isPickup()) {
+              <div class="pickup-card">
+                <div class="pickup-card-head">
+                  <mat-icon aria-hidden="true">storefront</mat-icon>
+                  <span>Collect from</span>
+                </div>
+                <p class="pickup-address">{{ pickupLocation() ?? 'Our branch — we will confirm the address by phone.' }}</p>
+                @if (pickupDuration(); as duration) {
+                  <div class="pickup-meta">
+                    <mat-icon aria-hidden="true">schedule</mat-icon>
+                    <span>Usually ready in <strong>{{ duration }}</strong></span>
+                  </div>
+                }
+                <div class="pickup-meta">
+                  <mat-icon aria-hidden="true">local_shipping</mat-icon>
+                  <span>No delivery fee on pickup orders</span>
+                </div>
               </div>
-            }
 
-            @if (!showDeliveryNotes()) {
-              <button type="button" class="add-notes-toggle" (click)="showDeliveryNotes.set(true)">
-                <mat-icon>add</mat-icon>
-                Add apartment/floor/notes
-              </button>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Pickup time</mat-label>
+                <mat-icon matPrefix>schedule</mat-icon>
+                <mat-select formControlName="pickupTime">
+                  @for (option of pickupTimeOptions; track option.value) {
+                    <mat-option [value]="option.value">{{ option.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
             } @else {
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Apartment, floor, landmark (optional)</mat-label>
-                <mat-icon matPrefix>note_alt</mat-icon>
-                <input matInput formControlName="deliveryNotes" placeholder="e.g. Apt 4, 2nd floor, near the pharmacy" />
+                <mat-label>Delivery address</mat-label>
+                <mat-icon matPrefix>location_on</mat-icon>
+                <input matInput formControlName="deliveryAddress" autocomplete="street-address" />
               </mat-form-field>
+
+              @if (form.controls.deliveryAddress.touched && form.controls.deliveryAddress.invalid) {
+                <div class="field-alert" role="alert">
+                  <mat-icon aria-hidden="true">warning</mat-icon>
+                  <span>
+                    @if (form.controls.deliveryAddress.hasError('required')) {
+                      Please enter the street and area we're delivering to.
+                    } @else {
+                      That address is too long. Please keep it under 500 characters.
+                    }
+                  </span>
+                </div>
+              }
+
+              @if (!showDeliveryNotes()) {
+                <button type="button" class="add-notes-toggle" (click)="showDeliveryNotes.set(true)">
+                  <mat-icon>add</mat-icon>
+                  Add apartment/floor/notes
+                </button>
+              } @else {
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Apartment, floor, landmark (optional)</mat-label>
+                  <mat-icon matPrefix>note_alt</mat-icon>
+                  <input matInput formControlName="deliveryNotes" placeholder="e.g. Apt 4, 2nd floor, near the pharmacy" />
+                </mat-form-field>
+              }
             }
 
             <div class="payment-methods">
@@ -281,8 +355,8 @@
               </div>
             }
             <div class="totals-row">
-              <span>Delivery fee</span>
-              <span>L.E {{ cart.deliveryFee().toFixed(2) }}</span>
+              <span>{{ isPickup() ? 'Delivery fee (pickup)' : 'Delivery fee' }}</span>
+              <span>L.E {{ effectiveDeliveryFee().toFixed(2) }}</span>
             </div>
             @if (deliveryDiscountAmount() > 0) {
               <div class="totals-row discount-row">

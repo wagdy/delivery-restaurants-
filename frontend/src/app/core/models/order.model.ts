@@ -47,6 +47,9 @@ export interface Order {
   discountAmount: number;
   taxAmount: number;
   deliveryFee: number;
+  // Store pickup rather than delivery. Always accompanied by deliveryFee: 0 - the server
+  // zeroes it (see OrderService.CreateAsync) rather than trusting the client.
+  isPickup: boolean;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   subtotal: number;
@@ -79,6 +82,9 @@ export interface CreateOrderRequest {
   // value for the discount amount.
   promoCodeText?: string | null;
   deliveryFee: number;
+  // Store pickup instead of delivery. Re-checked server-side against the live
+  // isPickupEnabled setting, which is what actually enforces it.
+  isPickup?: boolean;
   // Set only by the admin "Create Order" screen when a registered customer was picked
   // via phone search - re-validated server-side, never trusted at face value either.
   customerId?: string | null;

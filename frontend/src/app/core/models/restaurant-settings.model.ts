@@ -37,6 +37,16 @@ export interface RestaurantSettings {
   // Free text (phone, email, or @username) shown to the customer at checkout.
   instapayAccount?: string | null;
 
+  // Whether "Store Pickup" is actually selectable at checkout. When false the option is
+  // still shown (faded) so customers learn the branch offers it at all, but choosing it
+  // is intercepted - see CheckoutComponent.selectFulfilment. The server enforces the same
+  // rule independently (OrderService.CreateAsync), so this flag is presentation only.
+  isPickupEnabled: boolean;
+
+  // Free text like "15-20 mins", shown on the pickup card at checkout. Null/blank simply
+  // omits the line rather than rendering an empty one.
+  pickupDuration?: string | null;
+
   // The flat delivery fee applied to every order - see CartService.deliveryFee and
   // AdminDashboardComponent's Create Order tab, both of which read this instead of a
   // hardcoded constant now.
