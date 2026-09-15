@@ -20,6 +20,8 @@ import { MenuItemDetailsDialogComponent } from './menu-item-details-dialog/menu-
 import { MyOrdersComponent } from '../my-orders/my-orders.component';
 import { LoyaltyRewardsComponent } from './loyalty-rewards/loyalty-rewards.component';
 import { iconForCategory } from '../../shared/utils/category-icon.util';
+import { LocalNamePipe, LocalizableName } from '../../shared/pipes/local-name.pipe';
+import { LanguageService } from '../../core/services/language.service';
 import { deriveActiveCategoryNames } from '../../shared/utils/active-categories.util';
 
 export type MenuViewMode = 'list' | 'grid';
@@ -48,6 +50,9 @@ export interface CategorySection {
 // One card in the category landing grid.
 export interface CategoryCard {
   name: string;
+  // Carried on the card itself so the landing grid can localize without a lookup;
+  // `name` stays the English identity the card's click handler selects by.
+  nameAr: string | null;
   imageUrl: string | null;
   itemCount: number;
 }
@@ -65,7 +70,8 @@ export interface CategoryCard {
     MatIconModule,
     MatProgressSpinnerModule,
     MyOrdersComponent,
-    LoyaltyRewardsComponent
+    LoyaltyRewardsComponent,
+    LocalNamePipe
   ],
   // OnPush: every piece of state this component renders is a signal, so Angular
   // can skip it entirely unless one of them actually changed. Without it, the 300+ card menu grid this app spends most of its render budget on
@@ -80,6 +86,7 @@ export class StorefrontComponent {
   private readonly menuItemService = inject(MenuItemService);
   private readonly categoryService = inject(CategoryService);
   private readonly subCategoryService = inject(SubCategoryService);
+  protected readonly languageService = inject(LanguageService);
   private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
@@ -128,13 +135,29 @@ export class StorefrontComponent {
     return counts;
   });
 
+  // Category names are identity strings all through this component - item.category ===
+  // category, the counts map's keys, selectedCategory() - so they stay English in every
+  // language. Only the rendered label changes, which needs the Category row behind the
+  // name; this is that lookup.
+  private readonly categoryByName = computed(
+    () => new Map(this.categoryDisplayOrder().map((c) => [c.name, c]))
+  );
+
+  // Returns something LocalNamePipe can render. A name with no matching Category row
+  // (an item tagged with a category the admin has since deleted) falls through as
+  // English-only rather than disappearing.
+  protected localizableCategory(name: string): LocalizableName {
+    return this.categoryByName().get(name) ?? { name };
+  }
+
   // The landing grid's own cards, in admin-configured order.
   readonly categoryCards = computed<CategoryCard[]>(() => {
-    const imageByName = new Map(this.categoryDisplayOrder().map((c) => [c.name, c.imageUrl]));
+    const byName = this.categoryByName();
     const counts = this.categoryTotalCounts();
     return this.categories().map((name) => ({
       name,
-      imageUrl: imageByName.get(name) ?? null,
+      nameAr: byName.get(name)?.nameAr ?? null,
+      imageUrl: byName.get(name)?.imageUrl ?? null,
       itemCount: counts.get(name) ?? 0
     }));
   });

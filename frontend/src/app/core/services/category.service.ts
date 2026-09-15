@@ -24,8 +24,11 @@ export class CategoryService {
   // every category unfiltered - admin screens (CategoryManagementDialog, menu item
   // forms, promo/campaign category pickers) need to see and manage empty categories
   // too, e.g. to add the first item to a newly-created one.
-  private readonly _activeCategoryNames = signal<string[]>([]);
-  readonly activeCategoryNames = this._activeCategoryNames.asReadonly();
+  // The Category rows themselves, not just their names: the sidebar renders these and
+  // needs nameAr to localize its labels. Name stays the identity the click handler
+  // selects by, so what this adds is the Arabic label, not a new key.
+  private readonly _activeCategories = signal<Category[]>([]);
+  readonly activeCategories = this._activeCategories.asReadonly();
   private activeCategoryNamesRequested = false;
 
   getAll(): Observable<Category[]> {
@@ -79,7 +82,11 @@ export class CategoryService {
     // to prevent.
     forkJoin([this.getAllShared(), this.menuItemService.getAvailable()]).subscribe(([categories, menuItems]) => {
       const ordered = [...categories].sort((a, b) => a.displayOrder - b.displayOrder);
-      this._activeCategoryNames.set(deriveActiveCategoryNames(ordered, menuItems));
+      // deriveActiveCategoryNames stays the single source of "which categories have
+      // items"; this maps its answer back onto the rows so the labels can localize
+      // without a second definition of active.
+      const activeNames = new Set(deriveActiveCategoryNames(ordered, menuItems));
+      this._activeCategories.set(ordered.filter((c) => activeNames.has(c.name)));
     });
   }
 

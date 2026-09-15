@@ -103,7 +103,7 @@
               }
               <div class="category-card-overlay"></div>
               <div class="category-card-content">
-                <span class="category-card-name">{{ card.name }}</span>
+                <span class="category-card-name">{{ card | localName: languageService.language() }}</span>
                 <span class="category-card-count">{{ card.itemCount }} item{{ card.itemCount === 1 ? '' : 's' }}</span>
               </div>
             </button>
@@ -131,7 +131,7 @@
               (click)="selectCategory(name)"
             >
               <mat-icon>{{ iconFor(name) }}</mat-icon>
-              <span class="category-chip-label">{{ name }}</span>
+              <span class="category-chip-label">{{ localizableCategory(name) | localName: languageService.language() }}</span>
               <span class="category-chip-count">{{ categoryTotalCounts().get(name) }}</span>
             </button>
           }
@@ -165,7 +165,7 @@
                 </div>
                 <mat-card-content>
                   <div class="card-header">
-                    <h3>{{ item.name }}</h3>
+                    <h3>{{ item | localName: languageService.language() }}</h3>
                     <span class="price">L.E {{ item.price.toFixed(2) }}</span>
                   </div>
                   @if (item.description) {
@@ -200,14 +200,14 @@
 
         <div class="menu-content">
           @if (selectedSection(); as section) {
-            <h2 class="menu-section-title">{{ section.category }}</h2>
+            <h2 class="menu-section-title">{{ localizableCategory(section.category) | localName: languageService.language() }}</h2>
 
             @if (section.ungroupedItems.length > 0) {
               <ng-container [ngTemplateOutlet]="itemsGrid" [ngTemplateOutletContext]="{ $implicit: section.ungroupedItems }"></ng-container>
             }
 
             @for (sub of section.subSections; track sub.subCategory.id) {
-              <h3 class="sub-category-headline">{{ sub.subCategory.name }}</h3>
+              <h3 class="sub-category-headline">{{ sub.subCategory | localName: languageService.language() }}</h3>
               <ng-container [ngTemplateOutlet]="itemsGrid" [ngTemplateOutletContext]="{ $implicit: sub.items }"></ng-container>
             }
           } @else {

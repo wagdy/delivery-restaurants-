@@ -23,6 +23,8 @@ import {
   NAME_PATTERN,
   normalizeEgyptMobile
 } from '../../shared/utils/validation-patterns.util';
+import { LocalNamePipe } from '../../shared/pipes/local-name.pipe';
+import { LanguageService } from '../../core/services/language.service';
 
 @Component({
   selector: 'app-checkout',
@@ -40,12 +42,14 @@ import {
     MatProgressSpinnerModule,
     MatRadioModule,
     MatIconModule
-  ],
+  ,
+    LocalNamePipe],
   templateUrl: './checkout.component.html',
   styleUrl: './checkout.component.scss'
 })
 export class CheckoutComponent {
   protected readonly cart = inject(CartService);
+  protected readonly languageService = inject(LanguageService);
   protected readonly authService = inject(AuthService);
   protected readonly settingsService = inject(SettingsService);
   private readonly orderService = inject(OrderService);

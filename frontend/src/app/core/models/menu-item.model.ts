@@ -3,6 +3,8 @@ import { AddOn } from './add-on.model';
 export interface MenuItem {
   id: number;
   name: string;
+  // Optional Arabic display name; null/blank falls back to `name` - see LocalNamePipe.
+  nameAr?: string | null;
   description?: string | null;
   price: number;
   category: string;
@@ -32,6 +34,7 @@ export interface BulkMenuItemImportResult {
 
 export interface MenuItemRequest {
   name: string;
+  nameAr?: string | null;
   description?: string | null;
   price: number;
   category: string;

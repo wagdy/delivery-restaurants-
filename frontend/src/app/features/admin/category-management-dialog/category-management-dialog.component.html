@@ -13,6 +13,20 @@
           placeholder="e.g. Desserts"
         />
       </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="add-field">
+        <mat-label>Arabic name (optional)</mat-label>
+        <!-- dir/lang on the field itself: the admin panel stays LTR, only this input
+             types and aligns right-to-left. -->
+        <input
+          matInput
+          dir="rtl"
+          lang="ar"
+          [ngModel]="newCategoryNameAr()"
+          (ngModelChange)="newCategoryNameAr.set($event)"
+          (keydown.enter)="addCategory()"
+          placeholder="مثال: الحلويات"
+        />
+      </mat-form-field>
       <button mat-flat-button color="primary" [disabled]="adding() || !newCategoryName().trim()" (click)="addCategory()">
         @if (adding()) {
           <mat-spinner diameter="18"></mat-spinner>
@@ -68,6 +82,18 @@
                     (keydown.escape)="cancelEdit()"
                   />
                 </mat-form-field>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="edit-field">
+                  <mat-label>Arabic name (optional)</mat-label>
+                  <input
+                    matInput
+                    dir="rtl"
+                    lang="ar"
+                    [ngModel]="editingNameAr()"
+                    (ngModelChange)="editingNameAr.set($event)"
+                    (keydown.enter)="saveEdit(category)"
+                    (keydown.escape)="cancelEdit()"
+                  />
+                </mat-form-field>
                 <div class="image-picker">
                   @if (editingImagePreview(); as preview) {
                     <img [src]="preview" alt="" class="image-thumb" />
@@ -115,6 +141,18 @@
                   (ngModelChange)="newSubCategoryName.set($event)"
                   (keydown.enter)="addSubCategory(category.id)"
                   placeholder="e.g. Hot Drinks"
+                />
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="add-field">
+                <mat-label>Arabic name (optional)</mat-label>
+                <input
+                  matInput
+                  dir="rtl"
+                  lang="ar"
+                  [ngModel]="newSubCategoryNameAr()"
+                  (ngModelChange)="newSubCategoryNameAr.set($event)"
+                  (keydown.enter)="addSubCategory(category.id)"
+                  placeholder="مثال: مشروبات ساخنة"
                 />
               </mat-form-field>
               <button
@@ -166,6 +204,18 @@
                           matInput
                           [ngModel]="editingSubCategoryName()"
                           (ngModelChange)="editingSubCategoryName.set($event)"
+                          (keydown.enter)="saveEditSubCategory(subCategory)"
+                          (keydown.escape)="cancelEditSubCategory()"
+                        />
+                      </mat-form-field>
+                      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="edit-field">
+                        <mat-label>Arabic name (optional)</mat-label>
+                        <input
+                          matInput
+                          dir="rtl"
+                          lang="ar"
+                          [ngModel]="editingSubCategoryNameAr()"
+                          (ngModelChange)="editingSubCategoryNameAr.set($event)"
                           (keydown.enter)="saveEditSubCategory(subCategory)"
                           (keydown.escape)="cancelEditSubCategory()"
                         />

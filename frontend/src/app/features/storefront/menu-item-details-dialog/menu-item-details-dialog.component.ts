@@ -6,6 +6,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { CartService } from '../../../core/services/cart.service';
 import { MenuItem } from '../../../core/models/menu-item.model';
 import { AddOn } from '../../../core/models/add-on.model';
+import { LocalNamePipe } from '../../../shared/pipes/local-name.pipe';
+import { LanguageService } from '../../../core/services/language.service';
 
 export interface MenuItemDetailsDialogData {
   menuItem: MenuItem;
@@ -14,7 +16,7 @@ export interface MenuItemDetailsDialogData {
 @Component({
   selector: 'app-menu-item-details-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule],
+  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule, LocalNamePipe],
   // OnPush: every piece of state this component renders is a signal, so Angular
   // can skip it entirely unless one of them actually changed. Without it, the item dialog
   // was re-checked on every unrelated async event anywhere in the app.
@@ -24,6 +26,7 @@ export interface MenuItemDetailsDialogData {
 })
 export class MenuItemDetailsDialogComponent {
   private readonly cart = inject(CartService);
+  protected readonly languageService = inject(LanguageService);
   private readonly ref = inject(MatDialogRef<MenuItemDetailsDialogComponent>);
   readonly data: MenuItemDetailsDialogData = inject(MAT_DIALOG_DATA);
 

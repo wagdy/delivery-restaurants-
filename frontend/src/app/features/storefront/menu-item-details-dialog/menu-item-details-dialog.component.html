@@ -6,7 +6,7 @@
        the add-ons list below gets. -->
   <header class="modal-header">
     <div class="modal-header-info">
-      <h2>{{ data.menuItem.name }}</h2>
+      <h2>{{ data.menuItem | localName: languageService.language() }}</h2>
       <span class="base-price">L.E {{ data.menuItem.price.toFixed(2) }}</span>
     </div>
     <button mat-icon-button class="modal-close" (click)="close()" aria-label="Close">
@@ -40,7 +40,7 @@
               <span class="addon-check" [class.checked]="isSelected(addOn)">
                 <mat-icon>check</mat-icon>
               </span>
-              <span class="addon-name">{{ addOn.name }}</span>
+              <span class="addon-name">{{ addOn | localName: languageService.language() }}</span>
               <span class="addon-price">{{ addOn.price > 0 ? '+L.E ' + addOn.price.toFixed(2) : 'Free' }}</span>
             </button>
           }

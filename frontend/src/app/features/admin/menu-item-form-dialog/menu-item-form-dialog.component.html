@@ -11,6 +11,14 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Name (Arabic) — optional</mat-label>
+      <!-- dir/lang on the input itself, not the page: the admin panel stays LTR, but
+           this one field should type and align right-to-left like the text it holds. -->
+      <input matInput formControlName="nameAr" dir="rtl" lang="ar" />
+      <mat-hint>Leave blank to show the English name to Arabic customers.</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
       <mat-label>Description</mat-label>
       <textarea matInput formControlName="description" rows="2"></textarea>
     </mat-form-field>

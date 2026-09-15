@@ -214,7 +214,7 @@
           @for (line of cart.lines(); track cart.keyFor(line)) {
             <div class="summary-line">
               <span>
-                {{ line.quantity }} × {{ line.menuItem.name }}
+                {{ line.quantity }} × {{ line.menuItem | localName: languageService.language() }}
                 @if (affectedMenuItemIds().has(line.menuItem.id)) {
                   <mat-icon class="discount-tag" inline>local_offer</mat-icon>
                 }

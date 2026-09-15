@@ -38,11 +38,13 @@ export class AddOnManagementDialogComponent {
   readonly addOns = signal<AddOn[]>([]);
 
   readonly newName = signal('');
+  readonly newNameAr = signal('');
   readonly newPrice = signal(0);
   readonly adding = signal(false);
 
   readonly editingId = signal<number | null>(null);
   readonly editingName = signal('');
+  readonly editingNameAr = signal('');
   readonly editingPrice = signal(0);
   readonly savingEdit = signal(false);
 
@@ -73,10 +75,11 @@ export class AddOnManagementDialogComponent {
     }
 
     this.adding.set(true);
-    this.addOnService.create({ name, price: this.newPrice() }).subscribe({
+    this.addOnService.create({ name, nameAr: this.newNameAr().trim() || null, price: this.newPrice() }).subscribe({
       next: () => {
         this.adding.set(false);
         this.newName.set('');
+        this.newNameAr.set('');
         this.newPrice.set(0);
         this.mutated = true;
         this.load();
@@ -93,12 +96,14 @@ export class AddOnManagementDialogComponent {
   startEdit(addOn: AddOn): void {
     this.editingId.set(addOn.id);
     this.editingName.set(addOn.name);
+    this.editingNameAr.set(addOn.nameAr ?? '');
     this.editingPrice.set(addOn.price);
   }
 
   cancelEdit(): void {
     this.editingId.set(null);
     this.editingName.set('');
+    this.editingNameAr.set('');
     this.editingPrice.set(0);
   }
 
@@ -111,7 +116,7 @@ export class AddOnManagementDialogComponent {
     }
 
     this.savingEdit.set(true);
-    this.addOnService.update(addOn.id, { name, price }).subscribe({
+    this.addOnService.update(addOn.id, { name, nameAr: this.editingNameAr().trim() || null, price }).subscribe({
       next: () => {
         this.savingEdit.set(false);
         this.mutated = true;

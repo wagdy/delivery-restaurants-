@@ -42,6 +42,7 @@ export class CategoryManagementDialogComponent implements OnDestroy {
   readonly loading = signal(true);
   readonly categories = signal<Category[]>([]);
   readonly newCategoryName = signal('');
+  readonly newCategoryNameAr = signal('');
   readonly newCategoryImageFile = signal<File | null>(null);
   // An object URL for the thumbnail preview - always a blob: URL, never the category's
   // real (http) imageUrl, since a brand-new category has no existing image to show.
@@ -49,6 +50,7 @@ export class CategoryManagementDialogComponent implements OnDestroy {
   readonly adding = signal(false);
   readonly editingId = signal<number | null>(null);
   readonly editingName = signal('');
+  readonly editingNameAr = signal('');
   readonly editingImageFile = signal<File | null>(null);
   // Starts as the category's existing (http) imageUrl; replaced with a blob: object URL
   // once the admin picks a new file. revokeEditPreviewIfBlob() below only ever revokes
@@ -63,9 +65,11 @@ export class CategoryManagementDialogComponent implements OnDestroy {
   readonly subCategoriesByCategory = signal<Map<number, SubCategory[]>>(new Map());
   readonly expandedCategoryId = signal<number | null>(null);
   readonly newSubCategoryName = signal('');
+  readonly newSubCategoryNameAr = signal('');
   readonly addingSubCategory = signal(false);
   readonly editingSubCategoryId = signal<number | null>(null);
   readonly editingSubCategoryName = signal('');
+  readonly editingSubCategoryNameAr = signal('');
   readonly savingSubCategoryEdit = signal(false);
   readonly reorderingSubCategories = signal(false);
 
@@ -126,10 +130,11 @@ export class CategoryManagementDialogComponent implements OnDestroy {
     }
 
     this.addingSubCategory.set(true);
-    this.subCategoryService.create({ name, categoryId }).subscribe({
+    this.subCategoryService.create({ name, nameAr: this.newSubCategoryNameAr().trim() || null, categoryId }).subscribe({
       next: () => {
         this.addingSubCategory.set(false);
         this.newSubCategoryName.set('');
+        this.newSubCategoryNameAr.set('');
         this.mutated = true;
         this.loadSubCategories();
       },
@@ -145,35 +150,42 @@ export class CategoryManagementDialogComponent implements OnDestroy {
   startEditSubCategory(subCategory: SubCategory): void {
     this.editingSubCategoryId.set(subCategory.id);
     this.editingSubCategoryName.set(subCategory.name);
+    this.editingSubCategoryNameAr.set(subCategory.nameAr ?? '');
   }
 
   cancelEditSubCategory(): void {
     this.editingSubCategoryId.set(null);
     this.editingSubCategoryName.set('');
+    this.editingSubCategoryNameAr.set('');
   }
 
   saveEditSubCategory(subCategory: SubCategory): void {
     const name = this.editingSubCategoryName().trim();
-    if (!name || name === subCategory.name) {
+    const nameAr = this.editingSubCategoryNameAr().trim();
+    // nameAr belongs in this "nothing changed" guard too - without it an Arabic-only
+    // edit would return here and be silently discarded, never reaching the server.
+    if (!name || (name === subCategory.name && nameAr === (subCategory.nameAr ?? ''))) {
       this.cancelEditSubCategory();
       return;
     }
 
     this.savingSubCategoryEdit.set(true);
-    this.subCategoryService.update(subCategory.id, { name, categoryId: subCategory.categoryId }).subscribe({
-      next: () => {
-        this.savingSubCategoryEdit.set(false);
-        this.mutated = true;
-        this.cancelEditSubCategory();
-        this.loadSubCategories();
-      },
-      error: (err) => {
-        this.savingSubCategoryEdit.set(false);
-        this.snackBar.open(err.error?.errors?.[0] ?? 'Failed to rename sub-category.', 'Dismiss', {
-          duration: 4000
-        });
-      }
-    });
+    this.subCategoryService
+      .update(subCategory.id, { name, nameAr: nameAr || null, categoryId: subCategory.categoryId })
+      .subscribe({
+        next: () => {
+          this.savingSubCategoryEdit.set(false);
+          this.mutated = true;
+          this.cancelEditSubCategory();
+          this.loadSubCategories();
+        },
+        error: (err) => {
+          this.savingSubCategoryEdit.set(false);
+          this.snackBar.open(err.error?.errors?.[0] ?? 'Failed to rename sub-category.', 'Dismiss', {
+            duration: 4000
+          });
+        }
+      });
   }
 
   deleteSubCategory(subCategory: SubCategory): void {
@@ -265,6 +277,9 @@ export class CategoryManagementDialogComponent implements OnDestroy {
 
     const formData = new FormData();
     formData.set('name', name);
+    // Always set, even when empty: a multipart form has no way to "omit" a field the way
+    // a JSON body can, and the backend normalises blank to null (OptionalText.NullIfBlank).
+    formData.set('nameAr', this.newCategoryNameAr().trim());
     const file = this.newCategoryImageFile();
     if (file) {
       formData.set('image', file);
@@ -275,6 +290,7 @@ export class CategoryManagementDialogComponent implements OnDestroy {
       next: () => {
         this.adding.set(false);
         this.newCategoryName.set('');
+        this.newCategoryNameAr.set('');
         this.clearNewImage();
         this.mutated = true;
         this.load();
@@ -291,6 +307,7 @@ export class CategoryManagementDialogComponent implements OnDestroy {
   startEdit(category: Category): void {
     this.editingId.set(category.id);
     this.editingName.set(category.name);
+    this.editingNameAr.set(category.nameAr ?? '');
     this.editingImageFile.set(null);
     this.editingImagePreview.set(category.imageUrl);
   }
@@ -324,19 +341,24 @@ export class CategoryManagementDialogComponent implements OnDestroy {
 
   saveEdit(category: Category): void {
     const name = this.editingName().trim();
+    const nameAr = this.editingNameAr().trim();
     const imageFile = this.editingImageFile();
     if (!name) {
       this.cancelEdit();
       return;
     }
 
-    if (name === category.name && !imageFile) {
+    // The Arabic name has to be part of this "nothing actually changed" check. Without
+    // it, an admin who edited ONLY the Arabic name would hit this early return and watch
+    // their change vanish with no error - the request would never be sent.
+    if (name === category.name && nameAr === (category.nameAr ?? '') && !imageFile) {
       this.cancelEdit();
       return;
     }
 
     const formData = new FormData();
     formData.set('name', name);
+    formData.set('nameAr', nameAr);
     if (imageFile) {
       formData.set('image', imageFile);
     }

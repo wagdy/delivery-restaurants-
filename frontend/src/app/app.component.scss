@@ -483,6 +483,39 @@
   flex-shrink: 0;
 }
 
+// Shares .header-hamburger-btn's 44px so the two slots flanking the brand stay equal and
+// the logo keeps landing on the toolbar's true centre.
+.lang-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  // Inherits the toolbar's own foreground, which is driven by the admin's icon colour
+  // setting (see --app-icon-color), so the toggle tracks the brand like the hamburger
+  // beside it rather than hardcoding a colour that could vanish on a pale header.
+  color: inherit;
+}
+
+.lang-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  padding: 2px 5px;
+  border: 1.5px solid currentColor;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  // The Arabic glyph "ع" has a taller, differently-centred box than "EN"; without a
+  // fixed line-height and this optical nudge the outline visibly jumps by a pixel or two
+  // as the label swaps between the two.
+  &:lang(ar) {
+    font-size: 0.95rem;
+    line-height: 1.15;
+  }
+}
+
 // A genuine flex sibling of the two now-equal-width slots above, not an
 // absolutely-positioned overlay guessing at a max-width - flex: 1 1 auto means it gets
 // exactly whatever space those two fixed 44px slots leave behind, which is the same on

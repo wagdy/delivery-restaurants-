@@ -43,7 +43,7 @@
 
             <div class="line-body">
               <div class="line-info">
-                <span class="line-name">{{ line.menuItem.name }}</span>
+                <span class="line-name">{{ line.menuItem | localName: languageService.language() }}</span>
                 @if (line.selectedAddOns.length > 0) {
                   <span class="line-addons">+ {{ line.selectedAddOns | addOnNames }}</span>
                 }

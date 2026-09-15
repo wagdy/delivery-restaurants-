@@ -171,3 +171,35 @@ body {
     margin: 0 !important;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Arabic / RTL
+// ---------------------------------------------------------------------------
+
+// Only dish, category, sub-category and add-on NAMES are translated (see LocalNamePipe);
+// every other string in this app - button labels, headings, item descriptions - is still
+// English. Under dir="rtl" the browser applies RTL bidi rules to that English text too,
+// which throws trailing punctuation to the wrong end: "Welcome to Otantik!" renders as
+// "!Welcome to Otantik", a description ending in a full stop becomes ".…and herbs", and
+// "1 add-on available" comes out "add-on available 1".
+//
+// plaintext resolves each element's direction from its OWN first strong character instead
+// of inheriting the page's, so an English string reads as English and an Arabic one as
+// Arabic, on the same RTL page - which is exactly the mix this feature creates. Scoped to
+// .lang-ar so the English experience is untouched.
+body.lang-ar {
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  span,
+  a,
+  button,
+  label,
+  li,
+  td,
+  th {
+    unicode-bidi: plaintext;
+  }
+}

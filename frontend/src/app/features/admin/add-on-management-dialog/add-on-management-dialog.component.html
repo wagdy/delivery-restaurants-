@@ -12,6 +12,18 @@
         placeholder="e.g. Extra Rice"
       />
     </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="name-field">
+      <mat-label>Arabic name (optional)</mat-label>
+      <input
+        matInput
+        dir="rtl"
+        lang="ar"
+        [ngModel]="newNameAr()"
+        (ngModelChange)="newNameAr.set($event)"
+        (keydown.enter)="addAddOn()"
+        placeholder="مثال: أرز إضافي"
+      />
+    </mat-form-field>
     <mat-form-field appearance="outline" subscriptSizing="dynamic" class="price-field">
       <mat-label>Price</mat-label>
       <span matPrefix>L.E&nbsp;</span>
@@ -53,6 +65,18 @@
                 matInput
                 [ngModel]="editingName()"
                 (ngModelChange)="editingName.set($event)"
+                (keydown.enter)="saveEdit(addOn)"
+                (keydown.escape)="cancelEdit()"
+              />
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="edit-name-field">
+              <input
+                matInput
+                dir="rtl"
+                lang="ar"
+                placeholder="الاسم بالعربية (اختياري)"
+                [ngModel]="editingNameAr()"
+                (ngModelChange)="editingNameAr.set($event)"
                 (keydown.enter)="saveEdit(addOn)"
                 (keydown.escape)="cancelEdit()"
               />

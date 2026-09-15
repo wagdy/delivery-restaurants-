@@ -59,6 +59,9 @@ export class MenuItemFormDialogComponent {
 
   readonly form = this.fb.nonNullable.group({
     name: [this.data.menuItem?.name ?? '', [Validators.required, Validators.maxLength(150)]],
+    // Optional. Blank is normalised to null on submit below so the storefront falls
+    // back to the English name rather than rendering an empty heading.
+    nameAr: [this.data.menuItem?.nameAr ?? '', [Validators.maxLength(150)]],
     description: [this.data.menuItem?.description ?? ''],
     price: [this.data.menuItem?.price ?? 0, [Validators.required, Validators.min(0.01)]],
     category: [this.data.menuItem?.category ?? '', [Validators.required, Validators.maxLength(100)]],
@@ -158,6 +161,7 @@ export class MenuItemFormDialogComponent {
     const raw = this.form.getRawValue();
     const request = {
       name: raw.name,
+      nameAr: raw.nameAr.trim() || null,
       description: raw.description || null,
       price: raw.price,
       category: raw.category,

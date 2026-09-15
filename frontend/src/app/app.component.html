@@ -63,7 +63,7 @@
       @if (!authService.isCaptain()) {
         <div class="drawer-section-label">Browse by category</div>
 
-        @for (name of categoryNames(); track name; let i = $index) {
+        @for (category of categories(); track category.id; let i = $index) {
           <!-- A button, not an anchor: this picks a category on the page already showing
                rather than navigating to a URL, and an <a> with no href is not keyboard
                focusable - which it silently was not while this used mat-list-item either. -->
@@ -71,10 +71,10 @@
             type="button"
             class="category-nav-item"
             [style.animation-delay.ms]="i * 40"
-            (click)="selectCategory(name, drawer)"
+            (click)="selectCategory(category.name, drawer)"
           >
-            <mat-icon class="nav-item-icon">{{ iconFor(name) }}</mat-icon>
-            <span class="nav-item-label">{{ name }}</span>
+            <mat-icon class="nav-item-icon">{{ iconFor(category.name) }}</mat-icon>
+            <span class="nav-item-label">{{ category | localName: languageService.language() }}</span>
           </button>
         } @empty {
           <p class="drawer-empty">No categories yet.</p>
@@ -133,7 +133,24 @@
         }
       </a>
 
-      <div class="header-hamburger-btn" aria-hidden="true"></div>
+      <!-- Occupies the slot that used to be an empty spacer, so the brand above stays
+           truly centred: this button is deliberately the same width as the hamburger. -->
+      <button
+        mat-icon-button
+        type="button"
+        class="icon-hover header-hamburger-btn lang-toggle-btn"
+        (click)="languageService.toggle()"
+        [attr.aria-label]="languageService.isArabic() ? 'Switch to English' : 'التبديل إلى العربية'"
+      >
+        <!-- Shows the language you would switch TO, not the one you are in - the label a
+             customer looks for is the one they want next. The lang attribute therefore
+             names the OPPOSITE language to the document's, which is both correct for
+             screen readers and font selection, and what the :lang(ar) rule in the SCSS
+             keys off to size the Arabic glyph. -->
+        <span class="lang-toggle-label" [attr.lang]="languageService.isArabic() ? 'en' : 'ar'">
+          {{ languageService.isArabic() ? 'EN' : 'ع' }}
+        </span>
+      </button>
     </mat-toolbar>
 
     <div class="page-content" [class.has-cart-bar]="showCartFab()">

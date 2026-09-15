@@ -10,6 +10,8 @@ import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { AuthService } from './core/services/auth.service';
 import { CartService } from './core/services/cart.service';
 import { SettingsService } from './core/services/settings.service';
+import { LanguageService } from './core/services/language.service';
+import { LocalNamePipe } from './shared/pipes/local-name.pipe';
 import { CategoryService } from './core/services/category.service';
 import { LoyaltyRealtimeService } from './core/services/loyalty-realtime.service';
 import { CartDrawerComponent } from './features/storefront/cart-drawer/cart-drawer.component';
@@ -26,7 +28,8 @@ import { iconForCategory } from './shared/utils/category-icon.util';
     MatIconModule,
     MatSidenavModule,
     CartDrawerComponent,
-    AppFooterComponent
+    AppFooterComponent,
+    LocalNamePipe
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
@@ -35,6 +38,7 @@ export class AppComponent {
   protected readonly authService = inject(AuthService);
   protected readonly cart = inject(CartService);
   protected readonly settingsService = inject(SettingsService);
+  protected readonly languageService = inject(LanguageService);
   private readonly categoryService = inject(CategoryService);
   private readonly router = inject(Router);
   private readonly swUpdate = inject(SwUpdate);
@@ -46,11 +50,13 @@ export class AppComponent {
   // would never actually run until something else happened to need it.
   private readonly loyaltyRealtimeService = inject(LoyaltyRealtimeService);
 
-  // The hamburger's category drawer - CategoryService's own activeCategoryNames is the
+  // The hamburger's category drawer - CategoryService's own activeCategories is the
   // single source of truth for "which categories actually have items right now" (see
   // that service and shared/utils/active-categories.util.ts), so this list can never
-  // show an empty category the Menu's own category rail/grid already hides.
-  readonly categoryNames = this.categoryService.activeCategoryNames;
+  // show an empty category the Menu's own category rail/grid already hides. Rows rather
+  // than names, so the labels can render in Arabic; name is still what selectCategory
+  // filters by.
+  readonly categories = this.categoryService.activeCategories;
 
   // Replays the category list's entrance stagger every time the drawer opens (rather
   // than once at app init) - see cart-drawer's own shake signals for why a round trip
