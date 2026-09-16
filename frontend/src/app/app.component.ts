@@ -73,10 +73,30 @@ export class AppComponent {
   @ViewChild('cartDrawerContent') private cartDrawerContentRef?: CartDrawerComponent;
   private cartSheetResetTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // True while the customer is on /checkout. Tracked as a signal updated from
+  // NavigationEnd, the same way isBarePage below is, rather than read from router.url on
+  // demand: router.url is a plain property, so a getter would give the right answer only
+  // by accident of change detection happening to run after a navigation. Initialized from
+  // the current URL so a hard reload straight onto /checkout never flashes the bar for a
+  // frame before the first navigation event arrives.
+  private readonly isCheckoutPage = signal(AppComponent.isCheckoutUrl(this.router.url));
+
   // Drives both the floating "Review Order" bar's visibility and .page-content's own
   // extra bottom padding (see app.component.scss) - hidden once the sheet itself is open
   // so the bar never shows stacked behind/under it.
-  readonly showCartFab = computed(() => !this.authService.isCaptain() && this.cart.itemCount() > 0 && !this.cartOpen());
+  //
+  // Checkout is excluded because that page has its own Order summary card: the floating
+  // bar duplicates it and covers the bottom of the form. The exclusion belongs here
+  // rather than on the bar's own @if in the template, because this same signal also adds
+  // the 88px of bottom padding that reserves room for the bar - gating only the template
+  // would leave checkout with an empty 88px gap below the page and nothing in it.
+  readonly showCartFab = computed(
+    () =>
+      !this.authService.isCaptain() &&
+      this.cart.itemCount() > 0 &&
+      !this.cartOpen() &&
+      !this.isCheckoutPage()
+  );
 
   // True for the fully public, chrome-free pages: "/rate/store", "/customer-review/:id"
   // (reached from a WhatsApp link by a customer who may not even be logged in - the
@@ -96,7 +116,9 @@ export class AppComponent {
     this.categoryService.loadActiveCategoryNames();
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => {
-      this.isBarePage.set(AppComponent.isBareUrl((event as NavigationEnd).urlAfterRedirects));
+      const url = (event as NavigationEnd).urlAfterRedirects;
+      this.isBarePage.set(AppComponent.isBareUrl(url));
+      this.isCheckoutPage.set(AppComponent.isCheckoutUrl(url));
     });
 
     // The service worker (see app.config.ts's provideServiceWorker) caches the whole app
@@ -127,6 +149,17 @@ export class AppComponent {
           });
         });
     }
+  }
+
+  private static isCheckoutUrl(url: string): boolean {
+    // An exact path match on the stripped URL rather than url.includes('/checkout'),
+    // matching isBareUrl's own handling below. "/login?returnUrl=%2Fcheckout" is a real
+    // URL here (the auth guard produces it when a signed-out customer starts checking
+    // out), and while that page hides the bar anyway for its own reasons, a substring
+    // test would make this flag mean "the word checkout appears somewhere in the URL"
+    // rather than "the customer is on the checkout page" - and the next route to contain
+    // the word would silently inherit the behaviour.
+    return url.split('?')[0].split('#')[0] === '/checkout';
   }
 
   private static isBareUrl(url: string): boolean {
