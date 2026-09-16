@@ -26,6 +26,15 @@
     <h3>Customer</h3>
     <p>{{ order().customerName }}</p>
     <p>{{ order().customerPhone }}</p>
+    <!-- The captain opens this same dialog from their dispatch list, so the pickup flag
+         has to be legible here too - the address line alone reads as somewhere to drive
+         to. -->
+    @if (order().isPickup) {
+      <p class="pickup-line">
+        <mat-icon aria-hidden="true">storefront</mat-icon>
+        Store pickup — no delivery
+      </p>
+    }
     <p>{{ order().deliveryAddress }}</p>
     @if (order().notes) {
       <p class="order-notes">{{ order().notes }}</p>

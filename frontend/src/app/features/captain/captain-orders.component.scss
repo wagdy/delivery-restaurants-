@@ -102,6 +102,30 @@
 .status-chip.status-Delivered { background: #43a047; }
 .status-chip.status-Cancelled { background: #e53935; }
 
+// Not one of the status colours above, on purpose: those five all mean "where is this
+// order in the pipeline", and this means something orthogonal - whether anyone drives at
+// all. A sixth colour in the same family would read as a sixth status.
+.pickup-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1.5px solid #00695c;
+  border-radius: 10px;
+  background: #e0f2f1;
+  color: #00695c;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
 .customer-name {
   font-size: 0.95rem;
   margin-bottom: 2px;
@@ -113,6 +137,17 @@
   gap: 4px;
   color: rgba(0, 0, 0, 0.6);
   font-size: 0.85rem;
+
+  // Carries the branch, not a destination - coloured to match the PICKUP chip so the
+  // two read as one statement rather than two unrelated marks on the card.
+  &.is-pickup {
+    color: #00695c;
+    font-weight: 600;
+
+    mat-icon {
+      color: #00695c;
+    }
+  }
 
   mat-icon {
     font-size: 16px;

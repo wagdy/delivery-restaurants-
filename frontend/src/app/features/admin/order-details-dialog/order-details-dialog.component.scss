@@ -199,3 +199,20 @@ h2[mat-dialog-title] {
   margin-right: auto;
   align-self: center;
 }
+
+// Matches the PICKUP chip on the captain's own order card (captain-orders.component.scss)
+// so the two screens name the same thing the same way.
+.pickup-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+  color: #00695c;
+  font-weight: 700;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}

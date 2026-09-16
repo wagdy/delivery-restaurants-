@@ -29,12 +29,20 @@
         <div class="card-main">
           <div class="card-top">
             <span class="order-id">#{{ order.id }}</span>
+            <!-- Deliberately louder than the status chip beside it: this is the one thing
+                 on the card that means "do not drive anywhere". -->
+            @if (order.isPickup) {
+              <span class="pickup-chip">
+                <mat-icon aria-hidden="true">storefront</mat-icon>
+                PICKUP
+              </span>
+            }
             <span class="status-chip" [class]="'status-' + order.status">{{ order.status }}</span>
             <span class="order-total">L.E {{ order.totalAmount.toFixed(2) }}</span>
           </div>
           <div class="customer-name">{{ order.customerName }} &middot; {{ order.customerPhone }}</div>
-          <div class="delivery-address">
-            <mat-icon>place</mat-icon>
+          <div class="delivery-address" [class.is-pickup]="order.isPickup">
+            <mat-icon>{{ order.isPickup ? 'storefront' : 'place' }}</mat-icon>
             {{ order.deliveryAddress }}
           </div>
           <div class="card-meta">
@@ -55,7 +63,7 @@
                 <mat-spinner diameter="18"></mat-spinner>
               } @else {
                 <ng-container>
-                  <mat-icon>local_shipping</mat-icon>
+                  <mat-icon>{{ order.isPickup ? 'storefront' : 'local_shipping' }}</mat-icon>
                   Accept
                 </ng-container>
               }
@@ -72,7 +80,9 @@
               } @else {
                 <ng-container>
                   <mat-icon>check_circle</mat-icon>
-                  Delivered
+                  <!-- Same status value either way; only the label changes, so a driver
+                       is never asked to mark a collect-in-store order "Delivered". -->
+                  {{ order.isPickup ? 'Handed over' : 'Delivered' }}
                 </ng-container>
               }
             </button>
