@@ -29,8 +29,16 @@
         <div class="card-main">
           <div class="card-top">
             <span class="order-id">#{{ order.id }}</span>
-            <!-- Deliberately louder than the status chip beside it: this is the one thing
-                 on the card that means "do not drive anywhere". -->
+            <!-- Louder than the status chip beside it: this is the one thing on the card
+                 that means "do not drive anywhere".
+                 filteredOrders() now excludes pickup orders entirely, so in normal
+                 operation this branch and the pickup variants below never render. Kept
+                 as a backstop rather than deleted: the exclusion is a policy that could
+                 be relaxed (a "show everything" toggle, a branch that hands collections
+                 to drivers), and without these a pickup order would come back looking
+                 exactly like a delivery - the bug they were added to fix. The details
+                 dialog's own pickup line IS still reachable, via the notification deep
+                 link - see openOrderFromQueryParamIfPresent. -->
             @if (order.isPickup) {
               <span class="pickup-chip">
                 <mat-icon aria-hidden="true">storefront</mat-icon>

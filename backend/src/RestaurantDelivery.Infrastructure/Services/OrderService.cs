@@ -163,12 +163,20 @@ public class OrderService : IOrderService
         await _repository.SaveChangesAsync();
 
         // Notification failures must never surface as an order-creation failure —
-        // both methods swallow and log their own errors internally. Captains always need
-        // to know about a new delivery regardless of who entered it, but the cashier push
-        // is suppressed for staff-created orders for the same reason the SignalR alarm is
+        // both methods swallow and log their own errors internally. Captains need to know
+        // about a new delivery regardless of who entered it, but the cashier push is
+        // suppressed for staff-created orders for the same reason the SignalR alarm is
         // (see NewOrderNotification.IsStaffCreated) - a cashier shouldn't get paged for an
         // order they (or a co-worker) just typed into the POS themselves.
-        await _pushNotificationService.NotifyCaptainsOfNewOrderAsync(order);
+        //
+        // Pickup orders skip the captain push entirely: there is nothing to drive, and the
+        // captain's own queue filters them out (see CaptainOrdersComponent.filteredOrders),
+        // so paging a driver here would send them to a list the order is not in. The
+        // cashier still hears about it - somebody in the branch has to make the food.
+        if (!order.IsPickup)
+        {
+            await _pushNotificationService.NotifyCaptainsOfNewOrderAsync(order);
+        }
         if (!isStaffCreated)
         {
             await _pushNotificationService.NotifyCashiersOfNewOrderAsync(order);

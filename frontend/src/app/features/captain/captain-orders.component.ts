@@ -58,7 +58,21 @@ export class CaptainOrdersComponent {
 
   readonly filteredOrders = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
-    const all = this.orders();
+
+    // Collection orders never reach a driver's queue - there is nothing to drive. The
+    // branch prepares and hands them over, and admin keeps full status control over them
+    // (see AdminDashboardComponent and OrderDetailsDialogComponent), so nothing becomes
+    // unmanageable by being absent here. The matching backend change stops the captain
+    // push firing for them too (OrderService.CreateAsync), so a driver is never paged
+    // towards a list the order is not in.
+    //
+    // Filtered here rather than in loadOrders() on purpose: orders() keeps the full set,
+    // so a deep link from a notification sent before this shipped
+    // (/captain?orderId=123 - see openOrderFromQueryParamIfPresent) still resolves and
+    // opens the details dialog, which says "Store pickup - no delivery" in plain words.
+    // Dropping them at load time would make that link do nothing at all.
+    const all = this.orders().filter((o) => !o.isPickup);
+
     const matching = !term
       ? all
       : all.filter(
