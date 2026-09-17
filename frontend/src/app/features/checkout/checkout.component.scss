@@ -175,10 +175,6 @@
   background: var(--app-primary-color, #3f51b5);
 }
 
-.special-request {
-  margin: 4px 0 12px;
-}
-
 .full-width {
   width: 100%;
 
@@ -410,20 +406,6 @@
 
 .promo-section {
   margin: 12px 0;
-}
-
-.promo-input-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.promo-input {
-  flex: 1 1 auto;
-}
-
-.promo-error {
-  margin: 4px 0 0;
 }
 
 .promo-applied {

@@ -56,27 +56,58 @@
 
           <!-- Goes to Order.notes, which the admin order-details dialog already shows -
                see CreateOrderRequest.cs for why this reuses that column. -->
-          <div class="special-request">
-            <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
-              <mat-label>Special request</mat-label>
-              <mat-icon matPrefix>edit_note</mat-icon>
-              <textarea
-                matInput
-                formControlName="specialRequest"
-                rows="2"
-                maxlength="1000"
-                placeholder="Anything else we need to know? e.g. no onions, extra napkins"
-              ></textarea>
-            </mat-form-field>
+          <section class="request-block">
+            <h3 class="block-heading">Special request</h3>
+
+            <!-- No mat-form-field here on purpose. The target look has no outline, no
+                 floating label and no subscript row, so wrapping a textarea in Material
+                 only to override all three away is more CSS than writing the row
+                 directly - and it is the override that tends to break on a Material
+                 upgrade, not plain markup. The control is still part of the same
+                 FormGroup either way. -->
+            @if (specialRequestOpen()) {
+              <div class="request-row is-open">
+                <mat-icon class="request-icon" aria-hidden="true">chat_bubble_outline</mat-icon>
+                <textarea
+                  #specialRequestInput
+                  class="request-input"
+                  formControlName="specialRequest"
+                  rows="3"
+                  maxlength="1000"
+                  placeholder="e.g. no onions, extra napkins, ring the top bell"
+                  aria-label="Special request"
+                  (blur)="closeSpecialRequest()"
+                ></textarea>
+              </div>
+            } @else {
+              <button type="button" class="request-row" (click)="openSpecialRequest()">
+                <mat-icon class="request-icon" aria-hidden="true">chat_bubble_outline</mat-icon>
+                <span class="request-text">
+                  @if (form.controls.specialRequest.value.trim(); as written) {
+                    <!-- Shows what was actually typed rather than the prompt, so the
+                         request stays visible after the row collapses. -->
+                    <span class="request-title">{{ written }}</span>
+                    <span class="request-subtitle">Tap to edit</span>
+                  } @else {
+                    <span class="request-title">Any special requests?</span>
+                    <span class="request-subtitle">Anything else we need to know?</span>
+                  }
+                </span>
+                <mat-icon class="request-chevron" aria-hidden="true">chevron_right</mat-icon>
+              </button>
+            }
+
             @if (form.controls.specialRequest.touched && form.controls.specialRequest.invalid) {
               <div class="field-alert standalone" role="alert">
                 <mat-icon aria-hidden="true">warning</mat-icon>
                 <span>Please keep your request under 1000 characters.</span>
               </div>
             }
-          </div>
+          </section>
 
-          <div class="promo-section">
+          <section class="promo-block">
+            <h3 class="block-heading">Save on your order</h3>
+
             @if (promoResult(); as promo) {
               <div class="promo-applied">
                 <mat-icon>local_offer</mat-icon>
@@ -89,35 +120,43 @@
                 </button>
               </div>
             } @else {
-              <div class="promo-input-row">
-                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="promo-input">
-                  <mat-label>Promo code</mat-label>
-                  <input
-                    matInput
-                    [ngModel]="promoCodeInput()"
-                    (ngModelChange)="promoCodeInput.set($event)"
-                    [ngModelOptions]="{ standalone: true }"
-                    placeholder="e.g. SAVE10"
-                  />
-                </mat-form-field>
+              <!-- One pill: icon, borderless field and the action all inside the same
+                   border, rather than a boxed input sitting next to a boxed button. -->
+              <div class="promo-pill" [class.is-busy]="applyingPromo()">
+                <mat-icon class="promo-icon" aria-hidden="true">confirmation_number</mat-icon>
+                <input
+                  type="text"
+                  class="promo-input"
+                  placeholder="Enter voucher code"
+                  aria-label="Voucher code"
+                  autocomplete="off"
+                  [ngModel]="promoCodeInput()"
+                  (ngModelChange)="promoCodeInput.set($event)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (keydown.enter)="$event.preventDefault(); applyPromoCode()"
+                />
                 <button
-                  mat-stroked-button
                   type="button"
+                  class="promo-submit"
                   [disabled]="applyingPromo() || !promoCodeInput().trim()"
                   (click)="applyPromoCode()"
                 >
                   @if (applyingPromo()) {
-                    <mat-spinner diameter="18"></mat-spinner>
+                    <mat-spinner diameter="16"></mat-spinner>
                   } @else {
-                    Apply
+                    Submit
                   }
                 </button>
               </div>
+
               @if (promoError()) {
-                <p class="error-text promo-error">{{ promoError() }}</p>
+                <div class="field-alert standalone" role="alert">
+                  <mat-icon aria-hidden="true">warning</mat-icon>
+                  <span>{{ promoError() }}</span>
+                </div>
               }
             }
-          </div>
+          </section>
 
           <div class="totals">
             <div class="totals-row">

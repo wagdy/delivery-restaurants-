@@ -18,15 +18,12 @@ import { SettingsService } from '../../core/services/settings.service';
 import { CheckoutService } from '../../core/services/checkout.service';
 import { CreateOrderRequest } from '../../core/models/order.model';
 import { PaymentMethod, ValidatePromoResponse } from '../../core/models/checkout.model';
-import { AddOnNamesPipe } from '../../shared/pipes/add-on-names.pipe';
 import { estimatedDeliveryLabel as formatDeliveryLabel } from '../../shared/utils/delivery-time.util';
 import {
   EGYPT_MOBILE_PATTERN,
   NAME_PATTERN,
   normalizeEgyptMobile
 } from '../../shared/utils/validation-patterns.util';
-import { LocalNamePipe } from '../../shared/pipes/local-name.pipe';
-import { LanguageService } from '../../core/services/language.service';
 import { CartItemComponent } from '../../shared/cart-item/cart-item.component';
 
 // Delivery or collect-in-store. Kept as a string union rather than a boolean so the
@@ -41,7 +38,6 @@ export type Fulfilment = 'delivery' | 'pickup';
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    AddOnNamesPipe,
     RouterLink,
     MatCardModule,
     MatFormFieldModule,
@@ -51,17 +47,19 @@ export type Fulfilment = 'delivery' | 'pickup';
     MatRadioModule,
     MatIconModule,
     MatSelectModule,
-    LocalNamePipe,
     CartItemComponent
   ],
   templateUrl: './checkout.component.html',
-  // Two stylesheets, not one, to stay inside the per-file style budget - see the header
-  // comment in checkout-fulfilment.component.scss.
-  styleUrls: ['./checkout.component.scss', './checkout-fulfilment.component.scss']
+  // Three stylesheets, not one, to stay inside the per-file style budget - see the
+  // header comments in checkout-fulfilment / checkout-request-promo.
+  styleUrls: [
+    './checkout.component.scss',
+    './checkout-fulfilment.component.scss',
+    './checkout-request-promo.component.scss'
+  ]
 })
 export class CheckoutComponent {
   protected readonly cart = inject(CartService);
-  protected readonly languageService = inject(LanguageService);
   protected readonly authService = inject(AuthService);
   protected readonly settingsService = inject(SettingsService);
   private readonly orderService = inject(OrderService);
@@ -114,6 +112,29 @@ export class CheckoutComponent {
     // customer is still looking at the box rather than as a server error after submit.
     specialRequest: ['', [Validators.maxLength(1000)]]
   });
+
+  // ---------------------------------------------------------------------------
+  // Special request
+  // ---------------------------------------------------------------------------
+
+  // The row reads as a prompt until it is tapped, then becomes a plain textarea. Once
+  // something has been typed the collapsed row shows THAT instead of the prompt - a
+  // request the customer cannot see after writing it is worse than no box at all.
+  readonly specialRequestOpen = signal(false);
+
+  @ViewChild('specialRequestInput') private specialRequestInputRef?: ElementRef<HTMLTextAreaElement>;
+
+  protected openSpecialRequest(): void {
+    this.specialRequestOpen.set(true);
+    // After the @if has swapped the prompt for the textarea, not before.
+    setTimeout(() => this.specialRequestInputRef?.nativeElement.focus(), 0);
+  }
+
+  // Collapsing on blur is safe precisely because the collapsed row renders the value:
+  // nothing the customer wrote disappears, it just stops being editable until tapped.
+  protected closeSpecialRequest(): void {
+    this.specialRequestOpen.set(false);
+  }
 
   // ---------------------------------------------------------------------------
   // Two-step flow: review what you ordered, then say where it goes
