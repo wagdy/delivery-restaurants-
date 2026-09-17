@@ -1,0 +1,177 @@
+// Two columns: what you ordered on the left, what it looks like and how many on the
+// right. Deliberately not a grid - the left column takes whatever the fixed-width
+// visuals column leaves, which is what keeps a long dish name wrapping instead of
+// squeezing the thumbnail.
+.cart-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+
+  + .cart-item {
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+  }
+}
+
+.cart-item-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  // min-width: 0 so a long name wraps inside the column; a flex item refuses to shrink
+  // below its content width without it, which would push the thumbnail off the row.
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 2px;
+}
+
+.cart-item-title {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: rgba(0, 0, 0, 0.87);
+  overflow-wrap: anywhere;
+}
+
+// The add-on line. Grey and smaller on purpose: it qualifies the dish above rather than
+// competing with it, which is the whole point of nesting them under the title instead of
+// listing them as their own rows.
+.cart-item-addons {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: #757575;
+  overflow-wrap: anywhere;
+}
+
+.cart-item-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--app-primary-color, #3f51b5);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.cart-item-price {
+  margin: 8px 0 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.87);
+  // Prices stack down the list and are read as a column, so the digits line up.
+  font-variant-numeric: tabular-nums;
+}
+
+.cart-item-visuals {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  // Never shrinks: the thumbnail and the quantity pill are both fixed-size controls, and
+  // a squeezed stepper is a mis-tap waiting to happen on a phone.
+  flex: 0 0 auto;
+}
+
+.cart-item-thumb {
+  width: 84px;
+  height: 84px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.cart-item-thumb-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  mat-icon {
+    font-size: 30px;
+    width: 30px;
+    height: 30px;
+    color: rgba(0, 0, 0, 0.22);
+  }
+}
+
+// Pill-shaped, sized to the thumbnail above it so the right column reads as one stack.
+.qty-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  // border-box so this really is 84px wide rather than 84 + padding + border = 90, which
+  // left the pill overhanging the thumbnail above it by 3px on each side.
+  box-sizing: border-box;
+  width: 84px;
+  padding: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  background: #fff;
+}
+
+.qty-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--app-primary-color, #3f51b5);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in srgb, var(--app-primary-color, #3f51b5) 12%, transparent);
+  }
+
+  mat-icon {
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
+  }
+}
+
+// Only the press that actually destroys the line reads as destructive - at any quantity
+// above one this is an ordinary minus and should not look like a warning.
+.qty-btn-remove.is-destructive {
+  color: #d32f2f;
+
+  &:hover,
+  &:focus-visible {
+    background: rgba(211, 47, 47, 0.12);
+  }
+}
+
+.qty-value {
+  min-width: 18px;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.87);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qty-btn {
+    transition: none;
+  }
+}

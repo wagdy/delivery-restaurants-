@@ -68,7 +68,7 @@
 
     <button type="button" class="add-to-cart-btn" (click)="addToCart()">
       <mat-icon>add_shopping_cart</mat-icon>
-      <span class="add-to-cart-label">Add to cart</span>
+      <span class="add-to-cart-label">{{ isEditing ? 'Save changes' : 'Add to cart' }}</span>
       <span class="dot">·</span>
       <span class="price-slot" [class.rolling]="pricePulse()" (animationend)="pricePulse.set(false)">
         L.E {{ lineTotal().toFixed(2) }}

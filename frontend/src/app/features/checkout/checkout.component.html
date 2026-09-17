@@ -38,18 +38,19 @@
         @if (step() === 1) {
       <mat-card class="summary-card">
         <mat-card-content>
+          <!-- Each line is its own component now: thumbnail, add-ons nested under the
+               dish name, quantity control and an Edit that reopens the item dialog with
+               the current choices. The old single-row markup could only ever print a
+               name and a price, so changing an order meant going back to the menu. -->
           @for (line of cart.lines(); track cart.keyFor(line)) {
-            <div class="summary-line">
-              <span>
-                {{ line.quantity }} × {{ line.menuItem | localName: languageService.language() }}
-                @if (affectedMenuItemIds().has(line.menuItem.id)) {
-                  <mat-icon class="discount-tag" inline>local_offer</mat-icon>
-                }
-                @if (line.selectedAddOns.length > 0) {
-                  <span class="summary-addons">+ {{ line.selectedAddOns | addOnNames }}</span>
-                }
-              </span>
-              <span>L.E {{ (cart.lineUnitPrice(line) * line.quantity).toFixed(2) }}</span>
+            <div class="cart-line-row">
+              <app-cart-item [line]="line" />
+              @if (affectedMenuItemIds().has(line.menuItem.id)) {
+                <span class="promo-flag">
+                  <mat-icon inline>local_offer</mat-icon>
+                  Promo applied
+                </span>
+              }
             </div>
           }
 

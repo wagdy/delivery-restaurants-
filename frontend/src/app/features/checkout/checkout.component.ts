@@ -27,6 +27,7 @@ import {
 } from '../../shared/utils/validation-patterns.util';
 import { LocalNamePipe } from '../../shared/pipes/local-name.pipe';
 import { LanguageService } from '../../core/services/language.service';
+import { CartItemComponent } from '../../shared/cart-item/cart-item.component';
 
 // Delivery or collect-in-store. Kept as a string union rather than a boolean so the
 // template reads as what it is and a third mode (curbside, dine-in) is an addition
@@ -50,7 +51,8 @@ export type Fulfilment = 'delivery' | 'pickup';
     MatRadioModule,
     MatIconModule,
     MatSelectModule,
-    LocalNamePipe
+    LocalNamePipe,
+    CartItemComponent
   ],
   templateUrl: './checkout.component.html',
   // Two stylesheets, not one, to stay inside the per-file style budget - see the header

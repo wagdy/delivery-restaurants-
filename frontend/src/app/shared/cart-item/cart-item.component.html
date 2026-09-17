@@ -1,0 +1,59 @@
+<!-- <article> rather than a div: each line is a self-contained piece of the order, and
+     the heading inside it gives it an accessible name in the list. -->
+<article class="cart-item">
+  <div class="cart-item-details">
+    <h3 class="cart-item-title">{{ line().menuItem | localName: languageService.language() }}</h3>
+
+    @if (addOnSummary(); as addOns) {
+      <p class="cart-item-addons">{{ addOns }}</p>
+    }
+
+    @if (canEdit()) {
+      <button type="button" class="cart-item-edit" (click)="edit()">
+        <mat-icon aria-hidden="true">edit</mat-icon>
+        Edit
+      </button>
+    }
+
+    <p class="cart-item-price">EGP {{ lineTotal().toFixed(2) }}</p>
+  </div>
+
+  <div class="cart-item-visuals">
+    @if (line().menuItem.imageUrl) {
+      <img
+        class="cart-item-thumb"
+        [src]="line().menuItem.imageUrl"
+        [alt]="line().menuItem | localName: languageService.language()"
+        loading="lazy"
+        decoding="async"
+      />
+    } @else {
+      <!-- Most of this menu has no photo, so the placeholder is a first-class state
+           rather than a broken <img>: same footprint, so a line with a picture and one
+           without still align in the list. -->
+      <div class="cart-item-thumb cart-item-thumb-fallback" aria-hidden="true">
+        <mat-icon>restaurant</mat-icon>
+      </div>
+    }
+
+    <div class="qty-control">
+      <button
+        type="button"
+        class="qty-btn qty-btn-remove"
+        [class.is-destructive]="removesOnDecrement()"
+        (click)="decrement()"
+        [attr.aria-label]="removesOnDecrement() ? 'Remove from order' : 'Decrease quantity'"
+      >
+        <!-- At one, the next press empties the line, so it says so instead of showing a
+             minus that silently removes the item. -->
+        <mat-icon>{{ removesOnDecrement() ? 'delete_outline' : 'remove' }}</mat-icon>
+      </button>
+
+      <span class="qty-value" aria-live="polite">{{ line().quantity }}</span>
+
+      <button type="button" class="qty-btn" (click)="increment()" aria-label="Increase quantity">
+        <mat-icon>add</mat-icon>
+      </button>
+    </div>
+  </div>
+</article>

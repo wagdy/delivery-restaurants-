@@ -11,6 +11,13 @@ import { LanguageService } from '../../../core/services/language.service';
 
 export interface MenuItemDetailsDialogData {
   menuItem: MenuItem;
+
+  // Set only when reopening the dialog to CHANGE a line already in the cart (the cart
+  // item's Edit button). The dialog seeds itself from these instead of starting empty,
+  // and replaces that line on save rather than adding a second one beside it.
+  editingLineKey?: string;
+  initialAddOnIds?: number[];
+  initialQuantity?: number;
 }
 
 @Component({
@@ -30,8 +37,11 @@ export class MenuItemDetailsDialogComponent {
   private readonly ref = inject(MatDialogRef<MenuItemDetailsDialogComponent>);
   readonly data: MenuItemDetailsDialogData = inject(MAT_DIALOG_DATA);
 
-  readonly quantity = signal(1);
-  readonly selectedAddOnIds = signal<Set<number>>(new Set());
+  readonly quantity = signal(this.data.initialQuantity ?? 1);
+  readonly selectedAddOnIds = signal<Set<number>>(new Set(this.data.initialAddOnIds ?? []));
+
+  // Drives the button wording: "Add to cart" is wrong when the line is already there.
+  readonly isEditing = !!this.data.editingLineKey;
 
   readonly selectedAddOns = computed(() =>
     this.data.menuItem.addOns.filter((a) => this.selectedAddOnIds().has(a.id))
@@ -75,6 +85,14 @@ export class MenuItemDetailsDialogComponent {
   }
 
   addToCart(): void {
+    // Editing replaces the original line rather than adding a second one. Removed first,
+    // so that if the new add-on selection happens to match another line already in the
+    // cart, add()'s own merge folds them together instead of leaving a duplicate.
+    const editingKey = this.data.editingLineKey;
+    if (editingKey) {
+      this.cart.remove(editingKey);
+    }
+
     this.cart.add(this.data.menuItem, this.selectedAddOns(), this.quantity());
     this.ref.close();
   }

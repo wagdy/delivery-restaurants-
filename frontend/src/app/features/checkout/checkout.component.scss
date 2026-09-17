@@ -283,19 +283,6 @@
   font-size: 0.875rem;
 }
 
-.summary-line {
-  display: flex;
-  justify-content: space-between;
-  padding: 4px 0;
-  font-size: 0.9rem;
-}
-
-.summary-addons {
-  display: block;
-  font-size: 0.75rem;
-  color: rgba(0, 0, 0, 0.55);
-}
-
 .totals {
   margin-top: 12px;
   padding-top: 12px;
@@ -421,15 +408,6 @@
   }
 }
 
-.discount-tag {
-  font-size: 14px;
-  width: 14px;
-  height: 14px;
-  vertical-align: middle;
-  color: #2e7d32;
-  margin-left: 2px;
-}
-
 .promo-section {
   margin: 12px 0;
 }
@@ -477,4 +455,26 @@
   margin: 2px 0 0;
   font-size: 0.75rem;
   color: rgba(0, 0, 0, 0.6);
+}
+
+// Wraps one <app-cart-item> plus the promo flag that used to be an inline icon beside
+// the item name; the component owns the line itself, this owns what sits around it.
+// Stretch, not flex-start: on a column flex container align-items governs WIDTH, so
+// flex-start shrink-wrapped the cart item to its text and left the thumbnail stranded
+// mid-row instead of at the right edge. The promo flag below aligns itself instead.
+.cart-line-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.promo-flag {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: -6px 0 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #2e7d32;
 }
