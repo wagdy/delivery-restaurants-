@@ -14,6 +14,7 @@ import { Order } from '../../core/models/order.model';
 import { OrderDetailsDialogComponent } from '../admin/order-details-dialog/order-details-dialog.component';
 import { PushNotificationService } from '../../core/services/push-notification.service';
 import { IosInstallPromptComponent } from '../../shared/ios-install-prompt/ios-install-prompt.component';
+import { OrderStatusLabelPipe } from '../../shared/pipes/order-status-label.pipe';
 
 // Orders that still need a captain's attention (accept or deliver) sort to the top;
 // finished/cancelled orders sink to the bottom — a driver's queue, not a flat log.
@@ -22,6 +23,13 @@ const STATUS_PRIORITY: Record<Order['status'], number> = {
   Pending: 1,
   OutForDelivery: 2,
   Delivered: 3,
+  // Collection orders are filtered out of this queue entirely (see filteredOrders), so
+  // in normal operation these never sort anything. They are here because the Record is
+  // exhaustive over OrderStatus - which is what caught this file the moment the two
+  // statuses were added - and they mirror their delivery equivalents so the ordering
+  // stays sane if the exclusion is ever relaxed.
+  ReadyForCollection: 2,
+  Collected: 3,
   Cancelled: 4
 };
 
@@ -39,7 +47,8 @@ const STATUS_PRIORITY: Record<Order['status'], number> = {
     MatProgressSpinnerModule,
     MatToolbarModule,
     IosInstallPromptComponent
-  ],
+  ,
+    OrderStatusLabelPipe],
   templateUrl: './captain-orders.component.html',
   styleUrl: './captain-orders.component.scss'
 })
@@ -140,17 +149,22 @@ export class CaptainOrdersComponent {
   }
 
   canMarkDelivered(order: Order): boolean {
-    return order.status === 'OutForDelivery';
+    return order.isPickup ? order.status === 'ReadyForCollection' : order.status === 'OutForDelivery';
   }
 
+  // Pickup orders are excluded from this queue, so these two only ever run on
+  // deliveries today. They still branch on isPickup so the card's own pickup markup -
+  // kept as a backstop, see the template - would write the collection statuses rather
+  // than silently marking a collection order "out for delivery" if the exclusion is
+  // ever relaxed.
   acceptOrder(order: Order, event: Event): void {
     event.stopPropagation();
-    this.setStatus(order, 'OutForDelivery');
+    this.setStatus(order, order.isPickup ? 'ReadyForCollection' : 'OutForDelivery');
   }
 
   markDelivered(order: Order, event: Event): void {
     event.stopPropagation();
-    this.setStatus(order, 'Delivered');
+    this.setStatus(order, order.isPickup ? 'Collected' : 'Delivered');
   }
 
   private setStatus(order: Order, status: Order['status']): void {

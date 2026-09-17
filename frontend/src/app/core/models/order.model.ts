@@ -1,14 +1,44 @@
 import { PaymentMethod, PaymentStatus } from './checkout.model';
 
-export type OrderStatus = 'Pending' | 'Preparing' | 'OutForDelivery' | 'Delivered' | 'Cancelled';
+// ReadyForCollection/Collected mirror OutForDelivery/Delivered for orders the customer
+// picks up (see Order.isPickup). Kept in step with the backend OrderStatus enum, which is
+// persisted as a string, so these names are the stored values.
+export type OrderStatus =
+  | 'Pending'
+  | 'Preparing'
+  | 'OutForDelivery'
+  | 'Delivered'
+  | 'ReadyForCollection'
+  | 'Collected'
+  | 'Cancelled';
 
 export const ORDER_STATUSES: OrderStatus[] = [
   'Pending',
   'Preparing',
   'OutForDelivery',
   'Delivered',
+  'ReadyForCollection',
+  'Collected',
   'Cancelled'
 ];
+
+// The statuses that only make sense for one fulfilment mode - used to keep the admin's
+// status dropdown honest per order rather than offering "Collected" on a delivery.
+export const DELIVERY_ONLY_STATUSES: OrderStatus[] = ['OutForDelivery', 'Delivered'];
+export const COLLECTION_ONLY_STATUSES: OrderStatus[] = ['ReadyForCollection', 'Collected'];
+
+// What a human should read. The raw enum names leak straight into the customer's My
+// Orders list otherwise, which is how "OutForDelivery" ended up on screen - and adding
+// "ReadyForCollection" without this would have made that worse, not better.
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  Pending: 'Pending',
+  Preparing: 'Preparing',
+  OutForDelivery: 'Out for delivery',
+  Delivered: 'Delivered',
+  ReadyForCollection: 'Ready for collection',
+  Collected: 'Collected',
+  Cancelled: 'Cancelled'
+};
 
 export interface OrderItemAddOn {
   name: string;

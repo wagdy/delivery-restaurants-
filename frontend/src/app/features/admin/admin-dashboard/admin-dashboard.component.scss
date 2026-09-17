@@ -98,8 +98,13 @@
     grid-template-columns: repeat(3, 1fr);
   }
 
+  // auto-fit rather than a hardcoded count: the board had repeat(5, 1fr) baked in, which
+  // was exactly the number of statuses at the time, so adding the two collection statuses
+  // would have wrapped a kanban board onto a second row. The 180px floor keeps a card
+  // readable; .board already carries overflow-x: auto for the point where they no longer
+  // fit, so a wide board scrolls sideways instead of stacking.
   @media (min-width: 1280px) {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
 }
 
@@ -127,7 +132,10 @@
 .status-Pending { background: #f9a825; }
 .status-Preparing { background: #1e88e5; }
 .status-OutForDelivery { background: #fb8c00; }
+// Collection leg mirrors the delivery colours: same stage, same signal.
+.status-ReadyForCollection { background: #fb8c00; }
 .status-Delivered { background: #43a047; }
+.status-Collected { background: #43a047; }
 .status-Cancelled { background: #e53935; }
 
 .count {

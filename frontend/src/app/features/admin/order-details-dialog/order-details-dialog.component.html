@@ -1,6 +1,6 @@
 <h2 mat-dialog-title>
   Order #{{ order().id }}
-  <span class="status-chip" [class]="'status-' + order().status">{{ order().status }}</span>
+  <span class="status-chip" [class]="'status-' + order().status">{{ order().status | orderStatusLabel }}</span>
 </h2>
 
 <mat-dialog-content>
@@ -108,8 +108,8 @@
           (ngModelChange)="onStatusChange($event)"
           [disabled]="updatingStatus()"
         >
-          @for (status of statuses; track status) {
-            <mat-option [value]="status">{{ status }}</mat-option>
+          @for (status of statuses(); track status) {
+            <mat-option [value]="status">{{ status | orderStatusLabel }}</mat-option>
           }
         </mat-select>
       </mat-form-field>
@@ -117,16 +117,16 @@
       <div class="captain-actions">
         @if (canAccept) {
           <button mat-flat-button color="primary" [disabled]="updatingStatus()" (click)="acceptOrder()">
-            <mat-icon>local_shipping</mat-icon>
-            Accept &amp; start delivery
+            <mat-icon>{{ order().isPickup ? 'storefront' : 'local_shipping' }}</mat-icon>
+            {{ order().isPickup ? 'Mark ready for collection' : 'Accept &amp; start delivery' }}
           </button>
         } @else if (canMarkDelivered) {
           <button mat-flat-button color="primary" [disabled]="updatingStatus()" (click)="markDelivered()">
             <mat-icon>check_circle</mat-icon>
-            Mark delivered
+            {{ order().isPickup ? 'Mark collected' : 'Mark delivered' }}
           </button>
         } @else {
-          <span class="locked-note">No action needed — order is {{ order().status }}</span>
+          <span class="locked-note">No action needed — order is {{ order().status | orderStatusLabel }}</span>
         }
       </div>
     }
@@ -143,7 +143,7 @@
 <mat-dialog-actions align="end">
   @if (isAdmin()) {
     @if (!isEditable) {
-      <span class="locked-note">Locked — order is {{ order().status }}</span>
+      <span class="locked-note">Locked — order is {{ order().status | orderStatusLabel }}</span>
     }
     <button mat-button [disabled]="!isEditable" (click)="edit()">Edit</button>
     <button mat-button color="warn" [disabled]="deleting()" (click)="delete()">Delete</button>

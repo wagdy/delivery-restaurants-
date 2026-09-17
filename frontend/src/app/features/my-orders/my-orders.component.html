@@ -20,7 +20,7 @@
             <!-- Status, not the order number/ID - customers never see an order ID
                  anywhere in the app (see also WhatsAppNotificationService's order
                  confirmation, which has the same guard). -->
-            <mat-panel-title>{{ order.status }}</mat-panel-title>
+            <mat-panel-title>{{ order.status | orderStatusLabel }}</mat-panel-title>
             <mat-panel-description>
               <span class="order-date">{{ order.createdAt | date: 'medium' }}</span>
             </mat-panel-description>

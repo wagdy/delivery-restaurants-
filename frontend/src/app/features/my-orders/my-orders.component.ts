@@ -9,6 +9,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { OrderService } from '../../core/services/order.service';
 import { Order } from '../../core/models/order.model';
 import { AddOnNamesPipe } from '../../shared/pipes/add-on-names.pipe';
+import { OrderStatusLabelPipe } from '../../shared/pipes/order-status-label.pipe';
 
 @Component({
   selector: 'app-my-orders',
@@ -22,7 +23,8 @@ import { AddOnNamesPipe } from '../../shared/pipes/add-on-names.pipe';
     MatProgressSpinnerModule,
     MatExpansionModule,
     AddOnNamesPipe
-  ],
+  ,
+    OrderStatusLabelPipe],
   // OnPush: every piece of state this component renders is a signal, so Angular
   // can skip it entirely unless one of them actually changed. Without it, a paginated accordion of orders
   // was re-checked on every unrelated async event anywhere in the app.

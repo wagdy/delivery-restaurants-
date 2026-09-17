@@ -357,7 +357,7 @@
                   }
                 </td>
                 <td>L.E {{ order.totalAmount.toFixed(2) }}</td>
-                <td><span class="status-chip" [class]="'status-' + order.status">{{ order.status }}</span></td>
+                <td><span class="status-chip" [class]="'status-' + order.status">{{ order.status | orderStatusLabel }}</span></td>
                 <td>{{ order.createdAt | date: 'short' }}</td>
               </tr>
             } @empty {
@@ -380,10 +380,10 @@
       <p class="error-text">{{ errorMessage() }}</p>
     } @else {
       <div class="board">
-        @for (status of statuses; track status) {
+        @for (status of boardStatuses(); track status) {
           <div class="column">
             <div class="column-header" [class]="'status-' + status">
-              <span>{{ status }}</span>
+              <span>{{ status | orderStatusLabel }}</span>
               <span class="count">{{ columnOrders(status).length }}</span>
             </div>
 
@@ -412,8 +412,8 @@
                     (click)="$event.stopPropagation()"
                   >
                     <mat-select [ngModel]="order.status" (ngModelChange)="updateOrderStatus(order.id, $event)">
-                      @for (s of statuses; track s) {
-                        <mat-option [value]="s">{{ s }}</mat-option>
+                      @for (s of statusesFor(order); track s) {
+                        <mat-option [value]="s">{{ s | orderStatusLabel }}</mat-option>
                       }
                     </mat-select>
                   </mat-form-field>

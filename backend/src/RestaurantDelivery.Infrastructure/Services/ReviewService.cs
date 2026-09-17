@@ -167,9 +167,12 @@ public class ReviewService : IReviewService
                 return ServiceResult<OrderReviewDetailResponse>.Failure("Order not found.");
             }
 
-            if (order.Status != OrderStatus.Delivered)
+            // A collected pickup order is reviewable too - gating on Delivered alone
+            // would have refused every pickup customer who followed their own review link.
+            if (!OrderStatuses.IsFulfilled(order.Status))
             {
-                return ServiceResult<OrderReviewDetailResponse>.Failure("Only a delivered order can be reviewed.");
+                return ServiceResult<OrderReviewDetailResponse>.Failure(
+                    "Only a completed order can be reviewed.");
             }
 
             if (await _context.OrderReviews.AnyAsync(r => r.OrderId == orderId))

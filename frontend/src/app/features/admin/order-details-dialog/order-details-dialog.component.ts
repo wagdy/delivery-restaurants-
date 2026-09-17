@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,10 +10,17 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FormsModule } from '@angular/forms';
 import { OrderService } from '../../../core/services/order.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { ORDER_STATUSES, Order, OrderStatus } from '../../../core/models/order.model';
+import {
+  COLLECTION_ONLY_STATUSES,
+  DELIVERY_ONLY_STATUSES,
+  ORDER_STATUSES,
+  Order,
+  OrderStatus
+} from '../../../core/models/order.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { OrderFormDialogComponent } from '../order-form-dialog/order-form-dialog.component';
 import { AddOnNamesPipe } from '../../../shared/pipes/add-on-names.pipe';
+import { OrderStatusLabelPipe } from '../../../shared/pipes/order-status-label.pipe';
 
 @Component({
   selector: 'app-order-details-dialog',
@@ -29,7 +36,8 @@ import { AddOnNamesPipe } from '../../../shared/pipes/add-on-names.pipe';
     MatSelectModule,
     MatProgressSpinnerModule,
     AddOnNamesPipe
-  ],
+  ,
+    OrderStatusLabelPipe],
   templateUrl: './order-details-dialog.component.html',
   styleUrl: './order-details-dialog.component.scss'
 })
@@ -40,7 +48,13 @@ export class OrderDetailsDialogComponent {
   private readonly ref = inject(MatDialogRef<OrderDetailsDialogComponent>);
 
   readonly order = signal<Order>(inject(MAT_DIALOG_DATA));
-  readonly statuses = ORDER_STATUSES;
+  // Only the statuses that make sense for THIS order: offering "Collected" on a delivery
+  // (or "Out for delivery" on a collection) invites a mislabelled order, and the backend
+  // has no transition validation to catch it afterwards.
+  readonly statuses = computed(() => {
+    const excluded = this.order().isPickup ? DELIVERY_ONLY_STATUSES : COLLECTION_ONLY_STATUSES;
+    return ORDER_STATUSES.filter((s) => !excluded.includes(s));
+  });
   readonly updatingStatus = signal(false);
   readonly deleting = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -49,9 +63,12 @@ export class OrderDetailsDialogComponent {
   readonly isAdmin = this.authService.isAdmin;
   readonly isCaptain = this.authService.isCaptain;
 
+  // Collected belongs here alongside Delivered: the backend refuses to edit any finished
+  // order (OrderStatuses.IsFinal), so leaving it out would show an Edit button that only
+  // fails once pressed.
   get isEditable(): boolean {
     const status = this.order().status;
-    return status !== 'Delivered' && status !== 'Cancelled';
+    return status !== 'Delivered' && status !== 'Collected' && status !== 'Cancelled';
   }
 
   // A captain accepts a ready order (kitchen has it in Preparing) to start delivering it,
@@ -63,7 +80,8 @@ export class OrderDetailsDialogComponent {
   }
 
   get canMarkDelivered(): boolean {
-    return this.order().status === 'OutForDelivery';
+    const status = this.order().status;
+    return this.order().isPickup ? status === 'ReadyForCollection' : status === 'OutForDelivery';
   }
 
   // Green for Cash (money in hand, nothing further to reconcile), blue for the two
@@ -89,12 +107,14 @@ export class OrderDetailsDialogComponent {
     this.updateStatus(status);
   }
 
+  // A pickup order moves along the collection leg instead: the customer is never told
+  // their food is "out for delivery" and then "delivered" when nobody drove anywhere.
   acceptOrder(): void {
-    this.updateStatus('OutForDelivery');
+    this.updateStatus(this.order().isPickup ? 'ReadyForCollection' : 'OutForDelivery');
   }
 
   markDelivered(): void {
-    this.updateStatus('Delivered');
+    this.updateStatus(this.order().isPickup ? 'Collected' : 'Delivered');
   }
 
   private updateStatus(status: OrderStatus): void {

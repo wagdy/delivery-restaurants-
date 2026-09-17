@@ -21,10 +21,19 @@ import { AuthService } from '../../../core/services/auth.service';
 import { SettingsService } from '../../../core/services/settings.service';
 import { CheckoutService } from '../../../core/services/checkout.service';
 import { MenuItem } from '../../../core/models/menu-item.model';
-import { CreateOrderRequest, CustomerLookup, ORDER_STATUSES, Order, OrderStatus } from '../../../core/models/order.model';
+import {
+  COLLECTION_ONLY_STATUSES,
+  CreateOrderRequest,
+  CustomerLookup,
+  DELIVERY_ONLY_STATUSES,
+  ORDER_STATUSES,
+  Order,
+  OrderStatus
+} from '../../../core/models/order.model';
 import { ValidatePromoResponse } from '../../../core/models/checkout.model';
 import { OrderDetailsDialogComponent } from '../order-details-dialog/order-details-dialog.component';
 import { MenuItemComboboxComponent } from '../../../shared/menu-item-combobox/menu-item-combobox.component';
+import { OrderStatusLabelPipe } from '../../../shared/pipes/order-status-label.pipe';
 
 interface ReviewLine {
   menuItemId: number;
@@ -73,7 +82,8 @@ const TIME_ELAPSED_TICK_MS = 30_000;
     MatProgressSpinnerModule,
     MatToolbarModule,
     MenuItemComboboxComponent
-  ],
+  ,
+    OrderStatusLabelPipe],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss'
 })
@@ -93,10 +103,26 @@ export class AdminDashboardComponent implements OnInit {
   @ViewChild('fileInput') private readonly fileInput?: ElementRef<HTMLInputElement>;
 
   readonly activeTab = signal<DashboardTab>(firstAccessibleTab(this.authService));
-  // The Active Status board shows all 5 statuses side by side (Delivered/Cancelled
+  // The Active Status board shows every status side by side (Delivered/Cancelled
   // included) so an admin can see an order's full lifecycle at a glance - the All Orders
   // tab covers the same data as a searchable flat history table instead.
   readonly statuses = ORDER_STATUSES;
+
+  // ...except the two collection statuses, which only appear once there is actually a
+  // pickup order to put in them. A branch that does not offer pickup would otherwise
+  // stare at two permanently empty columns, and the board's grid is sized by column
+  // count - seven where five belong makes every card narrower for no one's benefit.
+  readonly boardStatuses = computed<OrderStatus[]>(() => {
+    const anyPickup = this.orders().some((o) => o.isPickup);
+    return anyPickup ? ORDER_STATUSES : ORDER_STATUSES.filter((s) => !COLLECTION_ONLY_STATUSES.includes(s));
+  });
+
+  // The per-order quick-change dropdown on a card: same rule as the details dialog, so
+  // "Collected" is never offered on a delivery or "Out for delivery" on a collection.
+  statusesFor(order: Order): OrderStatus[] {
+    const excluded = order.isPickup ? DELIVERY_ONLY_STATUSES : COLLECTION_ONLY_STATUSES;
+    return ORDER_STATUSES.filter((s) => !excluded.includes(s));
+  }
 
   // Ticks forward on its own (see the constructor) purely to keep columnOrders' cards'
   // "time elapsed" labels fresh - nothing else reads this signal.

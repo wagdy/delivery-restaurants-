@@ -251,7 +251,10 @@ public class OrderService : IOrderService
             return ServiceResult<OrderResponse>.Failure("Order not found.");
         }
 
-        if (order.Status is OrderStatus.Delivered or OrderStatus.Cancelled)
+        // IsFinal rather than naming statuses: a collected pickup order is just as
+        // finished as a delivered one, and a direct comparison here would have left it
+        // editable after the fact.
+        if (OrderStatuses.IsFinal(order.Status))
         {
             return ServiceResult<OrderResponse>.Failure($"Cannot edit an order that is already {order.Status}.");
         }
@@ -311,7 +314,10 @@ public class OrderService : IOrderService
 
         await _repository.SaveChangesAsync();
 
-        if (status == OrderStatus.Delivered && !alreadyProcessedForLoyalty)
+        // IsFulfilled, not == Delivered: a customer who collects their order has earned
+        // the same points as one who had it delivered, and gating on Delivered alone
+        // would have quietly stopped awarding points the moment pickup went live.
+        if (OrderStatuses.IsFulfilled(status) && !alreadyProcessedForLoyalty)
         {
             // Awards points/punches and returns the customer's post-award balance
             // (NewTotalPoints) - must never fail this method, ProcessOrderDeliveredAsync

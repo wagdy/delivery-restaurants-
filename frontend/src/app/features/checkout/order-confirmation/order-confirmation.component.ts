@@ -8,11 +8,12 @@ import { SettingsService } from '../../../core/services/settings.service';
 import { Order } from '../../../core/models/order.model';
 import { AddOnNamesPipe } from '../../../shared/pipes/add-on-names.pipe';
 import { estimatedDeliveryLabel as formatDeliveryLabel } from '../../../shared/utils/delivery-time.util';
+import { OrderStatusLabelPipe } from '../../../shared/pipes/order-status-label.pipe';
 
 @Component({
   selector: 'app-order-confirmation',
   standalone: true,
-  imports: [CommonModule, RouterLink, MatCardModule, MatButtonModule, MatIconModule, AddOnNamesPipe],
+  imports: [CommonModule, RouterLink, MatCardModule, MatButtonModule, MatIconModule, AddOnNamesPipe, OrderStatusLabelPipe],
   templateUrl: './order-confirmation.component.html',
   styleUrl: './order-confirmation.component.scss'
 })

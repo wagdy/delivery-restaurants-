@@ -19,7 +19,7 @@
     <mat-card class="order-card">
       <mat-card-header>
         <mat-card-title>Order Confirmation</mat-card-title>
-        <mat-card-subtitle>Status: {{ o.status }}</mat-card-subtitle>
+        <mat-card-subtitle>Status: {{ o.status | orderStatusLabel }}</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
         <div class="section">

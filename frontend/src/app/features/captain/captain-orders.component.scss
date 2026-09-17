@@ -64,6 +64,9 @@
 .order-card.status-Pending { border-left-color: #f9a825; }
 .order-card.status-Preparing { border-left-color: #1e88e5; }
 .order-card.status-OutForDelivery { border-left-color: #8e24aa; }
+// Collection leg mirrors the delivery colours: same stage, same signal.
+.order-card.status-ReadyForCollection { border-left-color: #8e24aa; }
+.order-card.status-Collected { border-left-color: #43a047; }
 .order-card.status-Delivered { border-left-color: #43a047; }
 .order-card.status-Cancelled { border-left-color: #e53935; }
 
@@ -99,6 +102,8 @@
 .status-chip.status-Pending { background: #f9a825; }
 .status-chip.status-Preparing { background: #1e88e5; }
 .status-chip.status-OutForDelivery { background: #8e24aa; }
+.status-chip.status-ReadyForCollection { background: #8e24aa; }
+.status-chip.status-Collected { background: #43a047; }
 .status-chip.status-Delivered { background: #43a047; }
 .status-chip.status-Cancelled { background: #e53935; }
 

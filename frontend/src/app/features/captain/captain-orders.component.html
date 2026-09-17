@@ -45,7 +45,7 @@
                 PICKUP
               </span>
             }
-            <span class="status-chip" [class]="'status-' + order.status">{{ order.status }}</span>
+            <span class="status-chip" [class]="'status-' + order.status">{{ order.status | orderStatusLabel }}</span>
             <span class="order-total">L.E {{ order.totalAmount.toFixed(2) }}</span>
           </div>
           <div class="customer-name">{{ order.customerName }} &middot; {{ order.customerPhone }}</div>
