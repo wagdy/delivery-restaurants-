@@ -27,6 +27,11 @@ import {
 export class CartItemComponent {
   readonly line = input.required<CartLine>();
 
+  // The cart drawer wants one-tap deletion at ANY quantity, which the pill alone cannot
+  // give: its trash only appears at one. Opt-in, because the checkout review step is
+  // happy with the pill.
+  readonly allowRemove = input(false);
+
   private readonly cart = inject(CartService);
   private readonly dialog = inject(MatDialog);
   protected readonly languageService = inject(LanguageService);
@@ -50,12 +55,22 @@ export class CartItemComponent {
   // number the customer is checking against their total.
   protected readonly lineTotal = computed(() => this.cart.lineUnitPrice(this.line()) * this.line().quantity);
 
+  // Only worth showing when it differs from the line total - at quantity one the two are
+  // the same number printed twice.
+  protected readonly unitPrice = computed(() => this.cart.lineUnitPrice(this.line()));
+  protected readonly showUnitPrice = computed(() => this.line().quantity > 1);
+
   // At one, decrementing would empty the line, so the control says so: a trash icon
   // rather than a minus that silently removes the item.
   protected readonly removesOnDecrement = computed(() => this.line().quantity <= 1);
 
   // Only offered when there is something to choose - a dish with no add-ons has nothing
   // to edit, and a pencil that opens a dialog with one button would be a dead end.
+  // Only above one. At a quantity of one the pill's own trash already deletes the line,
+  // and showing both put two different controls for the same destructive action on one
+  // row - which is the duplication allowRemove exists to avoid, not to create.
+  protected readonly showRemove = computed(() => this.allowRemove() && this.line().quantity > 1);
+
   protected readonly canEdit = computed(() => this.line().menuItem.addOns.length > 0);
 
   protected increment(): void {
@@ -66,6 +81,10 @@ export class CartItemComponent {
   // this is one call either way - the icon changes, the behaviour does not need to.
   protected decrement(): void {
     this.cart.decrement(this.lineKey());
+  }
+
+  protected removeLine(): void {
+    this.cart.remove(this.lineKey());
   }
 
   protected edit(): void {

@@ -175,3 +175,42 @@
     transition: none;
   }
 }
+
+// Sits under the line total, not beside it - at a glance the big number is what the line
+// costs, and this only qualifies it.
+.cart-item-unit {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #757575;
+}
+
+// Drawer only (see allowRemove). Quiet by default and destructive on interaction: it
+// deletes the whole line regardless of quantity, so it should not invite a stray tap.
+.cart-item-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: #d32f2f;
+    background: rgba(211, 47, 47, 0.08);
+  }
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+  }
+}

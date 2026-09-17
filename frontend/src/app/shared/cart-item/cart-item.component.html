@@ -15,7 +15,15 @@
       </button>
     }
 
-    <p class="cart-item-price">EGP {{ lineTotal().toFixed(2) }}</p>
+    <!-- L.E, not EGP: the same currency, but every other price in this app is written
+         L.E (53 places), and two labels for one currency on a single screen reads as two
+         currencies. -->
+    <p class="cart-item-price">
+      L.E {{ lineTotal().toFixed(2) }}
+      @if (showUnitPrice()) {
+        <span class="cart-item-unit">L.E {{ unitPrice().toFixed(2) }} each</span>
+      }
+    </p>
   </div>
 
   <div class="cart-item-visuals">
@@ -55,5 +63,12 @@
         <mat-icon>add</mat-icon>
       </button>
     </div>
+
+    @if (showRemove()) {
+      <button type="button" class="cart-item-remove" (click)="removeLine()" aria-label="Remove from order">
+        <mat-icon>delete_outline</mat-icon>
+        Remove
+      </button>
+    }
   </div>
 </article>

@@ -6,10 +6,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../../core/services/auth.service';
 import { CartService } from '../../../core/services/cart.service';
 import { SettingsService } from '../../../core/services/settings.service';
-import { AddOnNamesPipe } from '../../../shared/pipes/add-on-names.pipe';
+import { CartItemComponent } from '../../../shared/cart-item/cart-item.component';
 import { estimatedDeliveryLabel as formatDeliveryLabel } from '../../../shared/utils/delivery-time.util';
-import { LocalNamePipe } from '../../../shared/pipes/local-name.pipe';
-import { LanguageService } from '../../../core/services/language.service';
 
 // The minimal slice of MatSidenav this component actually needs to close itself - mirrors
 // AppComponent.selectCategory's own `drawer: { close: () => void }` parameter, the
@@ -22,7 +20,7 @@ export interface DrawerHandle {
 @Component({
   selector: 'app-cart-drawer',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, AddOnNamesPipe, LocalNamePipe],
+  imports: [CommonModule, MatButtonModule, MatIconModule, CartItemComponent],
   // OnPush: every piece of state this component renders is a signal, so Angular
   // can skip it entirely unless one of them actually changed. Without it, the cart sheet, re-rendered on every quantity change
   // was re-checked on every unrelated async event anywhere in the app.
@@ -37,7 +35,6 @@ export class CartDrawerComponent {
   readonly drawer = input.required<DrawerHandle>();
 
   protected readonly cart = inject(CartService);
-  protected readonly languageService = inject(LanguageService);
   protected readonly settingsService = inject(SettingsService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
