@@ -106,6 +106,10 @@ export interface CreateOrderRequest {
   customerName: string;
   customerPhone: string;
   deliveryAddress: string;
+  // The customer's "Special request" from the review step. Lands in Order.notes, which
+  // the admin order-details dialog already displays - see CreateOrderRequest.cs for why
+  // this reuses that column rather than adding a second free-text field.
+  notes?: string | null;
   items: OrderItemRequest[];
   paymentMethod: PaymentMethod;
   // Re-validated server-side against the live PromoCodes table - never trusted at face

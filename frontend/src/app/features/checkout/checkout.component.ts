@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -106,8 +106,43 @@ export class CheckoutComponent {
     // Pickup only. Folded into the same free-text address column on submit, for the same
     // reason deliveryNotes is: there is no pickup-time field on the order, and a chosen
     // time nobody in the branch can see would be worse than none at all.
-    pickupTime: ['asap', [Validators.maxLength(50)]]
+    pickupTime: ['asap', [Validators.maxLength(50)]],
+    // "Special request" on the review step. Sent as CreateOrderRequest.Notes, whose
+    // column is MaxLength(1000) - matched here so an over-long note is caught while the
+    // customer is still looking at the box rather than as a server error after submit.
+    specialRequest: ['', [Validators.maxLength(1000)]]
   });
+
+  // ---------------------------------------------------------------------------
+  // Two-step flow: review what you ordered, then say where it goes
+  // ---------------------------------------------------------------------------
+
+  // 1 = review the order, 2 = delivery details and payment. The old layout put delivery
+  // first and buried the summary below the Place order button, so the thing a customer
+  // most wants to check before committing was the last thing they could see.
+  readonly step = signal<1 | 2>(1);
+
+  @ViewChild('stepHeading') private stepHeadingRef?: ElementRef<HTMLElement>;
+
+  protected goToDeliveryStep(): void {
+    this.step.set(2);
+    this.focusStepHeading();
+  }
+
+  protected backToReviewStep(): void {
+    this.step.set(1);
+    this.focusStepHeading();
+  }
+
+  // Swapping the step replaces the whole view, and without this the page keeps the
+  // scroll position of the step that just left - on a long order that drops the customer
+  // into the middle of the new step. Moving focus to the new heading also tells a screen
+  // reader that the view changed, which a plain signal flip does not.
+  private focusStepHeading(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // After the @if has actually swapped the DOM, not before.
+    setTimeout(() => this.stepHeadingRef?.nativeElement.focus(), 0);
+  }
 
   // ---------------------------------------------------------------------------
   // Delivery vs store pickup
@@ -360,6 +395,16 @@ export class CheckoutComponent {
   }
 
   placeOrder(): void {
+    // Both steps now live inside one <form>, so pressing Enter in any field on the review
+    // step - the promo code box, the special request - would otherwise submit the whole
+    // order. For a signed-in customer with a saved address the form can already be valid
+    // at that point, so the order would go through before they had seen the delivery step
+    // at all. The Place order button only exists on step 2; this makes that the rule
+    // rather than a coincidence of layout.
+    if (this.step() !== 2) {
+      return;
+    }
+
     const method = this.paymentMethod();
     if (this.form.invalid || this.cart.lines().length === 0 || !method) {
       this.form.markAllAsTouched();
@@ -406,7 +451,9 @@ export class CheckoutComponent {
       paymentMethod: method,
       promoCodeText: this.promoResult() ? this.promoCodeInput().trim() : null,
       deliveryFee: this.effectiveDeliveryFee(),
-      isPickup: this.isPickup()
+      isPickup: this.isPickup(),
+      // Stored in Order.Notes, which the admin order-details dialog already renders.
+      notes: raw.specialRequest.trim() || null
     };
 
     this.orderService.create(request).subscribe({

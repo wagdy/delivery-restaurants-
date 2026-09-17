@@ -11,21 +11,168 @@
       Estimated delivery: {{ estimatedDeliveryLabel() }}
     </div>
 
+    <!-- Reflects the flow the customer actually walks: check the order, then say where
+         it goes. The old strip claimed Delivery -> Payment -> Review while the page
+         showed delivery first and the summary last, below the Place order button. -->
     <nav class="checkout-steps" aria-hidden="true">
-      <span class="checkout-step active"><span class="step-dot">1</span>Delivery</span>
-      <span class="checkout-step-line"></span>
-      <span class="checkout-step" [class.active]="paymentMethod()"><span class="step-dot">2</span>Payment</span>
-      <span class="checkout-step-line"></span>
-      <span class="checkout-step"><span class="step-dot">3</span>Review</span>
+      <span class="checkout-step" [class.active]="step() === 1" [class.done]="step() === 2">
+        <span class="step-dot">1</span>Your order
+      </span>
+      <span class="checkout-step-line" [class.done]="step() === 2"></span>
+      <span class="checkout-step" [class.active]="step() === 2">
+        <span class="step-dot">2</span>Delivery &amp; payment
+      </span>
     </nav>
 
-    <div class="checkout-layout">
+    <!-- One form spanning both steps so the special request on step 1 and the address on
+         step 2 are the same FormGroup. placeOrder() refuses to run unless step() is 2 -
+         see its own comment for why that guard is load-bearing rather than tidiness. -->
+    <form [formGroup]="form" (ngSubmit)="placeOrder()">
+      <div class="checkout-flow">
+        <!-- tabindex -1 so focusStepHeading() can move focus here on a step change; a
+             screen reader is otherwise given no signal that the view swapped. -->
+        <h2 #stepHeading class="step-heading" tabindex="-1">
+          {{ step() === 1 ? 'Review your order' : 'Delivery details' }}
+        </h2>
+
+        @if (step() === 1) {
+      <mat-card class="summary-card">
+        <mat-card-content>
+          @for (line of cart.lines(); track cart.keyFor(line)) {
+            <div class="summary-line">
+              <span>
+                {{ line.quantity }} × {{ line.menuItem | localName: languageService.language() }}
+                @if (affectedMenuItemIds().has(line.menuItem.id)) {
+                  <mat-icon class="discount-tag" inline>local_offer</mat-icon>
+                }
+                @if (line.selectedAddOns.length > 0) {
+                  <span class="summary-addons">+ {{ line.selectedAddOns | addOnNames }}</span>
+                }
+              </span>
+              <span>L.E {{ (cart.lineUnitPrice(line) * line.quantity).toFixed(2) }}</span>
+            </div>
+          }
+
+          <!-- Goes to Order.notes, which the admin order-details dialog already shows -
+               see CreateOrderRequest.cs for why this reuses that column. -->
+          <div class="special-request">
+            <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
+              <mat-label>Special request</mat-label>
+              <mat-icon matPrefix>edit_note</mat-icon>
+              <textarea
+                matInput
+                formControlName="specialRequest"
+                rows="2"
+                maxlength="1000"
+                placeholder="Anything else we need to know? e.g. no onions, extra napkins"
+              ></textarea>
+            </mat-form-field>
+            @if (form.controls.specialRequest.touched && form.controls.specialRequest.invalid) {
+              <div class="field-alert standalone" role="alert">
+                <mat-icon aria-hidden="true">warning</mat-icon>
+                <span>Please keep your request under 1000 characters.</span>
+              </div>
+            }
+          </div>
+
+          <div class="promo-section">
+            @if (promoResult(); as promo) {
+              <div class="promo-applied">
+                <mat-icon>local_offer</mat-icon>
+                <div class="promo-applied-text">
+                  <p class="promo-code-label">{{ promoCodeInput() | uppercase }} applied</p>
+                  <p class="promo-description">{{ promo.description }}</p>
+                </div>
+                <button mat-icon-button type="button" (click)="removePromoCode()" aria-label="Remove promo code">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            } @else {
+              <div class="promo-input-row">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="promo-input">
+                  <mat-label>Promo code</mat-label>
+                  <input
+                    matInput
+                    [ngModel]="promoCodeInput()"
+                    (ngModelChange)="promoCodeInput.set($event)"
+                    [ngModelOptions]="{ standalone: true }"
+                    placeholder="e.g. SAVE10"
+                  />
+                </mat-form-field>
+                <button
+                  mat-stroked-button
+                  type="button"
+                  [disabled]="applyingPromo() || !promoCodeInput().trim()"
+                  (click)="applyPromoCode()"
+                >
+                  @if (applyingPromo()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    Apply
+                  }
+                </button>
+              </div>
+              @if (promoError()) {
+                <p class="error-text promo-error">{{ promoError() }}</p>
+              }
+            }
+          </div>
+
+          <div class="totals">
+            <div class="totals-row">
+              <span>Subtotal</span>
+              <span>L.E {{ cart.subtotal().toFixed(2) }}</span>
+            </div>
+            @if (discountAmount() > 0) {
+              <div class="totals-row discount-row">
+                <span>Discount</span>
+                <span>-L.E {{ discountAmount().toFixed(2) }}</span>
+              </div>
+            }
+            <div class="totals-row">
+              <span>{{ isPickup() ? 'Delivery fee (pickup)' : 'Delivery fee' }}</span>
+              <span>L.E {{ effectiveDeliveryFee().toFixed(2) }}</span>
+            </div>
+            @if (deliveryDiscountAmount() > 0) {
+              <div class="totals-row discount-row">
+                <span>Delivery discount</span>
+                <span>-L.E {{ deliveryDiscountAmount().toFixed(2) }}</span>
+              </div>
+            }
+            @if (taxAmount() > 0) {
+              <div class="totals-row">
+                <span>Tax</span>
+                <span>L.E {{ taxAmount().toFixed(2) }}</span>
+              </div>
+            }
+            <div class="totals-row total">
+              <span>Final total</span>
+              <span>L.E {{ finalTotal().toFixed(2) }}</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+          <div class="step-actions">
+            <button
+              mat-flat-button
+              color="primary"
+              type="button"
+              class="continue-button"
+              (click)="goToDeliveryStep()"
+            >
+              Continue to checkout
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </div>
+        } @else {
+          <button type="button" class="back-to-review" (click)="backToReviewStep()">
+            <mat-icon>arrow_back</mat-icon>
+            Back to your order
+          </button>
+
       <mat-card class="details-card">
         <mat-card-header>
-          <mat-card-title>
-            <span class="step-badge">1</span>
-            Delivery details
-          </mat-card-title>
           @if (authService.isAuthenticated()) {
             <mat-card-subtitle>Signed in as {{ authService.currentUser()?.fullName }}</mat-card-subtitle>
           } @else {
@@ -33,7 +180,6 @@
           }
         </mat-card-header>
 
-        <form [formGroup]="form" (ngSubmit)="placeOrder()">
           <mat-card-content>
             <!-- Both options always render. Store Pickup stays visible and clickable even
                  when the branch has it switched off, so customers learn the service exists
@@ -219,10 +365,10 @@
             }
 
             <div class="payment-methods">
-              <span class="field-label">
-                <span class="step-badge small">2</span>
-                Payment method
-              </span>
+              <!-- The "2" badge that used to sit here belonged to the old in-card
+                   numbering (1 Delivery / 2 Payment / 3 Review). Step 2 of the flow is now
+                   this whole section, so a second "2" inside it numbered nothing. -->
+              <span class="field-label">Payment method</span>
 
               @if (enabledPaymentMethods().length === 0) {
                 <p class="error-text">No payment methods are currently available. Please contact us to place an order.</p>
@@ -274,109 +420,9 @@
               }
             </button>
           </mat-card-actions>
-        </form>
       </mat-card>
-
-      <mat-card class="summary-card">
-        <mat-card-header>
-          <mat-card-title>
-            <span class="step-badge">3</span>
-            Order summary
-          </mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          @for (line of cart.lines(); track cart.keyFor(line)) {
-            <div class="summary-line">
-              <span>
-                {{ line.quantity }} × {{ line.menuItem | localName: languageService.language() }}
-                @if (affectedMenuItemIds().has(line.menuItem.id)) {
-                  <mat-icon class="discount-tag" inline>local_offer</mat-icon>
-                }
-                @if (line.selectedAddOns.length > 0) {
-                  <span class="summary-addons">+ {{ line.selectedAddOns | addOnNames }}</span>
-                }
-              </span>
-              <span>L.E {{ (cart.lineUnitPrice(line) * line.quantity).toFixed(2) }}</span>
-            </div>
-          }
-
-          <div class="promo-section">
-            @if (promoResult(); as promo) {
-              <div class="promo-applied">
-                <mat-icon>local_offer</mat-icon>
-                <div class="promo-applied-text">
-                  <p class="promo-code-label">{{ promoCodeInput() | uppercase }} applied</p>
-                  <p class="promo-description">{{ promo.description }}</p>
-                </div>
-                <button mat-icon-button type="button" (click)="removePromoCode()" aria-label="Remove promo code">
-                  <mat-icon>close</mat-icon>
-                </button>
-              </div>
-            } @else {
-              <div class="promo-input-row">
-                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="promo-input">
-                  <mat-label>Promo code</mat-label>
-                  <input
-                    matInput
-                    [ngModel]="promoCodeInput()"
-                    (ngModelChange)="promoCodeInput.set($event)"
-                    [ngModelOptions]="{ standalone: true }"
-                    placeholder="e.g. SAVE10"
-                  />
-                </mat-form-field>
-                <button
-                  mat-stroked-button
-                  type="button"
-                  [disabled]="applyingPromo() || !promoCodeInput().trim()"
-                  (click)="applyPromoCode()"
-                >
-                  @if (applyingPromo()) {
-                    <mat-spinner diameter="18"></mat-spinner>
-                  } @else {
-                    Apply
-                  }
-                </button>
-              </div>
-              @if (promoError()) {
-                <p class="error-text promo-error">{{ promoError() }}</p>
-              }
-            }
-          </div>
-
-          <div class="totals">
-            <div class="totals-row">
-              <span>Subtotal</span>
-              <span>L.E {{ cart.subtotal().toFixed(2) }}</span>
-            </div>
-            @if (discountAmount() > 0) {
-              <div class="totals-row discount-row">
-                <span>Discount</span>
-                <span>-L.E {{ discountAmount().toFixed(2) }}</span>
-              </div>
-            }
-            <div class="totals-row">
-              <span>{{ isPickup() ? 'Delivery fee (pickup)' : 'Delivery fee' }}</span>
-              <span>L.E {{ effectiveDeliveryFee().toFixed(2) }}</span>
-            </div>
-            @if (deliveryDiscountAmount() > 0) {
-              <div class="totals-row discount-row">
-                <span>Delivery discount</span>
-                <span>-L.E {{ deliveryDiscountAmount().toFixed(2) }}</span>
-              </div>
-            }
-            @if (taxAmount() > 0) {
-              <div class="totals-row">
-                <span>Tax</span>
-                <span>L.E {{ taxAmount().toFixed(2) }}</span>
-              </div>
-            }
-            <div class="totals-row total">
-              <span>Final total</span>
-              <span>L.E {{ finalTotal().toFixed(2) }}</span>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    </div>
+        }
+      </div>
+    </form>
   }
 </div>

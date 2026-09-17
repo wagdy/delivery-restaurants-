@@ -30,6 +30,16 @@ public class CreateOrderRequest
     [MaxLength(50)]
     public string? PromoCodeText { get; set; }
 
+    // The customer's "Special request" box at checkout - "no onions", "ring the top
+    // bell", that sort of thing. Stored in the Order.Notes column that already existed
+    // (MaxLength 1000) rather than a new SpecialRequest one: that column is already
+    // surfaced on OrderResponse and already rendered to staff in the admin order-details
+    // dialog, and until now nothing but the bulk Excel import could write it. A second
+    // free-text field would have needed a migration and its own display, and left two
+    // near-identical notes on the same order.
+    [MaxLength(1000)]
+    public string? Notes { get; set; }
+
     // Store pickup instead of delivery. Re-validated server-side against
     // RestaurantSettings.IsPickupEnabled (see OrderService.CreateAsync) rather than
     // trusted: this endpoint takes guest orders with no token at all, so an unchecked

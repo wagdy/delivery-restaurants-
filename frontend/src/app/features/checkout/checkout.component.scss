@@ -69,26 +69,6 @@
   background: rgba(0, 0, 0, 0.1);
 }
 
-.step-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--app-primary-color, #3f51b5);
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: 700;
-  margin-right: 8px;
-
-  &.small {
-    width: 20px;
-    height: 20px;
-    font-size: 0.68rem;
-  }
-}
-
 .empty-cart-notice {
   text-align: center;
   padding: 64px 16px;
@@ -99,30 +79,104 @@
   }
 }
 
-.checkout-layout {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 24px;
-  align-items: start;
+// Replaces the old two-column grid (form left, summary right, summary sticky). The flow
+// is sequential now - one step at a time - so a side-by-side split has nothing to put in
+// the second column, and the sticky summary it used to hold is the step's own content.
+.checkout-flow {
+  max-width: 620px;
+  margin: 0 auto;
+  // Room for the sticky action bar below, so the last card is never hidden under it.
+  padding-bottom: 96px;
 }
 
-@media (max-width: 720px) {
-  .checkout-layout {
-    grid-template-columns: 1fr;
+.step-heading {
+  margin: 0 0 16px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.87);
+
+  // Focused programmatically on every step change (see focusStepHeading) purely to move
+  // the screen reader; a visible ring on a heading nobody clicked would be noise.
+  &:focus {
+    outline: none;
   }
 }
 
-@media (min-width: 721px) {
-  .summary-card {
-    position: sticky;
-    top: 88px;
+.back-to-review {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 14px;
+  padding: 6px 12px 6px 8px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--app-primary-color, #3f51b5);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in srgb, var(--app-primary-color, #3f51b5) 8%, transparent);
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
   }
 }
 
-@media (min-width: 1120px) {
-  .summary-card {
-    top: 104px;
+// Sticky rather than inline: on a long order the Continue button would otherwise sit
+// below the totals, off-screen, and the customer has no reason to scroll past a total
+// they have already read.
+.step-actions {
+  position: sticky;
+  bottom: 0;
+  margin-top: 16px;
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, var(--app-body-color, #fafafa) 72%, transparent);
+}
+
+.continue-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 0;
+  font-size: 1rem;
+  font-weight: 700;
+
+  // Material hoists mat-icon ahead of its .mdc-button__label in the rendered button
+  // regardless of where it sits in the template, which put the arrow on the LEFT of
+  // "Continue to checkout". Ordering it explicitly is what actually moves it.
+  mat-icon {
+    order: 1;
+    margin: 0;
   }
+}
+
+// The done state is new: the strip now tracks two real steps, so step 1 has to be able
+// to show as completed once the customer moves past it.
+.checkout-step.done {
+  color: rgba(0, 0, 0, 0.6);
+
+  .step-dot {
+    background: var(--app-primary-color, #3f51b5);
+    color: #fff;
+  }
+}
+
+.checkout-step-line.done {
+  background: var(--app-primary-color, #3f51b5);
+}
+
+.special-request {
+  margin: 4px 0 12px;
 }
 
 .full-width {

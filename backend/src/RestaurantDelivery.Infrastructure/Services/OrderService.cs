@@ -154,6 +154,7 @@ public class OrderService : IOrderService
             TaxAmount = taxAmount,
             DeliveryFee = deliveryFee,
             IsPickup = request.IsPickup,
+            Notes = OptionalText.NullIfBlank(request.Notes),
             PaymentMethod = request.PaymentMethod,
             PaymentStatus = request.PaymentMethod == PaymentMethod.Visa ? PaymentStatus.Pending : PaymentStatus.Confirmed,
             OrderItems = orderItems
