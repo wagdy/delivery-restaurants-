@@ -1,7 +1,9 @@
+// Every rounded form control on this page: the special request row, the promo pill, and
+// the .field-shell that the name/phone/address/notes inputs sit in.
+//
 // Split out of checkout.component.scss to stay inside Angular's per-stylesheet budget
-// (8kB error) - the main file went 1.48kB over once these landed. All three files are
-// listed in the component's styleUrls, so the cascade is unchanged; the budget is
-// measured per file, not per component.
+// (8kB error). All three files are listed in the component's styleUrls, so the cascade
+// is unchanged; the budget is measured per file, not per component.
 
 // ---------------------------------------------------------------------------
 // Special request / promo code - written as plain elements rather than
@@ -199,6 +201,141 @@
   .request-row,
   .promo-pill,
   .promo-submit {
+    transition: none;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// .field-shell - the rounded container the plain inputs sit in.
+//
+// Same treatment as .request-row above, which is why the two are described
+// together: a 16px radius to match the cards around them, a light border that
+// takes the brand colour on focus, and the icon inside rather than bolted to
+// the left of a Material outline. A <label>, so clicking anywhere in the shell
+// - including the icon - focuses the field.
+// ---------------------------------------------------------------------------
+.field-shell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 0 14px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 16px;
+  background: #fff;
+  cursor: text;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: rgba(0, 0, 0, 0.22);
+  }
+
+  // The ring lives on the shell because the control inside is borderless - without
+  // :focus-within a keyboard user would get no focus indication at all.
+  &:focus-within {
+    border-color: var(--app-primary-color, #3f51b5);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-primary-color, #3f51b5) 12%, transparent);
+  }
+
+  // Material used to colour its own outline when a control went invalid. Nothing does
+  // that for a plain input, so the shell has to - otherwise the alert below the field
+  // is the only signal, and the field it refers to looks perfectly fine.
+  &.is-invalid {
+    border-color: #d32f2f;
+
+    &:focus-within {
+      box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.14);
+    }
+  }
+}
+
+.field-icon {
+  flex: 0 0 auto;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: rgba(0, 0, 0, 0.4);
+
+  .field-shell:focus-within & {
+    color: var(--app-primary-color, #3f51b5);
+  }
+
+  .field-shell.is-invalid & {
+    color: #d32f2f;
+  }
+}
+
+// Borderless: the shell owns the border, the background and the focus ring.
+.field-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 14px 0;
+  border: none;
+  outline: none;
+  background: none;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.87);
+
+  &::placeholder {
+    color: #9e9e9e;
+    font-weight: 400;
+  }
+}
+
+// A native <select> rather than mat-select: it inherits the shell like every other
+// control here instead of needing its own overrides, and on a phone it opens the OS
+// picker, which is a better way to choose a time than a floating panel.
+select.field-input {
+  cursor: pointer;
+  // Strips the platform chrome so the custom chevron beside it is the only one.
+  appearance: none;
+}
+
+.field-chevron {
+  flex: 0 0 auto;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+// The expand link above the notes field. A text action in the brand colour, not a
+// button that competes with Place order below it.
+.add-notes-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 14px;
+  padding: 6px 10px 6px 6px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--app-primary-color, #3f51b5);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in srgb, var(--app-primary-color, #3f51b5) 10%, transparent);
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field-shell,
+  .add-notes-toggle {
     transition: none;
   }
 }

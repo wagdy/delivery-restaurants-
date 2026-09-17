@@ -175,15 +175,6 @@
   background: var(--app-primary-color, #3f51b5);
 }
 
-.full-width {
-  width: 100%;
-
-  mat-icon[matPrefix] {
-    margin-right: 8px;
-    color: rgba(0, 0, 0, 0.4);
-  }
-}
-
 // Shown instead of the name/phone inputs for a signed-in customer whose profile already
 // holds valid values. Tinted with the restaurant's own primary colour rather than a fixed
 // hue so it reads as part of the brand on whatever palette the admin has set.
@@ -309,27 +300,6 @@
   font-size: 0.75rem;
   color: rgba(0, 0, 0, 0.6);
   margin-bottom: 6px;
-}
-
-.add-notes-toggle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  border: none;
-  background: none;
-  padding: 0;
-  margin: -4px 0 12px;
-  font-family: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--app-primary-color, #3f51b5);
-  cursor: pointer;
-
-  mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-  }
 }
 
 .payment-methods {

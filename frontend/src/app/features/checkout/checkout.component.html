@@ -289,11 +289,18 @@
                 </button>
               </div>
             } @else {
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Full name</mat-label>
-                <mat-icon matPrefix>person_outline</mat-icon>
-                <input matInput formControlName="customerName" autocomplete="name" />
-              </mat-form-field>
+              <!-- The placeholder carries the label here, so the accessible name has to
+                   come from aria-label - a placeholder is not a label. -->
+              <label class="field-shell" [class.is-invalid]="form.controls.customerName.touched && form.controls.customerName.invalid">
+                <mat-icon class="field-icon" aria-hidden="true">person_outline</mat-icon>
+                <input
+                  class="field-input"
+                  formControlName="customerName"
+                  autocomplete="name"
+                  placeholder="Your full name"
+                  aria-label="Full name"
+                />
+              </label>
 
               @if (form.controls.customerName.touched && form.controls.customerName.invalid) {
                 <div class="field-alert" role="alert">
@@ -310,22 +317,22 @@
                 </div>
               }
 
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Phone</mat-label>
-                <mat-icon matPrefix>call</mat-icon>
+              <label class="field-shell" [class.is-invalid]="form.controls.customerPhone.touched && form.controls.customerPhone.invalid">
+                <mat-icon class="field-icon" aria-hidden="true">call</mat-icon>
                 <!-- inputmode numeric brings up the digit keypad on a phone; onPhoneInput
                      strips anything non-numeric so a pasted "+20 10 1234 5678" is cleaned
                      rather than rejected. -->
                 <input
-                  matInput
+                  class="field-input"
                   formControlName="customerPhone"
                   inputmode="numeric"
                   autocomplete="tel"
                   maxlength="11"
                   placeholder="01xxxxxxxxx"
+                  aria-label="Phone number"
                   (input)="onPhoneInput($event)"
                 />
-              </mat-form-field>
+              </label>
 
               @if (form.controls.customerPhone.touched && form.controls.customerPhone.invalid) {
                 <div class="field-alert" role="alert">
@@ -361,21 +368,26 @@
                 </div>
               </div>
 
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Pickup time</mat-label>
-                <mat-icon matPrefix>schedule</mat-icon>
-                <mat-select formControlName="pickupTime">
+              <label class="field-shell">
+                <mat-icon class="field-icon" aria-hidden="true">schedule</mat-icon>
+                <select class="field-input" formControlName="pickupTime" aria-label="Pickup time">
                   @for (option of pickupTimeOptions; track option.value) {
-                    <mat-option [value]="option.value">{{ option.label }}</mat-option>
+                    <option [value]="option.value">{{ option.label }}</option>
                   }
-                </mat-select>
-              </mat-form-field>
+                </select>
+                <mat-icon class="field-chevron" aria-hidden="true">expand_more</mat-icon>
+              </label>
             } @else {
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Delivery address</mat-label>
-                <mat-icon matPrefix>location_on</mat-icon>
-                <input matInput formControlName="deliveryAddress" autocomplete="street-address" />
-              </mat-form-field>
+              <label class="field-shell" [class.is-invalid]="form.controls.deliveryAddress.touched && form.controls.deliveryAddress.invalid">
+                <mat-icon class="field-icon" aria-hidden="true">location_on</mat-icon>
+                <input
+                  class="field-input"
+                  formControlName="deliveryAddress"
+                  autocomplete="street-address"
+                  placeholder="Enter your delivery address"
+                  aria-label="Delivery address"
+                />
+              </label>
 
               @if (form.controls.deliveryAddress.touched && form.controls.deliveryAddress.invalid) {
                 <div class="field-alert" role="alert">
@@ -396,11 +408,15 @@
                   Add apartment/floor/notes
                 </button>
               } @else {
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Apartment, floor, landmark (optional)</mat-label>
-                  <mat-icon matPrefix>note_alt</mat-icon>
-                  <input matInput formControlName="deliveryNotes" placeholder="e.g. Apt 4, 2nd floor, near the pharmacy" />
-                </mat-form-field>
+                <label class="field-shell" [class.is-invalid]="form.controls.deliveryNotes.touched && form.controls.deliveryNotes.invalid">
+                  <mat-icon class="field-icon" aria-hidden="true">note_alt</mat-icon>
+                  <input
+                    class="field-input"
+                    formControlName="deliveryNotes"
+                    placeholder="Apartment, floor, landmark (optional)"
+                    aria-label="Apartment, floor or landmark"
+                  />
+                </label>
               }
             }
 
