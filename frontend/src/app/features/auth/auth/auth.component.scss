@@ -1,3 +1,5 @@
+@use '../../../shared/styles/field-shell';
+
 @use '../../../shared/styles/field-alert';
 
 .auth-card {
@@ -16,14 +18,6 @@
   margin: 16px 0 12px;
 }
 
-.full-width {
-  width: 100%;
-
-  mat-icon[matPrefix] {
-    margin-right: 8px;
-    color: rgba(0, 0, 0, 0.4);
-  }
-}
 
 // Equivalent to Tailwind's `flex items-center justify-between` - this project has no
 // Tailwind installed, so plain CSS instead, matching every other component's substitution
@@ -132,4 +126,33 @@
   .submit-button {
     transition: none !important;
   }
+}
+
+// The auth card fills its inputs light grey rather than white - the card itself is
+// white, so a white field inside it would read as a flat panel with a hairline rather
+// than as something you type into. Set on the form so every shell inside inherits it;
+// the checkout keeps the default white.
+.auth-form {
+  --field-shell-bg: #f7f7f8;
+}
+
+.field-group {
+  margin-bottom: 14px;
+}
+
+// Replaces Material's floating label: a static headline above the field, always
+// readable, never overlapping the value. Bold and dark so it reads as a heading for
+// the input rather than as placeholder text that happens to sit outside the box.
+.input-headline {
+  display: block;
+  margin: 0 0 6px 2px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.78);
+  letter-spacing: 0.01em;
+}
+
+// The shells are inside .field-group, which already carries the gap between fields.
+.field-group .field-shell {
+  margin-bottom: 0;
 }

@@ -21,11 +21,20 @@
           <mat-card-content>
             <p class="tab-subtitle">Log in with your email or phone number</p>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Email or Phone Number</mat-label>
-              <mat-icon matPrefix>person_outline</mat-icon>
-              <input matInput formControlName="identifier" autocomplete="username" />
-            </mat-form-field>
+            <div class="field-group">
+              <label class="input-headline" [for]="'identifier-input'">Email or Phone Number</label>
+              <label class="field-shell" [class.is-invalid]="loginForm.controls.identifier.touched && loginForm.controls.identifier.invalid">
+                <mat-icon class="field-icon" aria-hidden="true">person_outline</mat-icon>
+                <input
+                  id="identifier-input"
+                  class="field-input"
+                formControlName="identifier"
+                autocomplete="username"
+                aria-label="Email or Phone Number"
+                placeholder="you@example.com or 01xxxxxxxxx"
+                />
+              </label>
+            </div>
 
             <!-- Same .field-alert treatment as Register and checkout. No format rule on
                  this field on purpose: it accepts either an email or a phone, and staff
@@ -38,11 +47,21 @@
               </div>
             }
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Password</mat-label>
-              <mat-icon matPrefix>lock_outline</mat-icon>
-              <input matInput type="password" formControlName="password" autocomplete="current-password" />
-            </mat-form-field>
+            <div class="field-group">
+              <label class="input-headline" [for]="'password-input'">Password</label>
+              <label class="field-shell" [class.is-invalid]="loginForm.controls.password.touched && loginForm.controls.password.invalid">
+                <mat-icon class="field-icon" aria-hidden="true">lock_outline</mat-icon>
+                <input
+                  id="password-input"
+                  type="password"
+                class="field-input"
+                formControlName="password"
+                autocomplete="current-password"
+                aria-label="Password"
+                placeholder="Your password"
+                />
+              </label>
+            </div>
 
             @if (loginForm.controls.password.touched && loginForm.controls.password.invalid) {
               <div class="field-alert" role="alert">
@@ -89,11 +108,20 @@
           <mat-card-content>
             <p class="tab-subtitle">Save your details for faster checkout and order tracking</p>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Full name</mat-label>
-              <mat-icon matPrefix>person_outline</mat-icon>
-              <input matInput formControlName="fullName" autocomplete="name" />
-            </mat-form-field>
+            <div class="field-group">
+              <label class="input-headline" [for]="'fullName-input'">Full name</label>
+              <label class="field-shell" [class.is-invalid]="registerForm.controls.fullName.touched && registerForm.controls.fullName.invalid">
+                <mat-icon class="field-icon" aria-hidden="true">person_outline</mat-icon>
+                <input
+                  id="fullName-input"
+                  class="field-input"
+                formControlName="fullName"
+                autocomplete="name"
+                aria-label="Full name"
+                placeholder="Your full name"
+                />
+              </label>
+            </div>
 
             @if (registerForm.controls.fullName.touched && registerForm.controls.fullName.invalid) {
               <div class="field-alert" role="alert">
@@ -110,22 +138,26 @@
               </div>
             }
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Phone number</mat-label>
-              <mat-icon matPrefix>call</mat-icon>
-              <!-- inputmode numeric brings up the digit keypad on a phone; onPhoneInput
-                   strips anything non-numeric so a pasted "+20 10 1234 5678" is cleaned
-                   rather than rejected. Same handling as the checkout form. -->
-              <input
-                matInput
-                formControlName="phoneNumber"
-                inputmode="numeric"
-                autocomplete="tel"
-                maxlength="11"
-                placeholder="01xxxxxxxxx"
-                (input)="onPhoneInput($event)"
-              />
-            </mat-form-field>
+            <div class="field-group">
+              <label class="input-headline" [for]="'phoneNumber-input'">Phone number</label>
+              <label class="field-shell" [class.is-invalid]="registerForm.controls.phoneNumber.touched && registerForm.controls.phoneNumber.invalid">
+                <mat-icon class="field-icon" aria-hidden="true">call</mat-icon>
+                <!-- inputmode numeric brings up the digit keypad on a phone; onPhoneInput
+                     strips anything non-numeric so a pasted "+20 10 1234 5678" is cleaned
+                     rather than rejected. Same handling as the checkout form. -->
+                <input
+                  id="phoneNumber-input"
+                  class="field-input"
+                  formControlName="phoneNumber"
+                  inputmode="numeric"
+                  autocomplete="tel"
+                  maxlength="11"
+                  placeholder="01xxxxxxxxx"
+                  aria-label="Phone number"
+                  (input)="onPhoneInput($event)"
+                />
+              </label>
+            </div>
 
             @if (registerForm.controls.phoneNumber.touched && registerForm.controls.phoneNumber.invalid) {
               <div class="field-alert" role="alert">
@@ -141,11 +173,21 @@
               </div>
             }
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Password</mat-label>
-              <mat-icon matPrefix>lock_outline</mat-icon>
-              <input matInput type="password" formControlName="password" autocomplete="new-password" />
-            </mat-form-field>
+            <div class="field-group">
+              <label class="input-headline" [for]="'password-input'">Password</label>
+              <label class="field-shell" [class.is-invalid]="registerForm.controls.password.touched && registerForm.controls.password.invalid">
+                <mat-icon class="field-icon" aria-hidden="true">lock_outline</mat-icon>
+                <input
+                  id="password-input"
+                  type="password"
+                class="field-input"
+                formControlName="password"
+                autocomplete="new-password"
+                aria-label="Password"
+                placeholder="At least 8 characters"
+                />
+              </label>
+            </div>
 
             @if (registerForm.controls.password.touched && registerForm.controls.password.invalid) {
               <div class="field-alert" role="alert">
@@ -160,11 +202,20 @@
               </div>
             }
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Delivery address (optional)</mat-label>
-              <mat-icon matPrefix>location_on</mat-icon>
-              <input matInput formControlName="address" autocomplete="street-address" />
-            </mat-form-field>
+            <div class="field-group">
+              <label class="input-headline" [for]="'address-input'">Delivery address (optional)</label>
+              <label class="field-shell" [class.is-invalid]="registerForm.controls.address.touched && registerForm.controls.address.invalid">
+                <mat-icon class="field-icon" aria-hidden="true">location_on</mat-icon>
+                <input
+                  id="address-input"
+                  class="field-input"
+                formControlName="address"
+                autocomplete="street-address"
+                aria-label="Delivery address (optional)"
+                placeholder="Street, area, city"
+                />
+              </label>
+            </div>
 
             @if (registerError()) {
               <div class="field-alert standalone" role="alert">
