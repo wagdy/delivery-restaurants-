@@ -150,6 +150,10 @@ public class BulkOrderImportService : IBulkOrderImportService
                     {
                         MenuItemId = line.MenuItem.Id,
                         MenuItem = line.MenuItem,
+                        // Snapshotted like UnitPrice below - see OrderItem.MenuItemName.
+                        // Without it, an imported order's receipt goes blank the day its
+                        // menu item is soft-deleted.
+                        MenuItemName = line.MenuItem.Name,
                         Quantity = line.Quantity,
                         UnitPrice = line.MenuItem.Price
                     }).ToList()

@@ -103,6 +103,10 @@ public class DgteraSyncService : IDgteraSyncService
             {
                 MenuItemId = menuItem.Id,
                 MenuItem = menuItem,
+                // Snapshotted like UnitPrice below - see OrderItem.MenuItemName. Without
+                // it, a synced order's receipt goes blank the day its menu item is
+                // soft-deleted, because the global query filter hides the navigation.
+                MenuItemName = menuItem.Name,
                 Quantity = quantity,
                 UnitPrice = unitPrice
             });
