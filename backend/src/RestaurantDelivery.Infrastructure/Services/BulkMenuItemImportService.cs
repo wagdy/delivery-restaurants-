@@ -4,124 +4,66 @@ using RestaurantDelivery.Core.DTOs.Categories;
 using RestaurantDelivery.Core.DTOs.MenuItems;
 using RestaurantDelivery.Core.Entities;
 using RestaurantDelivery.Core.Interfaces;
+using RestaurantDelivery.Infrastructure.Excel;
 
 namespace RestaurantDelivery.Infrastructure.Services;
 
 public class BulkMenuItemImportService : IBulkMenuItemImportService
 {
-    // Column order the template ships with and ImportMenuItemsAsync expects - keep
-    // these in sync if either one changes.
-    private static readonly string[] Headers = { "Item Name", "Description", "Price", "Category", "Available" };
-
     private static readonly HashSet<string> TruthyValues = new(StringComparer.OrdinalIgnoreCase) { "yes", "y", "true", "1" };
     private static readonly HashSet<string> FalsyValues = new(StringComparer.OrdinalIgnoreCase) { "no", "n", "false", "0" };
 
+    // Headers this importer understands, old spellings included. The template used to
+    // ship "Item Name"/"Category"; a sheet an admin downloaded before the columns
+    // changed is still sitting in somebody's Downloads folder, and it has to keep
+    // importing correctly rather than being read a column out of step.
+    private static readonly string[] NameEnglishAliases = { MenuTemplateWorkbook.NameEnglishHeader, "Item Name", "Name" };
+    private static readonly string[] NameArabicAliases = { MenuTemplateWorkbook.NameArabicHeader, "Arabic Name" };
+    private static readonly string[] CategoryAliases = { MenuTemplateWorkbook.CategoryHeader, "Category" };
+    private static readonly string[] SubCategoryAliases = { MenuTemplateWorkbook.SubCategoryHeader, "Sub Category", "Sub-category" };
+    private static readonly string[] PriceAliases = { MenuTemplateWorkbook.PriceHeader };
+    private static readonly string[] DescriptionAliases = { MenuTemplateWorkbook.DescriptionHeader };
+    private static readonly string[] AvailableAliases = { MenuTemplateWorkbook.AvailableHeader };
+
     private readonly IMenuItemRepository _menuItemRepository;
     private readonly ICategoryRepository _categoryRepository;
+    private readonly ISubCategoryRepository _subCategoryRepository;
     private readonly ICategoryService _categoryService;
     private readonly ILogger<BulkMenuItemImportService> _logger;
 
     public BulkMenuItemImportService(
         IMenuItemRepository menuItemRepository,
         ICategoryRepository categoryRepository,
+        ISubCategoryRepository subCategoryRepository,
         ICategoryService categoryService,
         ILogger<BulkMenuItemImportService> logger)
     {
         _menuItemRepository = menuItemRepository;
         _categoryRepository = categoryRepository;
+        _subCategoryRepository = subCategoryRepository;
         _categoryService = categoryService;
         _logger = logger;
     }
 
-    // Generous headroom past the two example rows so the dropdown still works for
-    // however many items the admin pastes/types in beyond them.
-    private const int TemplateDataRowCount = 500;
-
+    // Reads the two lists the dropdowns are built from and hands them to the workbook
+    // builder. The building itself lives in MenuTemplateWorkbook so it can be exercised
+    // with hand-written data and no database behind it.
     public async Task<Stream> GenerateTemplate()
     {
-        using var workbook = new XLWorkbook();
-        var sheet = workbook.Worksheets.Add("Menu Items");
-
-        for (var i = 0; i < Headers.Length; i++)
-        {
-            var cell = sheet.Cell(1, i + 1);
-            cell.Value = Headers[i];
-            cell.Style.Font.Bold = true;
-            cell.Style.Fill.BackgroundColor = XLColor.FromArgb(63, 81, 181);
-            cell.Style.Font.FontColor = XLColor.White;
-        }
-
-        // Two example rows: one for a category that (probably) already exists, one left
-        // blank to show that Category can be skipped and filled in later - both are
-        // still valid because the Category dropdown below allows blanks, and the import
-        // itself falls back an empty cell to "Uncategorized" rather than rejecting it.
-        var sampleRows = new object[,]
-        {
-            { "Chicken Shawarma Wrap", "Grilled chicken, garlic sauce, pickles, flatbread.", 9.99, "Mains", "Yes" },
-            { "Baklava", "Layered filo pastry with nuts and honey syrup.", 4.5, "", "Yes" }
-        };
-
-        for (var row = 0; row < sampleRows.GetLength(0); row++)
-        {
-            for (var col = 0; col < sampleRows.GetLength(1); col++)
-            {
-                sheet.Cell(row + 2, col + 1).Value = XLCellValue.FromObject(sampleRows[row, col]);
-            }
-        }
-
-        sheet.Columns().AdjustToContents();
-
-        await AddCategoryDropdownAsync(workbook, sheet, sampleRows.GetLength(0));
-
-        var stream = new MemoryStream();
-        workbook.SaveAs(stream);
-        stream.Position = 0;
-        return stream;
-    }
-
-    // Adds a hidden "Categories" sheet listing every category currently in the
-    // database, then points the Menu Items sheet's Category column (D) at it as a
-    // dropdown - existing names are one click away instead of retyped (and
-    // typo-prone), while a name that isn't in the list yet (a genuinely new category)
-    // or a blank cell are both still accepted, matching what ImportMenuItemsAsync
-    // actually allows.
-    private async Task<IXLWorksheet> AddCategoryDropdownAsync(XLWorkbook workbook, IXLWorksheet menuItemsSheet, int sampleRowCount)
-    {
         var categories = await _categoryRepository.GetAllOrderedAsync();
+        var subCategories = await _subCategoryRepository.GetAllOrderedAsync();
 
-        var categoriesSheet = workbook.Worksheets.Add("Categories");
-        categoriesSheet.Cell(1, 1).Value = "Category Name";
-        categoriesSheet.Cell(1, 1).Style.Font.Bold = true;
+        var byCategoryId = subCategories
+            .GroupBy(s => s.CategoryId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.OrderBy(s => s.DisplayOrder).Select(s => s.Name).ToList());
 
-        for (var i = 0; i < categories.Count; i++)
-        {
-            categoriesSheet.Cell(i + 2, 1).Value = categories[i].Name;
-        }
+        var model = categories
+            .Select(c => new TemplateCategory(
+                c.Name,
+                byCategoryId.TryGetValue(c.Id, out var subs) ? subs : Array.Empty<string>()))
+            .ToList();
 
-        categoriesSheet.Columns().AdjustToContents();
-        // Keeps the picklist out of the way without deleting it - still fully visible
-        // via Excel's own Sheet > Unhide if someone wants to check or edit the list.
-        categoriesSheet.Visibility = XLWorksheetVisibility.Hidden;
-
-        // Referencing at least one real row keeps the formula valid (and the dropdown
-        // functional) even on a brand-new restaurant with zero categories yet.
-        var lastCategoryRow = Math.Max(categories.Count, 1) + 1;
-        var sourceRange = $"'{categoriesSheet.Name}'!$A$2:$A${lastCategoryRow}";
-
-        var lastDataRow = Math.Max(sampleRowCount, 0) + 1 + TemplateDataRowCount;
-        var categoryColumn = menuItemsSheet.Range($"D2:D{lastDataRow}");
-
-        var validation = categoryColumn.CreateDataValidation();
-        validation.List(sourceRange, inCellDropdown: true);
-        validation.IgnoreBlanks = true;
-        // Warns instead of blocking: a name that doesn't match anything in the list
-        // yet is a legitimate new category (auto-created on import), not a mistake -
-        // Stop would make that impossible to type directly into Excel.
-        validation.ErrorStyle = XLErrorStyle.Information;
-        validation.ErrorTitle = "Not an existing category";
-        validation.ErrorMessage = "This will be created as a new category on import. Leave blank to use \"Uncategorized\" for now instead.";
-
-        return categoriesSheet;
+        return MenuTemplateWorkbook.Build(model);
     }
 
     public async Task<BulkMenuItemImportResult> ImportMenuItemsAsync(Stream fileStream)
@@ -131,17 +73,43 @@ public class BulkMenuItemImportService : IBulkMenuItemImportService
         using var workbook = new XLWorkbook(fileStream);
         var sheet = workbook.Worksheets.First();
 
-        // Row 1 is the header row (see GenerateTemplate) - data starts at row 2.
+        // Columns are located by HEADER TEXT, not position. They used to be read by
+        // fixed index, which meant changing the template's columns would silently
+        // reinterpret any sheet downloaded before the change - an admin's Description
+        // landing in Name, their Price in Category, on a live menu. Matching the header
+        // makes the order irrelevant and keeps old sheets importing correctly.
+        var columns = MapColumns(sheet.Row(1));
+        if (!columns.TryGetValue(nameof(NameEnglishAliases), out var nameColumn))
+        {
+            result.Errors.Add(
+                $"Could not find a \"{MenuTemplateWorkbook.NameEnglishHeader}\" column in row 1. " +
+                "Download a fresh template if the header row was edited or removed.");
+            return result;
+        }
+
+        int? Col(string key) => columns.TryGetValue(key, out var c) ? c : null;
+        var arabicColumn = Col(nameof(NameArabicAliases));
+        var categoryColumn = Col(nameof(CategoryAliases));
+        var subCategoryColumn = Col(nameof(SubCategoryAliases));
+        var priceColumn = Col(nameof(PriceAliases));
+        var descriptionColumn = Col(nameof(DescriptionAliases));
+        var availableColumn = Col(nameof(AvailableAliases));
+
+        // Row 1 is the header row - data starts at row 2.
         var dataRows = sheet.RowsUsed().Skip(1);
 
         foreach (var row in dataRows)
         {
             var rowNumber = row.RowNumber();
-            var name = row.Cell(1).GetString().Trim();
-            var description = row.Cell(2).GetString().Trim();
-            var priceRaw = row.Cell(3).GetString().Trim();
-            var categoryName = row.Cell(4).GetString().Trim();
-            var availableRaw = row.Cell(5).GetString().Trim();
+            string Read(int? column) => column is null ? string.Empty : row.Cell(column.Value).GetString().Trim();
+
+            var name = row.Cell(nameColumn).GetString().Trim();
+            var nameAr = Read(arabicColumn);
+            var description = Read(descriptionColumn);
+            var priceRaw = Read(priceColumn);
+            var categoryName = Read(categoryColumn);
+            var subCategoryName = Read(subCategoryColumn);
+            var availableRaw = Read(availableColumn);
 
             // ClosedXML's RowsUsed() can include rows that only ever had formatting
             // applied - skip those silently rather than reporting them as invalid data.
@@ -180,10 +148,15 @@ public class BulkMenuItemImportService : IBulkMenuItemImportService
                 var existing = await _menuItemRepository.GetByNameAsync(name);
                 if (existing is not null)
                 {
+                    // Blank cells leave what is already stored alone rather than
+                    // wiping it - a sheet filled in for a price change should not clear
+                    // every Arabic name the admin typed into the UI.
                     existing.Description = string.IsNullOrWhiteSpace(description) ? existing.Description : description;
+                    existing.NameAr = string.IsNullOrWhiteSpace(nameAr) ? existing.NameAr : nameAr;
                     existing.Price = price;
                     existing.Category = category;
                     existing.IsAvailable = isAvailable;
+                    existing.SubCategoryId = await ResolveSubCategoryIdAsync(subCategoryName, category) ?? existing.SubCategoryId;
                     _menuItemRepository.Update(existing);
                     result.ItemsUpdated++;
                 }
@@ -192,10 +165,12 @@ public class BulkMenuItemImportService : IBulkMenuItemImportService
                     await _menuItemRepository.AddAsync(new MenuItem
                     {
                         Name = name,
+                        NameAr = string.IsNullOrWhiteSpace(nameAr) ? null : nameAr,
                         Description = string.IsNullOrWhiteSpace(description) ? null : description,
                         Price = price,
                         Category = category,
-                        IsAvailable = isAvailable
+                        IsAvailable = isAvailable,
+                        SubCategoryId = await ResolveSubCategoryIdAsync(subCategoryName, category)
                     });
                     result.ItemsCreated++;
                 }
@@ -238,6 +213,85 @@ public class BulkMenuItemImportService : IBulkMenuItemImportService
         }
 
         return created.Data!.Name;
+    }
+
+    // Header text -> column index, keyed by the alias-array name so the caller asks for
+    // a concept rather than a spelling. Matching is case- and whitespace-insensitive
+    // because an admin who retypes a header rarely reproduces it exactly.
+    private static Dictionary<string, int> MapColumns(IXLRow headerRow)
+    {
+        var aliasSets = new (string Key, string[] Aliases)[]
+        {
+            (nameof(NameEnglishAliases), NameEnglishAliases),
+            (nameof(NameArabicAliases), NameArabicAliases),
+            (nameof(CategoryAliases), CategoryAliases),
+            (nameof(SubCategoryAliases), SubCategoryAliases),
+            (nameof(PriceAliases), PriceAliases),
+            (nameof(DescriptionAliases), DescriptionAliases),
+            (nameof(AvailableAliases), AvailableAliases)
+        };
+
+        var found = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var cell in headerRow.CellsUsed())
+        {
+            var text = cell.GetString().Trim();
+            if (text.Length == 0)
+            {
+                continue;
+            }
+
+            foreach (var (key, aliases) in aliasSets)
+            {
+                // First match wins: a sheet with both "Item Name" and "Name (English)"
+                // should not have the later column quietly replace the earlier one.
+                if (!found.ContainsKey(key) && aliases.Any(a => string.Equals(a, text, StringComparison.OrdinalIgnoreCase)))
+                {
+                    found[key] = cell.Address.ColumnNumber;
+                    break;
+                }
+            }
+        }
+
+        return found;
+    }
+
+    // Matches a sub-category by name WITHIN the resolved category, creating one if it
+    // does not exist yet - the same forgiving behaviour ResolveCategoryAsync already
+    // has. Returns null for a blank cell, which leaves the item ungrouped rather than
+    // inventing a sub-category nobody asked for.
+    private async Task<int?> ResolveSubCategoryIdAsync(string subCategoryName, string categoryName)
+    {
+        if (string.IsNullOrWhiteSpace(subCategoryName))
+        {
+            return null;
+        }
+
+        var category = await _categoryRepository.GetByNameAsync(categoryName);
+        if (category is null)
+        {
+            // The category is created moments earlier by ResolveCategoryAsync, so this
+            // only happens if that failed - in which case the sub-category has nothing
+            // to hang off and is better skipped than guessed at.
+            return null;
+        }
+
+        var name = subCategoryName.Trim();
+        var existing = await _subCategoryRepository.GetByNameInCategoryAsync(category.Id, name);
+        if (existing is not null)
+        {
+            return existing.Id;
+        }
+
+        var siblings = await _subCategoryRepository.GetByCategoryIdOrderedAsync(category.Id);
+        var created = new SubCategory
+        {
+            Name = name,
+            CategoryId = category.Id,
+            DisplayOrder = siblings.Count == 0 ? 0 : siblings[^1].DisplayOrder + 1
+        };
+        await _subCategoryRepository.AddAsync(created);
+        await _subCategoryRepository.SaveChangesAsync();
+        return created.Id;
     }
 
     private static bool TryParseAvailable(string raw, out bool isAvailable)
