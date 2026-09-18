@@ -86,6 +86,37 @@
   </div>
 </div>
 
+<!-- Only present while something is ticked, so the destructive buttons are not sitting
+     on screen waiting to be mis-clicked during ordinary browsing. role="status" so a
+     screen reader announces the count when it changes rather than staying silent. -->
+@if (selectedCount() > 0) {
+  <div class="bulk-bar" role="status">
+    <span class="bulk-count">{{ selectedCount() }} selected</span>
+
+    <span class="bulk-actions">
+      <!-- Two explicit buttons rather than one "Toggle": a mixed selection has no
+           sensible flip, and the endpoint takes an explicit isAvailable for the same
+           reason. The admin says what the rows should become. -->
+      <button mat-stroked-button [disabled]="bulkWorking()" (click)="bulkSetAvailability(true)">
+        <mat-icon>visibility</mat-icon>
+        Make available
+      </button>
+
+      <button mat-stroked-button [disabled]="bulkWorking()" (click)="bulkSetAvailability(false)">
+        <mat-icon>visibility_off</mat-icon>
+        Make unavailable
+      </button>
+
+      <button mat-flat-button color="warn" [disabled]="bulkWorking()" (click)="bulkDelete()">
+        <mat-icon>delete</mat-icon>
+        Delete selected
+      </button>
+
+      <button mat-button [disabled]="bulkWorking()" (click)="clearSelection()">Clear</button>
+    </span>
+  </div>
+}
+
 @if (loading()) {
   <div class="loading-state">
     <mat-spinner diameter="40"></mat-spinner>
@@ -97,6 +128,24 @@
 } @else {
   <div class="table-wrapper">
     <table mat-table [dataSource]="menuItems()">
+      <ng-container matColumnDef="select">
+        <th mat-header-cell *matHeaderCellDef>
+          <mat-checkbox
+            [checked]="isAllVisibleSelected()"
+            [indeterminate]="isSomeVisibleSelected()"
+            (change)="toggleAllVisible()"
+            aria-label="Select all visible items"
+          ></mat-checkbox>
+        </th>
+        <td mat-cell *matCellDef="let item">
+          <mat-checkbox
+            [checked]="isRowSelected(item.id)"
+            (change)="toggleRow(item.id)"
+            [attr.aria-label]="'Select ' + item.name"
+          ></mat-checkbox>
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="photo">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let item">

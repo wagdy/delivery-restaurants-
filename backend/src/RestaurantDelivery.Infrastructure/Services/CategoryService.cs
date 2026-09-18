@@ -9,9 +9,14 @@ public class CategoryService : ICategoryService
 {
     private readonly ICategoryRepository _repository;
     private readonly IReadThroughCache _cache;
+    private readonly IMenuItemRepository _menuItemRepository;
 
-    public CategoryService(ICategoryRepository repository, IReadThroughCache cache)
+    public CategoryService(
+        ICategoryRepository repository,
+        IMenuItemRepository menuItemRepository,
+        IReadThroughCache cache)
     {
+        _menuItemRepository = menuItemRepository;
         _repository = repository;
         _cache = cache;
     }
@@ -109,16 +114,24 @@ public class CategoryService : ICategoryService
             return ServiceResult<bool>.Failure("Category not found.");
         }
 
-        var itemCount = await _repository.CountMenuItemsInCategoryAsync(category.Name);
-        if (itemCount > 0)
+        // The old guard refused outright while any item still used the category, which
+        // made an obsolete category permanently undeletable on a live menu. Soft delete
+        // removes the reason for that guard: the row survives for history, and the items
+        // go with it.
+        //
+        // Cascade is by NAME, not by foreign key - MenuItem.Category is free text (see
+        // that entity), so there is nothing for the database to cascade on its own.
+        category.IsDeleted = true;
+
+        var items = await _menuItemRepository.GetByCategoryAsync(category.Name);
+        foreach (var item in items)
         {
-            return ServiceResult<bool>.Failure(
-                $"Cannot delete this category because {itemCount} menu item(s) still use it. Reassign or delete them first.");
+            item.IsDeleted = true;
         }
 
-        _repository.Remove(category);
         await _repository.SaveChangesAsync();
         InvalidateCategoryCaches();
+        _cache.Invalidate(CacheGroup.Menu);
 
         return ServiceResult<bool>.Success(true);
     }

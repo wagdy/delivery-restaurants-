@@ -11,6 +11,21 @@ public class MenuItemRepository : GenericRepository<MenuItem>, IMenuItemReposito
     {
     }
 
+    // Tracked, not AsNoTracking: both callers mutate what comes back (bulk delete sets
+    // IsDeleted, bulk availability sets IsAvailable), and an untracked entity saves
+    // silently without an error - the same trap this file's other comment warns about.
+    //
+    // DbSet carries the soft-delete query filter, so an id that is already deleted
+    // simply is not returned. That is what makes the Requested vs Affected counts in
+    // BulkActionResult meaningful rather than always equal.
+    public async Task<List<MenuItem>> GetByIdsAsync(List<int> ids) =>
+        await DbSet.Where(m => ids.Contains(m.Id)).ToListAsync();
+
+    // Tracked for the same reason - CategoryService cascades a soft delete onto these.
+    // Matched by name because MenuItem.Category is free text, not a foreign key.
+    public async Task<List<MenuItem>> GetByCategoryAsync(string categoryName) =>
+        await DbSet.Where(m => m.Category == categoryName).ToListAsync();
+
     public async Task<List<MenuItem>> GetFilteredAsync(string? category, string? searchQuery, bool? isAvailable, bool? hasAddons)
     {
         // AsNoTracking because every caller of this method maps straight to

@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, shareReplay, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { BulkMenuItemImportResult, MenuItem, MenuItemFilter, MenuItemRequest } from '../models/menu-item.model';
+import { BulkActionResult, BulkMenuItemImportResult, MenuItem, MenuItemFilter, MenuItemRequest } from '../models/menu-item.model';
 
 // Mirrors the server-side cache on this exact query (see ReadThroughCache), so the two
 // behave as one system rather than two with different ideas about how stale is too stale.
@@ -73,6 +73,20 @@ export class MenuItemService {
 
   update(id: number, request: MenuItemRequest): Observable<MenuItem> {
     return this.http.put<MenuItem>(`${this.baseUrl}/${id}`, request).pipe(tap(() => this.invalidateAvailable()));
+  }
+
+  // Bulk counterparts to delete/update below. Both invalidate the shared menu cache the
+  // same way, so the storefront stops serving rows that just disappeared from the admin.
+  bulkDelete(ids: number[]): Observable<BulkActionResult> {
+    return this.http
+      .post<BulkActionResult>(`${this.baseUrl}/bulk-delete`, { ids })
+      .pipe(tap(() => this.invalidateAvailable()));
+  }
+
+  bulkSetAvailability(ids: number[], isAvailable: boolean): Observable<BulkActionResult> {
+    return this.http
+      .post<BulkActionResult>(`${this.baseUrl}/bulk-availability`, { ids, isAvailable })
+      .pipe(tap(() => this.invalidateAvailable()));
   }
 
   delete(id: number): Observable<void> {

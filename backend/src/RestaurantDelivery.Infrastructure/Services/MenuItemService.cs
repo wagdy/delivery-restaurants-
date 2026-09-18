@@ -4,6 +4,7 @@ using RestaurantDelivery.Core.DTOs.AddOns;
 using RestaurantDelivery.Core.DTOs.MenuItems;
 using RestaurantDelivery.Core.Entities;
 using RestaurantDelivery.Core.Interfaces;
+using RestaurantDelivery.Core.DTOs.Common;
 
 namespace RestaurantDelivery.Infrastructure.Services;
 
@@ -155,6 +156,11 @@ public class MenuItemService : IMenuItemService
         return ServiceResult<MenuItemResponse>.Success(MapResponse(item));
     }
 
+    // Soft delete: the row stays, a global query filter hides it (see
+    // ApplicationDbContext.OnModelCreating). Hard deleting was refused outright whenever
+    // an item appeared on any past order - OrderItem -> MenuItem is DeleteBehavior.Restrict -
+    // which is exactly the case an admin most wants to clear off the menu. The receipt is
+    // unaffected because OrderItem snapshots the name at checkout.
     public async Task<ServiceResult<bool>> DeleteAsync(int id)
     {
         var item = await _repository.GetByIdAsync(id);
@@ -163,20 +169,81 @@ public class MenuItemService : IMenuItemService
             return ServiceResult<bool>.Failure("Menu item not found.");
         }
 
-        _repository.Remove(item);
-
-        try
-        {
-            await _repository.SaveChangesAsync();
-            _cache.Invalidate(CacheGroup.Menu);
-        }
-        catch (DbUpdateException)
-        {
-            return ServiceResult<bool>.Failure(
-                "Cannot delete this menu item because it is referenced by existing orders. Mark it unavailable instead.");
-        }
+        item.IsDeleted = true;
+        await _repository.SaveChangesAsync();
+        _cache.Invalidate(CacheGroup.Menu);
 
         return ServiceResult<bool>.Success(true);
+    }
+
+    // Reports how many of the requested ids it actually changed rather than a bare
+    // success: an id that is already gone, or was deleted by someone else a moment ago,
+    // should not read as "deleted 12 items" when it deleted 11.
+    private const int MaxBulkIds = 500;
+
+    public async Task<ServiceResult<BulkActionResult>> BulkDeleteAsync(IReadOnlyCollection<int> ids)
+    {
+        if (ids.Count == 0)
+        {
+            return ServiceResult<BulkActionResult>.Failure("No menu items were selected.");
+        }
+
+        // The admin table can only tick rows it has loaded, so this is never hit from the
+        // UI. It is here because the endpoint takes an arbitrary id list: without it, a
+        // malformed request turns into a single IN clause with tens of thousands of
+        // parameters and ties up a connection instead of being refused.
+        if (ids.Count > MaxBulkIds)
+        {
+            return ServiceResult<BulkActionResult>.Failure(
+                $"Too many items selected at once. Please select {MaxBulkIds} or fewer.");
+        }
+
+        var items = await _repository.GetByIdsAsync(ids.ToList());
+        foreach (var item in items)
+        {
+            item.IsDeleted = true;
+        }
+
+        await _repository.SaveChangesAsync();
+        _cache.Invalidate(CacheGroup.Menu);
+
+        return ServiceResult<BulkActionResult>.Success(
+            new BulkActionResult { Requested = ids.Count, Affected = items.Count });
+    }
+
+    // One explicit target rather than a per-item flip: "make these 12 unavailable" is a
+    // predictable outcome, where toggling each independently leaves a mixed selection in
+    // a state the admin cannot guess from the button they pressed.
+    public async Task<ServiceResult<BulkActionResult>> BulkSetAvailabilityAsync(
+        IReadOnlyCollection<int> ids,
+        bool isAvailable)
+    {
+        if (ids.Count == 0)
+        {
+            return ServiceResult<BulkActionResult>.Failure("No menu items were selected.");
+        }
+
+        // The admin table can only tick rows it has loaded, so this is never hit from the
+        // UI. It is here because the endpoint takes an arbitrary id list: without it, a
+        // malformed request turns into a single IN clause with tens of thousands of
+        // parameters and ties up a connection instead of being refused.
+        if (ids.Count > MaxBulkIds)
+        {
+            return ServiceResult<BulkActionResult>.Failure(
+                $"Too many items selected at once. Please select {MaxBulkIds} or fewer.");
+        }
+
+        var items = await _repository.GetByIdsAsync(ids.ToList());
+        foreach (var item in items)
+        {
+            item.IsAvailable = isAvailable;
+        }
+
+        await _repository.SaveChangesAsync();
+        _cache.Invalidate(CacheGroup.Menu);
+
+        return ServiceResult<BulkActionResult>.Success(
+            new BulkActionResult { Requested = ids.Count, Affected = items.Count });
     }
 
     private async Task<ServiceResult<List<AddOn>>> ResolveAddOnsAsync(List<int> addOnIds)

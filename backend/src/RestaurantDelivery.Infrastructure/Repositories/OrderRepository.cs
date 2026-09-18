@@ -14,6 +14,7 @@ public class OrderRepository : GenericRepository<Order>, IOrderRepository
 
     public Task<Order?> GetByIdWithItemsAsync(int id) =>
         DbSet
+            .IgnoreQueryFilters()
             .Include(o => o.OrderItems).ThenInclude(oi => oi.MenuItem)
             .Include(o => o.OrderItems).ThenInclude(oi => oi.AddOns)
             .FirstOrDefaultAsync(o => o.Id == id);
@@ -26,6 +27,7 @@ public class OrderRepository : GenericRepository<Order>, IOrderRepository
     public async Task<(List<Order> Orders, int TotalCount)> GetPagedWithItemsAsync(OrderStatus? status, int page, int pageSize)
     {
         var query = DbSet
+            .IgnoreQueryFilters()
             .Include(o => o.OrderItems).ThenInclude(oi => oi.MenuItem)
             .Include(o => o.OrderItems).ThenInclude(oi => oi.AddOns)
             .AsQueryable();
@@ -48,6 +50,7 @@ public class OrderRepository : GenericRepository<Order>, IOrderRepository
 
     public Task<List<Order>> GetByUserIdAsync(string userId) =>
         DbSet
+            .IgnoreQueryFilters()
             .Include(o => o.OrderItems).ThenInclude(oi => oi.MenuItem)
             .Include(o => o.OrderItems).ThenInclude(oi => oi.AddOns)
             .Where(o => o.UserId == userId)

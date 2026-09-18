@@ -440,6 +440,10 @@ public class OrderService : IOrderService
             {
                 MenuItemId = menuItem.Id,
                 MenuItem = menuItem,
+                // Snapshotted here, not read back through the navigation later - that is
+                // what lets a menu item be soft-deleted without taking every past order
+                // containing it down with it.
+                MenuItemName = menuItem.Name,
                 Quantity = line.Quantity,
                 UnitPrice = menuItem.Price,
                 AddOns = addOns
@@ -522,7 +526,11 @@ public class OrderService : IOrderService
         {
             Id = oi.Id,
             MenuItemId = oi.MenuItemId,
-            MenuItemName = oi.MenuItem.Name,
+            // The snapshot, not oi.MenuItem.Name. The navigation is filtered out once
+            // the item is soft-deleted, so reading through it would return null here and
+            // throw. Falls back to the live row only for orders placed before the
+            // snapshot column existed and somehow missed the migration's backfill.
+            MenuItemName = string.IsNullOrEmpty(oi.MenuItemName) ? oi.MenuItem?.Name ?? string.Empty : oi.MenuItemName,
             Quantity = oi.Quantity,
             UnitPrice = oi.UnitPrice,
             AddOns = oi.AddOns.Select(a => new OrderItemAddOnResponse { Name = a.Name, Price = a.Price }).ToList()

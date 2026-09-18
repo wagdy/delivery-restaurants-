@@ -105,3 +105,40 @@ table {
   color: rgba(0, 0, 0, 0.55);
   max-width: 320px;
 }
+
+// Appears and disappears with the selection, so it sits above the table as its own band
+// rather than reserving empty space when nothing is ticked.
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--app-primary-color, #3f51b5) 8%, #fff);
+  border: 1px solid color-mix(in srgb, var(--app-primary-color, #3f51b5) 24%, transparent);
+}
+
+.bulk-count {
+  font-weight: 700;
+  color: var(--app-primary-color, #3f51b5);
+}
+
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  mat-icon {
+    margin-inline-end: 4px;
+  }
+}
+
+// Narrow enough that the checkbox does not push the photo column off a phone screen.
+.mat-column-select {
+  width: 48px;
+  padding-inline-end: 0;
+}

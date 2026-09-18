@@ -47,5 +47,24 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
         base.OnModelCreating(builder);
 
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+        // Soft delete. Every ordinary query skips these rows, so the storefront and the
+        // admin catalog get the behaviour for free rather than each remembering a flag.
+        //
+        // The order side deliberately does NOT depend on these rows any more: OrderItem
+        // snapshots MenuItemName at checkout, the same way OrderItemAddOn already
+        // snapshots its name and price. A filter applies to included navigations too, so
+        // reading a deleted item's name back through oi.MenuItem would return null and
+        // take every historical order containing it down with it. OrderRepository also
+        // calls IgnoreQueryFilters on its includes so the navigation itself still
+        // resolves for anything that wants the live row.
+        builder.Entity<MenuItem>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<Category>().HasQueryFilter(e => !e.IsDeleted);
+
+        // SubCategory hangs off Category by a real foreign key, so its filter has to
+        // follow the parent's - EF warns about a required relationship where only one
+        // end is filtered, and without this a sub-category would outlive its category
+        // in every query that touches it.
+        builder.Entity<SubCategory>().HasQueryFilter(e => !e.Category.IsDeleted);
     }
 }

@@ -19,6 +19,14 @@ public class MenuItem
     public string? ImageUrl { get; set; }
     public bool IsAvailable { get; set; } = true;
 
+    // Soft delete. A global query filter (see ApplicationDbContext.OnModelCreating) hides
+    // these from every ordinary query, so the customer menu and the admin catalog do not
+    // need to know about the flag at all. Deleting for real is not an option here: order
+    // history references menu items, and Category is matched by free-text name on every
+    // item that uses it.
+    public bool IsDeleted { get; set; }
+
+
     // Optional finer-grained grouping within Category above (e.g. "Hot Drinks" inside
     // "Drinks") - unlike Category, this is a real FK, not free text, since SubCategory
     // only exists as a row created through the SubCategories API.

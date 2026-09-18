@@ -115,6 +115,39 @@ public class MenuItemsController : ControllerBase
         return Ok(new ImageUploadResponse { Url = url });
     }
 
+    // Bulk counterparts to the single-item endpoints above. Both report how many rows
+    // they actually touched (see BulkActionResult) rather than a bare 204, because a
+    // selection can contain ids that another admin removed a moment earlier and the
+    // caller should be able to say so.
+    [Authorize(Policy = "Module.MenuItems")]
+    [HttpPost("bulk-delete")]
+    public async Task<ActionResult<BulkActionResult>> BulkDelete([FromBody] BulkIdsRequest request)
+    {
+        var result = await _service.BulkDeleteAsync(request.Ids);
+        if (!result.Succeeded)
+        {
+            return BadRequest(new { errors = result.Errors });
+        }
+
+        return Ok(result.Data);
+    }
+
+    // Takes an explicit isAvailable rather than flipping each row: "make these hidden"
+    // has one outcome, where a per-row toggle on a mixed selection leaves a state the
+    // admin cannot predict from the button they pressed.
+    [Authorize(Policy = "Module.MenuItems")]
+    [HttpPost("bulk-availability")]
+    public async Task<ActionResult<BulkActionResult>> BulkAvailability([FromBody] BulkAvailabilityRequest request)
+    {
+        var result = await _service.BulkSetAvailabilityAsync(request.Ids, request.IsAvailable);
+        if (!result.Succeeded)
+        {
+            return BadRequest(new { errors = result.Errors });
+        }
+
+        return Ok(result.Data);
+    }
+
     [Authorize(Policy = "Module.MenuItems")]
     [HttpGet("excel-template")]
     public async Task<IActionResult> GetExcelTemplate()

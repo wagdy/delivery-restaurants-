@@ -1,9 +1,11 @@
 import { Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
+import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { saveAs } from 'file-saver';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,11 +19,11 @@ import { MenuItemService } from '../../../core/services/menu-item.service';
 import { CategoryService } from '../../../core/services/category.service';
 import { SubCategoryService } from '../../../core/services/sub-category.service';
 import { AddOnService } from '../../../core/services/add-on.service';
-import { MenuItem } from '../../../core/models/menu-item.model';
+import { BulkActionResult, MenuItem } from '../../../core/models/menu-item.model';
 import { Category } from '../../../core/models/category.model';
 import { SubCategory } from '../../../core/models/sub-category.model';
 import { AddOn } from '../../../core/models/add-on.model';
-import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { MenuItemFormDialogComponent } from '../menu-item-form-dialog/menu-item-form-dialog.component';
 import { CategoryManagementDialogComponent } from '../category-management-dialog/category-management-dialog.component';
 import { AddOnManagementDialogComponent } from '../add-on-management-dialog/add-on-management-dialog.component';
@@ -36,6 +38,7 @@ type AddOnsFilter = 'all' | 'has' | 'none';
     CommonModule,
     FormsModule,
     MatDialogModule,
+    MatCheckboxModule,
     MatTableModule,
     MatButtonModule,
     MatIconModule,
@@ -75,7 +78,136 @@ export class MenuManagementComponent {
   readonly availabilityFilter = signal<AvailabilityFilter>('all');
   readonly addOnsFilter = signal<AddOnsFilter>('all');
 
-  readonly displayedColumns = ['photo', 'name', 'category', 'price', 'available', 'actions'];
+  readonly displayedColumns = ['select', 'photo', 'name', 'category', 'price', 'available', 'actions'];
+
+  // ---------------------------------------------------------------------------
+  // Bulk selection
+  // ---------------------------------------------------------------------------
+
+  // Angular CDK's SelectionModel rather than a Set of ids: it already has the
+  // toggle/clear/hasValue semantics the header checkbox and the action bar need, and it
+  // is what the Material table examples use, so the next person recognises it.
+  readonly selection = new SelectionModel<number>(true, []);
+
+  // A plain signal mirroring the model, because SelectionModel is not reactive - the
+  // template reads this so the action bar appears the moment a row is ticked, instead of
+  // waiting for some unrelated change detection to notice.
+  readonly selectedCount = signal(0);
+
+  readonly bulkWorking = signal(false);
+
+  private syncSelectionCount(): void {
+    this.selectedCount.set(this.selection.selected.length);
+  }
+
+  toggleRow(id: number): void {
+    this.selection.toggle(id);
+    this.syncSelectionCount();
+  }
+
+  isRowSelected(id: number): boolean {
+    return this.selection.isSelected(id);
+  }
+
+  // "All" means everything currently on screen after filtering - not everything in the
+  // database. Ticking the header while a category filter is active and then deleting
+  // should not reach rows the admin cannot see.
+  isAllVisibleSelected(): boolean {
+    const visible = this.menuItems();
+    return visible.length > 0 && visible.every((i) => this.selection.isSelected(i.id));
+  }
+
+  isSomeVisibleSelected(): boolean {
+    const visible = this.menuItems();
+    return visible.some((i) => this.selection.isSelected(i.id)) && !this.isAllVisibleSelected();
+  }
+
+  toggleAllVisible(): void {
+    if (this.isAllVisibleSelected()) {
+      this.menuItems().forEach((i) => this.selection.deselect(i.id));
+    } else {
+      this.menuItems().forEach((i) => this.selection.select(i.id));
+    }
+    this.syncSelectionCount();
+  }
+
+  clearSelection(): void {
+    this.selection.clear();
+    this.syncSelectionCount();
+  }
+
+  // Deleting is irreversible from the admin's point of view even though the row survives
+  // in the database, so it asks first and names the count - this is the button that can
+  // empty a menu in one press.
+  bulkDelete(): void {
+    const ids = this.selection.selected;
+    if (ids.length === 0) {
+      return;
+    }
+
+    const plural = ids.length === 1 ? '' : 's';
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: `Delete ${ids.length} item${plural}?`,
+        message:
+          `${ids.length} item${plural} will be removed from the menu. ` +
+          `Past orders that include ${ids.length === 1 ? 'it' : 'them'} keep their receipts intact.`,
+        confirmLabel: 'Delete',
+        danger: true
+      } satisfies ConfirmDialogData
+    });
+
+    ref.afterClosed().subscribe((confirmed: boolean | undefined) => {
+      if (!confirmed) {
+        return;
+      }
+
+      this.bulkWorking.set(true);
+      this.menuItemService.bulkDelete(ids).subscribe({
+        next: (result) => {
+          this.bulkWorking.set(false);
+          this.clearSelection();
+          this.applyFilters();
+          this.reportBulkResult(result, 'deleted');
+        },
+        error: (err) => {
+          this.bulkWorking.set(false);
+          this.snackBar.open(err.error?.errors?.[0] ?? 'Failed to delete the selected items.', 'Dismiss', { duration: 5000 });
+        }
+      });
+    });
+  }
+
+  bulkSetAvailability(isAvailable: boolean): void {
+    const ids = this.selection.selected;
+    if (ids.length === 0) {
+      return;
+    }
+
+    this.bulkWorking.set(true);
+    this.menuItemService.bulkSetAvailability(ids, isAvailable).subscribe({
+      next: (result) => {
+        this.bulkWorking.set(false);
+        this.clearSelection();
+        this.applyFilters();
+        this.reportBulkResult(result, isAvailable ? 'made available' : 'hidden');
+      },
+      error: (err) => {
+        this.bulkWorking.set(false);
+        this.snackBar.open(err.error?.errors?.[0] ?? 'Failed to update the selected items.', 'Dismiss', { duration: 5000 });
+      }
+    });
+  }
+
+  // Says so when the server touched fewer rows than were selected - someone else having
+  // already removed one is worth knowing about, not rounding away.
+  private reportBulkResult(result: BulkActionResult, verb: string): void {
+    const message =
+      result.affected === result.requested
+        ? `${result.affected} item${result.affected === 1 ? '' : 's'} ${verb}.`
+        : `${result.affected} of ${result.requested} ${verb} - the rest were no longer on the menu.`;
+    this.snackBar.open(message, 'Dismiss', { duration: 5000 });
+  }
 
   // Keystrokes go through this Subject rather than straight onto searchTerm, so typing
   // doesn't fire a request per character - dropdown changes still apply immediately.
@@ -131,6 +263,14 @@ export class MenuManagementComponent {
       .subscribe({
         next: (items) => {
           this.menuItems.set(items);
+          // Drop anything that is no longer on screen. Without this, ticking three rows
+          // and then changing the category filter leaves "3 selected" showing above a
+          // table that contains none of them - and Delete would reach rows the admin
+          // can no longer see. Rows that survive the new filter stay ticked, so a plain
+          // Refresh doesn't throw the selection away.
+          const visible = new Set(items.map((i) => i.id));
+          this.selection.deselect(...this.selection.selected.filter((id) => !visible.has(id)));
+          this.syncSelectionCount();
           this.loading.set(false);
         },
         error: () => {

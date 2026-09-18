@@ -43,3 +43,12 @@ export interface MenuItemRequest {
   isAvailable: boolean;
   addOnIds: number[];
 }
+
+// What a bulk admin action actually did. Requested and affected differ when a selected
+// id no longer exists - deleted by someone else between the page loading and the button
+// being pressed - and the admin is told rather than shown a count that includes rows
+// nothing happened to.
+export interface BulkActionResult {
+  requested: number;
+  affected: number;
+}
