@@ -21,6 +21,12 @@ public class CreateOrderRequest
     public string DeliveryAddress { get; set; } = string.Empty;
 
     [MinLength(1)]
+    // Loyalty points the customer wants to spend. Validated against their real balance
+    // server-side and capped at what this order can absorb - the client never dictates
+    // the discount, only asks for one.
+    [Range(0, 1000000)]
+    public int PointsToRedeem { get; set; }
+
     public List<OrderItemRequest> Items { get; set; } = new();
 
     public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;

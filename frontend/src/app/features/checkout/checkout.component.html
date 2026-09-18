@@ -158,6 +158,70 @@
             }
           </section>
 
+          <!-- Redeem Points - directly below the promo block, as its sibling. Rendered
+               only for a signed-in customer with a balance: a guest has no account to
+               spend from, and showing an empty section to them is noise. -->
+          @if (loyalty(); as profile) {
+            @if (profile.currentPoints > 0) {
+              <section class="points-block">
+                <h3 class="block-heading">Redeem Points</h3>
+
+                <p class="points-balance">
+                  You have <strong>{{ profile.currentPoints }}</strong> points available
+                  <span class="points-worth">
+                    (worth L.E {{ (profile.currentPoints * profile.redemptionValuePer100Points / 100).toFixed(2) }})
+                  </span>
+                </p>
+
+                @if (pointsApplied() > 0) {
+                  <div class="promo-applied points-applied">
+                    <mat-icon>stars</mat-icon>
+                    <div class="promo-applied-text">
+                      <p class="promo-code-label">{{ pointsApplied() }} points applied</p>
+                      <p class="promo-description">Saving you L.E {{ pointsDiscount().toFixed(2) }}</p>
+                    </div>
+                    <button mat-icon-button type="button" (click)="clearPoints()" aria-label="Remove points">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </div>
+                } @else if (canRedeem()) {
+                  <!-- Same pill as the promo field above, so the two sit as a pair. -->
+                  <div class="promo-pill points-pill">
+                    <mat-icon class="promo-icon" aria-hidden="true">stars</mat-icon>
+                    <input
+                      type="text"
+                      inputmode="numeric"
+                      class="promo-input"
+                      placeholder="How many points?"
+                      aria-label="Points to redeem"
+                      autocomplete="off"
+                      [ngModel]="pointsInput()"
+                      (ngModelChange)="pointsInput.set($event)"
+                      [ngModelOptions]="{ standalone: true }"
+                      (keydown.enter)="$event.preventDefault(); applyPoints()"
+                    />
+                    <button type="button" class="promo-submit" (click)="applyPoints()">Apply</button>
+                  </div>
+
+                  <button type="button" class="points-use-all" (click)="redeemAll()">
+                    Use all {{ maxRedeemablePoints() }} available on this order
+                  </button>
+                } @else {
+                  <p class="points-unavailable">
+                    This order is too small to redeem points against.
+                  </p>
+                }
+
+                @if (pointsError()) {
+                  <div class="field-alert standalone" role="alert">
+                    <mat-icon aria-hidden="true">warning</mat-icon>
+                    <span>{{ pointsError() }}</span>
+                  </div>
+                }
+              </section>
+            }
+          }
+
           <div class="totals">
             <div class="totals-row">
               <span>Subtotal</span>
@@ -183,6 +247,14 @@
               <div class="totals-row">
                 <span>Tax</span>
                 <span>L.E {{ taxAmount().toFixed(2) }}</span>
+              </div>
+            }
+            <!-- After tax, matching the server: points pay the bill, they do not reduce
+                 the price of the food, so the tax line above is unaffected. -->
+            @if (pointsDiscount() > 0) {
+              <div class="totals-row discount-row">
+                <span>Points discount ({{ pointsApplied() }} pts)</span>
+                <span>-L.E {{ pointsDiscount().toFixed(2) }}</span>
               </div>
             }
             <div class="totals-row total">

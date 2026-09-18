@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using RestaurantDelivery.Core.Entities;
 using RestaurantDelivery.Core.Enums;
 using RestaurantDelivery.Core.Interfaces;
@@ -8,6 +9,37 @@ namespace RestaurantDelivery.Infrastructure.Repositories;
 
 public class OrderRepository : GenericRepository<Order>, IOrderRepository
 {
+    // At most one at a time; CreateAsync is the only caller and always pairs a Begin with
+    // a Commit or a Rollback.
+    private IDbContextTransaction? _transaction;
+
+    public async Task BeginTransactionAsync(CancellationToken ct = default) =>
+        _transaction = await Context.Database.BeginTransactionAsync(ct);
+
+    public async Task CommitTransactionAsync(CancellationToken ct = default)
+    {
+        if (_transaction is null)
+        {
+            return;
+        }
+
+        await _transaction.CommitAsync(ct);
+        await _transaction.DisposeAsync();
+        _transaction = null;
+    }
+
+    public async Task RollbackTransactionAsync(CancellationToken ct = default)
+    {
+        if (_transaction is null)
+        {
+            return;
+        }
+
+        await _transaction.RollbackAsync(ct);
+        await _transaction.DisposeAsync();
+        _transaction = null;
+    }
+
     public OrderRepository(ApplicationDbContext context) : base(context)
     {
     }

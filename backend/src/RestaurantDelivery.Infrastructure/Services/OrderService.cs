@@ -160,8 +160,56 @@ public class OrderService : IOrderService
             OrderItems = orderItems
         };
 
-        await _repository.AddAsync(order);
-        await _repository.SaveChangesAsync();
+        // Points are only redeemable by a signed-in customer - a guest checkout has no
+        // account to spend from. Refused rather than ignored, so a client that somehow
+        // sends points as a guest is told why instead of quietly paying full price.
+        if (request.PointsToRedeem > 0 && string.IsNullOrEmpty(userId))
+        {
+            return ServiceResult<OrderResponse>.Failure("Please sign in to redeem your points.");
+        }
+
+        // The order row and the points deduction commit together. Without this, a failure
+        // between them either spends points on an order that does not exist, or creates a
+        // discounted order that no points were ever taken for.
+        await _repository.BeginTransactionAsync();
+        try
+        {
+            await _repository.AddAsync(order);
+            await _repository.SaveChangesAsync();
+
+            if (request.PointsToRedeem > 0)
+            {
+                // Capped at the order total so a redemption can never produce a negative
+                // charge, and so unusable points stay in the customer's account rather
+                // than being burned for nothing.
+                var redemption = await _loyaltyService.RedeemForOrderAsync(
+                    userId!, request.PointsToRedeem, order.TotalAmount, order.Id);
+
+                if (!redemption.Succeeded)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<OrderResponse>.Failure(redemption.Errors.ToArray());
+                }
+
+                order.PointsRedeemed = redemption.Data!.PointsSpent;
+                order.PointsDiscountAmount = redemption.Data.DiscountAmount;
+
+                // Applied AFTER tax, matching how the checkout summary presents it: points
+                // are a payment against the bill, not a reduction in the price of the
+                // food, so they do not shrink the tax the restaurant owes.
+                order.TotalAmount -= redemption.Data.DiscountAmount;
+
+                _repository.Update(order);
+                await _repository.SaveChangesAsync();
+            }
+
+            await _repository.CommitTransactionAsync();
+        }
+        catch
+        {
+            await _repository.RollbackTransactionAsync();
+            throw;
+        }
 
         // Notification failures must never surface as an order-creation failure —
         // both methods swallow and log their own errors internally. Captains need to know
@@ -314,6 +362,15 @@ public class OrderService : IOrderService
         order.UpdatedAt = DateTime.UtcNow;
 
         await _repository.SaveChangesAsync();
+
+        // Cancelling gives back any points the customer spent at checkout - otherwise they
+        // have paid for an order they will never receive. RefundOrderPointsAsync is
+        // idempotent (it checks the ledger for an existing refund row), which matters
+        // because a Cancelled -> Pending -> Cancelled round trip reaches this twice.
+        if (status == OrderStatus.Cancelled)
+        {
+            await _loyaltyService.RefundOrderPointsAsync(order);
+        }
 
         // IsFulfilled, not == Delivered: a customer who collects their order has earned
         // the same points as one who had it delivered, and gating on Delivered alone
@@ -590,6 +647,8 @@ public class OrderService : IOrderService
         UpdatedAt = order.UpdatedAt,
         PromoCodeText = order.PromoCodeText,
         DiscountAmount = order.DiscountAmount,
+        PointsRedeemed = order.PointsRedeemed,
+        PointsDiscountAmount = order.PointsDiscountAmount,
         TaxAmount = order.TaxAmount,
         DeliveryFee = order.DeliveryFee,
         IsPickup = order.IsPickup,

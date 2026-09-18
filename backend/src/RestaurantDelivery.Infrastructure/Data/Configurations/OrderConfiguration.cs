@@ -31,6 +31,7 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.Property(o => o.PromoCodeText).HasMaxLength(50);
         builder.Property(o => o.DiscountAmount).HasPrecision(10, 2);
+        builder.Property(o => o.PointsDiscountAmount).HasPrecision(10, 2);
         builder.Property(o => o.TaxAmount).HasPrecision(10, 2);
         builder.Property(o => o.DeliveryFee).HasPrecision(10, 2);
 

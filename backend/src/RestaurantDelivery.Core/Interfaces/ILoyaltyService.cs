@@ -28,6 +28,19 @@ public interface ILoyaltyService
 
     // Called once from OrderService.UpdateStatusAsync when an order first transitions to
     // Delivered. No-op (PointsEarned = 0) if order.UserId is null (guest checkout).
+    // Checkout-time redemption, distinct from RedeemPointsAsync above (which is the
+    // counter/admin flow and takes an acting staff member). Deducts atomically and
+    // records the spend against the order.
+    Task<ServiceResult<OrderPointsRedemption>> RedeemForOrderAsync(
+        string customerId,
+        int requestedPoints,
+        decimal maxDiscount,
+        int orderId,
+        CancellationToken ct = default);
+
+    // Returns points spent on an order to the customer's balance, for a cancellation.
+    Task RefundOrderPointsAsync(Order order, CancellationToken ct = default);
+
     Task<OrderLoyaltyResult> ProcessOrderDeliveredAsync(Order order, CancellationToken ct = default);
 
     // Global earn/redeem ratios, editable from the Campaign Manager admin screen.

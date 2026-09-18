@@ -1,0 +1,63 @@
+// Redemption section. Its own stylesheet because checkout.component.scss is already past
+// Angular's 4kB per-file style budget - the budget is measured per FILE, so splitting is
+// what keeps it from tipping into the 8kB error. Same reason checkout-fulfilment and
+// checkout-request-promo exist.
+
+.points-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.points-balance {
+  margin: 0;
+  font-size: 0.88rem;
+  color: rgba(0, 0, 0, 0.7);
+
+  strong {
+    color: var(--app-primary-color, #3f51b5);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// What the balance is worth in money. Secondary to the point count, which is the number
+// the customer recognises from the rewards screen.
+.points-worth {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+// The applied state reuses .promo-applied's shape from checkout.component.scss and only
+// recolours it - green, because this is money off, matching the summary's discount row.
+.points-applied {
+  border-color: rgba(46, 125, 50, 0.35);
+
+  mat-icon {
+    color: #2e7d32;
+  }
+}
+
+// A text action, not a second button competing with Apply - "use all" is the shortcut,
+// not the primary path.
+.points-use-all {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--app-primary-color, #3f51b5);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:hover {
+    opacity: 0.85;
+  }
+}
+
+.points-unavailable {
+  margin: 0;
+  font-size: 0.83rem;
+  color: rgba(0, 0, 0, 0.55);
+}

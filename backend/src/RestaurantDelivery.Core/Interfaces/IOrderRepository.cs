@@ -5,6 +5,14 @@ namespace RestaurantDelivery.Core.Interfaces;
 
 public interface IOrderRepository : IGenericRepository<Order>
 {
+    // Explicit transaction control, needed by CreateAsync: an order that redeems loyalty
+    // points must commit the order row and the points deduction together, or a failure
+    // between them spends a customer's points on an order that does not exist. Kept as
+    // three plain methods so no EF type leaks into Core.
+    Task BeginTransactionAsync(CancellationToken ct = default);
+    Task CommitTransactionAsync(CancellationToken ct = default);
+    Task RollbackTransactionAsync(CancellationToken ct = default);
+
     Task<Order?> GetByIdWithItemsAsync(int id);
     Task<Order?> GetByExternalIdAsync(string externalSource, string externalOrderId);
     Task<(List<Order> Orders, int TotalCount)> GetPagedWithItemsAsync(OrderStatus? status, int page, int pageSize);

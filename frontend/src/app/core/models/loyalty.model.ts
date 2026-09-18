@@ -13,6 +13,10 @@ export interface LoyaltyMe {
   totalLifetimePoints: number;
   membershipTier: MembershipTier;
   referralCode: string;
+  // L.E. granted per 100 points. Sent so checkout can preview what a redemption is worth
+  // before the customer commits; the server recalculates from its own settings when the
+  // order is placed, so this is display only.
+  redemptionValuePer100Points: number;
   appleWalletAvailable: boolean;
   googleWalletAvailable: boolean;
 }

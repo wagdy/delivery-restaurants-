@@ -25,6 +25,11 @@ public class OrderResponse
 
     public string? PromoCodeText { get; set; }
     public decimal DiscountAmount { get; set; }
+
+    // Points spent on this order and what they were worth, snapshotted at order time so
+    // a receipt keeps saying what the customer actually got.
+    public int PointsRedeemed { get; set; }
+    public decimal PointsDiscountAmount { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal DeliveryFee { get; set; }
 

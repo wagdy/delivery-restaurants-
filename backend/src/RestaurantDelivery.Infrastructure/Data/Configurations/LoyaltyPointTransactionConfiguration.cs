@@ -22,7 +22,15 @@ public class LoyaltyPointTransactionConfiguration : IEntityTypeConfiguration<Loy
         // Postgres treats every NULL as distinct in a unique index, so the many rows with
         // no OrderId (manual earn/redeem) never collide with each other - only a genuine
         // repeat (the same order marked Delivered twice) is rejected.
-        builder.HasIndex(t => t.OrderId).IsUnique();
+        //
+        // FILTERED to OrderEarned. An order can now legitimately produce TWO rows: points
+        // spent at checkout (Redeemed) and points awarded on delivery (OrderEarned). The
+        // unfiltered version treated that pair as the double-award it exists to prevent,
+        // so every order that redeemed points would have silently failed to award any.
+        // The original guarantee is unchanged - still at most one OrderEarned per order.
+        builder.HasIndex(t => t.OrderId)
+            .IsUnique()
+            .HasFilter("\"TransactionType\" = 'OrderEarned'");
 
         // Two independent FKs to AppUser (customer being credited/debited, and the staff
         // member who acted) - both WithMany() with no lambda, so neither adds a reverse

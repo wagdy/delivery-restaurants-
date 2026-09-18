@@ -24,6 +24,16 @@ public class Order
     // order's own historical record of what was actually applied.
     public string? PromoCodeText { get; set; }
     public decimal DiscountAmount { get; set; }
+
+    // Loyalty points spent on this order and what they were worth. Both snapshotted:
+    // RedemptionValuePer100Points is an admin setting that can change, and a receipt has
+    // to keep saying what the customer actually got at the time.
+    //
+    // PointsRedeemed is the authoritative record of the spend - the ledger row in
+    // LoyaltyPointTransactions carries the same number, and the two are written in one
+    // transaction so they cannot disagree.
+    public int PointsRedeemed { get; set; }
+    public decimal PointsDiscountAmount { get; set; }
     public decimal TaxAmount { get; set; }
 
     // Snapshotted so TotalAmount's breakdown always adds up on a receipt. The live rate

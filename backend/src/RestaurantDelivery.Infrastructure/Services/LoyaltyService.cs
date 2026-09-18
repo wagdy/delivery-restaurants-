@@ -35,7 +35,13 @@ public class LoyaltyService : ILoyaltyService
     public async Task<LoyaltyMeResponse> GetOrCreateProfileAsync(string appUserId, CancellationToken ct = default)
     {
         var profile = await GetOrCreateProfileEntityAsync(appUserId, ct);
-        return MapResponse(profile);
+        var settings = await GetOrCreateSettingsEntityAsync(ct);
+
+        var response = MapResponse(profile);
+        // Read from the same settings row the redemption itself uses, so the value the
+        // checkout previews and the value it is charged at cannot drift apart.
+        response.RedemptionValuePer100Points = settings.RedemptionValuePer100Points;
+        return response;
     }
 
     public async Task<ServiceResult<LoyaltyTransactionResponse>> EarnPointsAsync(string actorId, EarnPointsRequest request, CancellationToken ct = default)
@@ -263,6 +269,134 @@ public class LoyaltyService : ILoyaltyService
             TierUpgraded = false,
             DiscountAmount = discountAmount
         });
+    }
+
+    // Checkout redemption. Deliberately NOT a wrapper around RedeemPointsAsync above:
+    // that one is the counter flow (an admin acting on a customer, no order attached, no
+    // cap), and folding the two together would mean one of them silently getting rules
+    // meant for the other.
+    //
+    // Runs INSIDE the caller's transaction rather than opening its own - OrderService
+    // and this service share one scoped DbContext, so the order row and the deduction
+    // commit together or not at all. Opening a nested transaction here would defeat
+    // that: points could be spent on an order that then failed to save.
+    public async Task<ServiceResult<OrderPointsRedemption>> RedeemForOrderAsync(
+        string customerId,
+        int requestedPoints,
+        decimal maxDiscount,
+        int orderId,
+        CancellationToken ct = default)
+    {
+        if (requestedPoints <= 0)
+        {
+            return ServiceResult<OrderPointsRedemption>.Success(OrderPointsRedemption.None);
+        }
+
+        var profile = await GetOrCreateProfileEntityAsync(customerId, ct);
+        var settings = await GetOrCreateSettingsEntityAsync(ct);
+
+        var valuePerPoint = settings.RedemptionValuePer100Points / 100m;
+        if (valuePerPoint <= 0)
+        {
+            // An admin can set the redemption rate to 0, which makes points worth
+            // nothing. Spending them for a 0 discount would be pure loss, so refuse.
+            return ServiceResult<OrderPointsRedemption>.Failure(
+                "Points cannot be redeemed at the moment. Please try again later.");
+        }
+
+        // Capped at what this order can absorb, floored to whole points so the discount
+        // can never round up past the cap. A customer asking to spend more than the
+        // order is worth keeps the difference in their account.
+        var affordablePoints = (int)Math.Floor(maxDiscount / valuePerPoint);
+        var pointsToSpend = Math.Min(requestedPoints, Math.Max(affordablePoints, 0));
+
+        if (pointsToSpend <= 0)
+        {
+            return ServiceResult<OrderPointsRedemption>.Failure(
+                "This order is too small to redeem points against.");
+        }
+
+        // Same guarded UPDATE as RedeemPointsAsync - see the long comment there for why
+        // the balance check and the deduction have to be one statement. Two checkouts in
+        // flight at once is exactly the case this defends.
+        var rowsDeducted = await _context.LoyaltyProfiles
+            .Where(p => p.AppUserId == profile.AppUserId && p.CurrentPoints >= pointsToSpend)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(p => p.CurrentPoints, p => p.CurrentPoints - pointsToSpend)
+                    .SetProperty(p => p.LastActivityDate, p => DateTime.UtcNow),
+                ct);
+
+        if (rowsDeducted == 0)
+        {
+            return ServiceResult<OrderPointsRedemption>.Failure(
+                "You do not have enough points for this redemption.");
+        }
+
+        var discountAmount = Math.Round(pointsToSpend * valuePerPoint, 2);
+
+        _context.LoyaltyPointTransactions.Add(new LoyaltyPointTransaction
+        {
+            CustomerId = profile.AppUserId,
+            PointsTransacted = -pointsToSpend,
+            TransactionType = LoyaltyTransactionType.Redeemed,
+            OrderId = orderId,
+            CheckAmount = discountAmount
+        });
+
+        await _context.SaveChangesAsync(ct);
+        await _context.Entry(profile).ReloadAsync(ct);
+
+        return ServiceResult<OrderPointsRedemption>.Success(new OrderPointsRedemption
+        {
+            PointsSpent = pointsToSpend,
+            DiscountAmount = discountAmount,
+            RemainingBalance = profile.CurrentPoints
+        });
+    }
+
+    // Cancelling an order that spent points has to give them back, or the customer pays
+    // for something they never received. Guarded by the ledger rather than by the order's
+    // status alone: a second cancellation (or a Cancelled -> Pending -> Cancelled round
+    // trip) would otherwise refund twice.
+    public async Task RefundOrderPointsAsync(Order order, CancellationToken ct = default)
+    {
+        if (order.PointsRedeemed <= 0 || string.IsNullOrEmpty(order.UserId))
+        {
+            return;
+        }
+
+        var alreadyRefunded = await _context.LoyaltyPointTransactions
+            .AnyAsync(t => t.OrderId == order.Id && t.PointsTransacted > 0 && t.TransactionType == LoyaltyTransactionType.Redeemed, ct);
+
+        if (alreadyRefunded)
+        {
+            return;
+        }
+
+        var restored = await _context.LoyaltyProfiles
+            .Where(p => p.AppUserId == order.UserId)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(p => p.CurrentPoints, p => p.CurrentPoints + order.PointsRedeemed)
+                    .SetProperty(p => p.LastActivityDate, p => DateTime.UtcNow),
+                ct);
+
+        if (restored == 0)
+        {
+            return;
+        }
+
+        _context.LoyaltyPointTransactions.Add(new LoyaltyPointTransaction
+        {
+            CustomerId = order.UserId,
+            PointsTransacted = order.PointsRedeemed,
+            TransactionType = LoyaltyTransactionType.Redeemed,
+            OrderId = order.Id,
+            CheckReference = $"Refund for cancelled order #{order.Id}"
+        });
+
+        await _context.SaveChangesAsync(ct);
     }
 
     public async Task<OrderLoyaltyResult> ProcessOrderDeliveredAsync(Order order, CancellationToken ct = default)

@@ -79,6 +79,9 @@ export interface Order {
   items: OrderItem[];
   promoCodeText?: string | null;
   discountAmount: number;
+  // Points spent on this order and what they were worth, snapshotted server-side.
+  pointsRedeemed: number;
+  pointsDiscountAmount: number;
   taxAmount: number;
   deliveryFee: number;
   // Store pickup rather than delivery. Always accompanied by deliveryFee: 0 - the server
@@ -107,6 +110,9 @@ export interface OrderItemRequest {
 }
 
 export interface CreateOrderRequest {
+  // Loyalty points the customer asks to spend. The server revalidates against their
+  // real balance and recalculates the discount from its own settings.
+  pointsToRedeem?: number;
   customerName: string;
   customerPhone: string;
   deliveryAddress: string;

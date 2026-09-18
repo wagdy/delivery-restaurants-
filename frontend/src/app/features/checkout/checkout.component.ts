@@ -10,6 +10,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { CartService } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
 import { OrderService } from '../../core/services/order.service';
+import { LoyaltyService } from '../../core/services/loyalty.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { CheckoutService } from '../../core/services/checkout.service';
 import { CreateOrderRequest } from '../../core/models/order.model';
@@ -47,13 +48,15 @@ export type Fulfilment = 'delivery' | 'pickup';
   styleUrls: [
     './checkout.component.scss',
     './checkout-fulfilment.component.scss',
-    './checkout-request-promo.component.scss'
+    './checkout-request-promo.component.scss',
+    './checkout-points.component.scss'
   ]
 })
 export class CheckoutComponent {
   protected readonly cart = inject(CartService);
   protected readonly authService = inject(AuthService);
   protected readonly settingsService = inject(SettingsService);
+  private readonly loyaltyService = inject(LoyaltyService);
   private readonly orderService = inject(OrderService);
   private readonly checkoutService = inject(CheckoutService);
   private readonly router = inject(Router);
@@ -345,10 +348,99 @@ export class CheckoutComponent {
   // actually charged.
   readonly effectiveDeliveryFee = computed(() => (this.isPickup() ? 0 : this.cart.deliveryFee()));
 
+  // ---------------------------------------------------------------------------
+  // Loyalty points redemption
+  // ---------------------------------------------------------------------------
+
+  // Null until the balance has loaded, or for a guest - the section renders nothing
+  // rather than flashing "You have 0 points available" at someone who has plenty.
+  readonly loyalty = this.loyaltyService.me;
+
+  readonly pointsInput = signal('');
+  readonly pointsError = signal<string | null>(null);
+
+  // What has actually been applied, as opposed to what is typed in the box. Only this
+  // reaches the order request and the totals.
+  readonly pointsApplied = signal(0);
+
+  readonly pointsBalance = computed(() => this.loyalty()?.currentPoints ?? 0);
+
+  private readonly valuePerPoint = computed(() => {
+    const rate = this.loyalty()?.redemptionValuePer100Points ?? 0;
+    return rate / 100;
+  });
+
+  // Rounded to 2dp exactly as the server does, so the line the customer reads and the
+  // line they are charged are the same number rather than two roundings of one sum.
+  readonly pointsDiscount = computed(() =>
+    Math.round(this.pointsApplied() * this.valuePerPoint() * 100) / 100
+  );
+
+  // The cap: points can pay the bill down to zero but never past it. Computed against
+  // the pre-points total, which is what the server caps against too.
+  readonly maxRedeemablePoints = computed(() => {
+    const perPoint = this.valuePerPoint();
+    if (perPoint <= 0) {
+      return 0;
+    }
+
+    const affordable = Math.floor(this.totalBeforePoints() / perPoint);
+    return Math.max(Math.min(this.pointsBalance(), affordable), 0);
+  });
+
+  readonly canRedeem = computed(() => this.maxRedeemablePoints() > 0);
+
+  applyPoints(): void {
+    const raw = this.pointsInput().trim();
+    const requested = Number(raw);
+
+    if (!raw || !Number.isFinite(requested) || !Number.isInteger(requested) || requested <= 0) {
+      this.pointsError.set('Enter how many points you would like to use.');
+      return;
+    }
+
+    if (requested > this.pointsBalance()) {
+      this.pointsError.set(`You only have ${this.pointsBalance()} points.`);
+      return;
+    }
+
+    const max = this.maxRedeemablePoints();
+    if (requested > max) {
+      // Capped rather than refused, and said out loud: the server would cap it anyway,
+      // and silently charging fewer points than the customer typed looks like a bug.
+      this.pointsError.set(`Only ${max} points can be used on this order - the rest stay in your account.`);
+      this.pointsApplied.set(max);
+      this.pointsInput.set(String(max));
+      return;
+    }
+
+    this.pointsError.set(null);
+    this.pointsApplied.set(requested);
+  }
+
+  redeemAll(): void {
+    const max = this.maxRedeemablePoints();
+    if (max <= 0) {
+      return;
+    }
+
+    this.pointsError.set(null);
+    this.pointsApplied.set(max);
+    this.pointsInput.set(String(max));
+  }
+
+  clearPoints(): void {
+    this.pointsApplied.set(0);
+    this.pointsInput.set('');
+    this.pointsError.set(null);
+  }
+
   readonly discountAmount = computed(() => this.promoResult()?.discountAmount ?? 0);
   readonly deliveryDiscountAmount = computed(() => this.promoResult()?.deliveryDiscountAmount ?? 0);
 
-  readonly finalTotal = computed(() => {
+  // Everything except the points discount - the figure points are capped against, and
+  // the base the final total is derived from.
+  readonly totalBeforePoints = computed(() => {
     const promo = this.promoResult();
     if (promo) {
       return promo.total;
@@ -356,7 +448,34 @@ export class CheckoutComponent {
     return this.cart.subtotal() + this.taxAmount() + this.effectiveDeliveryFee();
   });
 
+  // Points come off AFTER tax, matching OrderService: they are a payment against the
+  // bill rather than a reduction in the price of the food, so they do not shrink the tax
+  // the restaurant owes. Clamped at 0 so a rounding edge can never show a negative total.
+  readonly finalTotal = computed(() =>
+    Math.max(this.totalBeforePoints() - this.pointsDiscount(), 0)
+  );
+
   constructor() {
+    // Balance is fetched once, and only for a signed-in customer - /loyalty/me is
+    // authenticated, so firing it for a guest is a guaranteed 401 in the console.
+    // Failure is swallowed: an unreachable loyalty service must not stop someone
+    // checking out, it just means the redemption section stays hidden.
+    if (this.authService.isAuthenticated() && this.loyaltyService.me() === null) {
+      this.loyaltyService.getMe().subscribe({ error: () => {} });
+    }
+
+    // Points already applied can become unaffordable when the cart shrinks or a promo
+    // lands - both move totalBeforePoints. Re-clamped here rather than left for the
+    // server to reject at submit, which would fail the order after the customer has
+    // filled in their address.
+    effect(() => {
+      const max = this.maxRedeemablePoints();
+      if (this.pointsApplied() > max) {
+        this.pointsApplied.set(max);
+        this.pointsInput.set(max > 0 ? String(max) : '');
+      }
+    });
+
     // Defaults to the first enabled method the moment the list is known (immediately,
     // since settings are already loaded before bootstrap) and re-picks a valid one if
     // the currently selected method is ever no longer enabled.
@@ -470,6 +589,9 @@ export class CheckoutComponent {
         variantId: l.selectedVariant?.id ?? null,
         addOnIds: l.selectedAddOns.map((a) => a.id)
       })),
+      // The server revalidates this against the real balance and recalculates the
+      // discount from its own settings - this only asks.
+      pointsToRedeem: this.pointsApplied(),
       paymentMethod: method,
       promoCodeText: this.promoResult() ? this.promoCodeInput().trim() : null,
       deliveryFee: this.effectiveDeliveryFee(),
