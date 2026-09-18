@@ -32,6 +32,9 @@
               <div class="item-row">
                 <span>
                   {{ item.quantity }} × {{ item.menuItemName }}
+                  @if (item.variantName) {
+                    <span class="item-variant">{{ item.variantName }}</span>
+                  }
                   @if (item.addOns.length > 0) {
                     <span class="item-addons">+ {{ item.addOns | addOnNames }}</span>
                   }

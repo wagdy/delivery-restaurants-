@@ -219,3 +219,16 @@ h2[mat-dialog-title] {
     height: 18px;
   }
 }
+
+// The ordered size. Weighted, not greyed like the add-on list beside it: on a kitchen
+// ticket this is the difference between cooking 500g and cooking a kilo.
+.item-variant {
+  display: inline-block;
+  margin-inline-start: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.07);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.75);
+}

@@ -49,6 +49,10 @@ export interface OrderItem {
   id: number;
   menuItemId: number;
   menuItemName: string;
+  // The size/weight that was ordered, snapshotted server-side at order time. Null for
+  // items with no variants. The kitchen needs it as much as the customer does - the dish
+  // name alone does not say whether to cook 500g or a kilo.
+  variantName: string | null;
   quantity: number;
   unitPrice: number;
   addOns: OrderItemAddOn[];
