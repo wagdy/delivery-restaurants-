@@ -16,8 +16,16 @@ public class MenuItemRequest
     [MaxLength(1000)]
     public string? Description { get; set; }
 
-    [Range(0.01, 100000)]
+    // Lower bound is 0, not 0.01: zero is the marker for "priced on the day" and is what
+    // PriceNote below exists to explain. The old 0.01 floor would have rejected every
+    // such item before it reached the service.
+    [Range(0, 100000)]
     public decimal Price { get; set; }
+
+    // Shown in place of the price when Price is 0. Ignored otherwise - MenuItemService
+    // drops it when a real price is present, so the two states cannot both be stored.
+    [MaxLength(100)]
+    public string? PriceNote { get; set; }
 
     [Required, MaxLength(100)]
     public string Category { get; set; } = string.Empty;

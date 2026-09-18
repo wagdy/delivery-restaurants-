@@ -179,7 +179,11 @@
 .addon-check {
   width: 22px;
   height: 22px;
-  border-radius: 50%;
+  // A rounded square, against the variant radio's circle. The shape is the fastest
+  // signal of "pick any" vs "pick one" - faster than the Required/Optional badges, and
+  // it survives the sheet being scanned rather than read. Both were circles until the
+  // variants section arrived and gave the distinction something to carry.
+  border-radius: 6px;
   border: 2px solid rgba(0, 0, 0, 0.22);
   display: flex;
   align-items: center;
@@ -429,8 +433,8 @@
   }
 }
 
-// A circle, where the add-on's tick is a rounded square - the shape is what says
-// "pick one" vs "pick any", before the customer has read a word.
+// A circle, against the add-on tick's rounded square - the shape is what says "pick
+// one" vs "pick any", before the customer has read a word.
 .variant-radio {
   flex: 0 0 auto;
   width: 20px;
@@ -483,4 +487,36 @@
     width: 20px;
     height: 20px;
   }
+}
+
+// The note, where a price would be. Neutral rather than alarming - nothing is wrong,
+// the figure simply is not known until the item is weighed.
+.price-on-request {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.05);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: rgba(0, 0, 0, 0.72);
+
+  mat-icon {
+    flex: 0 0 auto;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// A note is prose, not a figure - the tabular/bold treatment a price gets makes a
+// sentence look like a number.
+.base-price.is-note {
+  font-size: 0.9rem;
+  font-weight: 600;
+  // Arabic notes sit next to a Latin item name; plaintext stops the punctuation from
+  // being reordered around them.
+  unicode-bidi: plaintext;
 }

@@ -21,6 +21,7 @@ import { MyOrdersComponent } from '../my-orders/my-orders.component';
 import { LoyaltyRewardsComponent } from './loyalty-rewards/loyalty-rewards.component';
 import { iconForCategory } from '../../shared/utils/category-icon.util';
 import { LocalNamePipe, LocalizableName } from '../../shared/pipes/local-name.pipe';
+import { PriceDisplayPipe } from '../../shared/pipes/price-display.pipe';
 import { LanguageService } from '../../core/services/language.service';
 import { deriveActiveCategoryNames } from '../../shared/utils/active-categories.util';
 
@@ -71,7 +72,8 @@ export interface CategoryCard {
     MatProgressSpinnerModule,
     MyOrdersComponent,
     LoyaltyRewardsComponent,
-    LocalNamePipe
+    LocalNamePipe,
+    PriceDisplayPipe
   ],
   // OnPush: every piece of state this component renders is a signal, so Angular
   // can skip it entirely unless one of them actually changed. Without it, the 300+ card menu grid this app spends most of its render budget on

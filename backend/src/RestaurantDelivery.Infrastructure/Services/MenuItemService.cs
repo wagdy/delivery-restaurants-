@@ -110,6 +110,7 @@ public class MenuItemService : IMenuItemService
             NameAr = OptionalText.NullIfBlank(request.NameAr),
             Description = request.Description,
             Price = request.Price,
+            PriceNote = ResolvePriceNote(request.Price, request.PriceNote),
             Category = request.Category,
             SubCategory = subCategoryResult.Data,
             ImageUrl = request.ImageUrl,
@@ -158,6 +159,7 @@ public class MenuItemService : IMenuItemService
         item.NameAr = OptionalText.NullIfBlank(request.NameAr);
         item.Description = request.Description;
         item.Price = request.Price;
+        item.PriceNote = ResolvePriceNote(request.Price, request.PriceNote);
         item.Category = request.Category;
         item.SubCategory = subCategoryResult.Data;
         item.ImageUrl = request.ImageUrl;
@@ -401,6 +403,13 @@ public class MenuItemService : IMenuItemService
         }
     }
 
+    // A note only means anything while the price is 0. Normalising here rather than
+    // trusting the client keeps one impossible state out of the database: an item with
+    // both a real price AND a note explaining why it has none, which the storefront
+    // would then have to guess between.
+    private static string? ResolvePriceNote(decimal price, string? note) =>
+        price > 0 ? null : OptionalText.NullIfBlank(note);
+
     private static MenuItemResponse MapResponse(MenuItem item) => new()
     {
         Id = item.Id,
@@ -408,6 +417,7 @@ public class MenuItemService : IMenuItemService
         NameAr = item.NameAr,
         Description = item.Description,
         Price = item.Price,
+        PriceNote = item.PriceNote,
         Category = item.Category,
         SubCategoryId = item.SubCategoryId,
         SubCategoryName = item.SubCategory?.Name,

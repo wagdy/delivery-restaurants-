@@ -11,6 +11,10 @@ public class MenuItemResponse
     public string? NameAr { get; set; }
     public string? Description { get; set; }
     public decimal Price { get; set; }
+
+    // Non-null only when Price is 0. The client shows this string instead of the
+    // currency rather than rendering "L.E 0.00".
+    public string? PriceNote { get; set; }
     public string Category { get; set; } = string.Empty;
     public int? SubCategoryId { get; set; }
     // Denormalized alongside SubCategoryId, mirroring OrderItemResponse.MenuItemName -

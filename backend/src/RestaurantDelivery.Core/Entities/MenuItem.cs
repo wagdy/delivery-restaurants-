@@ -26,6 +26,14 @@ public class MenuItem
     // item that uses it.
     public bool IsDeleted { get; set; }
 
+    // What to show INSTEAD of a price when Price is 0 - "السعر بناء على الوزن" for meat
+    // and fish sold by weight, where the figure is not known until the item is weighed.
+    //
+    // Only meaningful while Price is 0; the admin form clears it as soon as a real price
+    // is entered, so an item never carries both a price and a note explaining why it has
+    // none. Purely a display string - it is not parsed and never becomes a charge.
+    public string? PriceNote { get; set; }
+
 
     // Optional finer-grained grouping within Category above (e.g. "Hot Drinks" inside
     // "Drinks") - unlike Category, this is a real FK, not free text, since SubCategory

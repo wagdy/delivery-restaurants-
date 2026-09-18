@@ -1,4 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { startWith } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -75,12 +77,56 @@ export class MenuItemFormDialogComponent {
     // back to the English name rather than rendering an empty heading.
     nameAr: [this.data.menuItem?.nameAr ?? '', [Validators.maxLength(150)]],
     description: [this.data.menuItem?.description ?? ''],
-    price: [this.data.menuItem?.price ?? 0, [Validators.required, Validators.min(0.01)]],
+    // min(0), not min(0.01): 0 is a legitimate saved state meaning "priced on the day",
+    // explained by priceNote below. Variant prices keep their 0.01 floor - a size exists
+    // precisely to carry a concrete price.
+    price: [this.data.menuItem?.price ?? 0, [Validators.required, Validators.min(0)]],
+    priceNote: [this.data.menuItem?.priceNote ?? '', [Validators.maxLength(100)]],
     category: [this.data.menuItem?.category ?? '', [Validators.required, Validators.maxLength(100)]],
     subCategoryId: [this.data.menuItem?.subCategoryId ?? null] as [number | null],
     imageUrl: [this.data.menuItem?.imageUrl ?? ''],
     isAvailable: [this.data.menuItem?.isAvailable ?? true]
   });
+
+  // ---------------------------------------------------------------------------
+  // Price note - shown only while the price is 0
+  // ---------------------------------------------------------------------------
+
+  // Drives the field's visibility in the template. Seeded from the loaded item so
+  // editing an existing by-weight item opens with the note already showing.
+  readonly showPriceNote = signal((this.data.menuItem?.price ?? 0) <= 0);
+
+  // startWith so the rule is applied on open too, not only on the first edit - otherwise
+  // reopening a saved by-weight item shows the field (the signal above is seeded) while
+  // its required validator is still missing, and the note could be cleared and saved.
+  private readonly priceNoteSync = this.form.controls.price.valueChanges
+    .pipe(startWith(this.form.controls.price.value), takeUntilDestroyed())
+    .subscribe((price) => this.applyPriceNoteState(price));
+
+  // Both directions matter, which is why this is not just a visibility flag:
+  //
+  // Going to 0 makes the note REQUIRED. An item priced at 0 with no note renders as
+  // nothing at all on the menu card - not "free", not a price, just a gap - so the form
+  // refuses to save that rather than letting it reach the storefront.
+  //
+  // Going above 0 clears the value as well as hiding the field. Hiding alone would leave
+  // the old text in the control, and it would be submitted and stored against an item
+  // that now has a real price - the server drops it anyway (see ResolvePriceNote), but
+  // the admin would still see a stale note reappear if they set the price back to 0.
+  private applyPriceNoteState(price: number | null): void {
+    const isByWeight = !price || price <= 0;
+    this.showPriceNote.set(isByWeight);
+
+    const control = this.form.controls.priceNote;
+    if (isByWeight) {
+      control.setValidators([Validators.required, Validators.maxLength(100)]);
+    } else {
+      control.clearValidators();
+      control.setValue('', { emitEvent: false });
+    }
+
+    control.updateValueAndValidity({ emitEvent: false });
+  }
 
   // ---------------------------------------------------------------------------
   // Variants (sizes/weights)
@@ -224,6 +270,9 @@ export class MenuItemFormDialogComponent {
       nameAr: raw.nameAr.trim() || null,
       description: raw.description || null,
       price: raw.price,
+      // Sent as null above zero so the stored shape matches what the server would
+      // normalise it to anyway - one value for "no note", never an empty string.
+      priceNote: raw.price > 0 ? null : raw.priceNote.trim() || null,
       category: raw.category,
       subCategoryId: raw.subCategoryId || null,
       imageUrl: raw.imageUrl || null,

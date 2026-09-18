@@ -17,6 +17,9 @@ export interface MenuItem {
   // True only on rows returned by a "show deleted" admin query; the storefront's copy
   // of this model always carries false.
   isDeleted?: boolean;
+  // Set only when `price` is 0 - what to show in place of the currency for items priced
+  // on the day (meat, fish sold by weight). See PriceNotePipe.
+  priceNote?: string | null;
   // Empty for most items. When non-empty the customer MUST choose one, and `price`
   // above is a placeholder nobody pays - the server refuses a line that names no
   // variant for an item that has them.

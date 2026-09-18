@@ -25,6 +25,11 @@ public class MenuItemConfiguration : IEntityTypeConfiguration<MenuItem>
         builder.Property(m => m.Price)
             .HasPrecision(10, 2);
 
+        // Matches the 100-char cap on MenuItemRequest.PriceNote, so the database refuses
+        // anything the DTO would have refused rather than silently truncating.
+        builder.Property(m => m.PriceNote)
+            .HasMaxLength(100);
+
         builder.HasIndex(m => m.Category);
 
         // SubCategoryService.DeleteAsync already blocks deleting a sub-category that

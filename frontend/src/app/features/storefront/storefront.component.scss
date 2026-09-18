@@ -612,3 +612,11 @@ $hero-tab-active-color: #7a2e22;
     animation: none !important;
   }
 }
+
+// A price note is a sentence where a figure normally sits, so it drops the price's
+// weight and size rather than shouting an Arabic phrase at the customer.
+.price.is-note {
+  font-size: 0.8rem;
+  font-weight: 600;
+  unicode-bidi: plaintext;
+}

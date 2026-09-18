@@ -141,3 +141,9 @@ mat-slide-toggle {
     flex: 0 0 auto;
   }
 }
+
+// Takes the full row when it appears, so the price and category fields keep their own
+// widths instead of being squeezed by a third field materialising between them.
+.price-note-field {
+  flex: 1 1 100%;
+}

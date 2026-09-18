@@ -7,6 +7,7 @@ import { CartService } from '../../../core/services/cart.service';
 import { MenuItem, MenuItemVariant } from '../../../core/models/menu-item.model';
 import { AddOn } from '../../../core/models/add-on.model';
 import { LocalNamePipe } from '../../../shared/pipes/local-name.pipe';
+import { PriceDisplayPipe } from '../../../shared/pipes/price-display.pipe';
 import { LanguageService } from '../../../core/services/language.service';
 
 export interface MenuItemDetailsDialogData {
@@ -24,7 +25,7 @@ export interface MenuItemDetailsDialogData {
 @Component({
   selector: 'app-menu-item-details-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule, LocalNamePipe],
+  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule, LocalNamePipe, PriceDisplayPipe],
   // OnPush: every piece of state this component renders is a signal, so Angular
   // can skip it entirely unless one of them actually changed. Without it, the item dialog
   // was re-checked on every unrelated async event anywhere in the app.
@@ -110,7 +111,23 @@ export class MenuItemDetailsDialogComponent {
 
   // An item with variants cannot be ordered without one. The footer button is disabled
   // rather than hidden, so the reason is visible instead of the control just missing.
-  readonly canAddToCart = computed(() => !this.definesVariants || this.selectedVariant() !== null);
+  // True when there is no payable figure: a by-weight item with a 0 base and no sized
+  // options. The note explains it on screen; this is what stops it being ordered.
+  readonly isPricedOnRequest = computed(() => this.basePrice() <= 0);
+
+  // Three ways to be un-orderable, all of them ending in a disabled button with a
+  // visible reason rather than a line the server would reject at checkout:
+  //   - the item comes in sizes and none is chosen
+  //   - every size is sold out
+  //   - the price is set on the day, so there is no amount to charge
+  //
+  // That last one is not cosmetic. Without it the footer reads "Add to cart · L.E 0.00"
+  // and the order goes through at zero: the server prices lines itself from
+  // MenuItem.Price, so a kilo of meat would be delivered free. Add-ons make it worse,
+  // not better - the customer would be charged for the tahini and nothing for the meat.
+  readonly canAddToCart = computed(
+    () => (!this.definesVariants || this.selectedVariant() !== null) && !this.isPricedOnRequest()
+  );
 
   private resolveInitialVariantId(): number | null {
     if (this.availableVariants.length === 0) {

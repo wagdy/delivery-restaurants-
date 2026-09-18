@@ -166,7 +166,10 @@
                 <mat-card-content>
                   <div class="card-header">
                     <h3>{{ item | localName: languageService.language() }}</h3>
-                    <span class="price">L.E {{ item.price.toFixed(2) }}</span>
+                    <!-- Either the currency or the admin's note - see PriceDisplayPipe.
+                         Never "L.E 0.00", which reads as free rather than as "weighed
+                         on the day". -->
+                    <span class="price" [class.is-note]="!item.price">{{ item | priceDisplay }}</span>
                   </div>
                   @if (item.description) {
                     <p class="description">{{ item.description }}</p>

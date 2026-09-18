@@ -9,8 +9,11 @@
       <h2>{{ data.menuItem | localName: languageService.language() }}</h2>
       <!-- Tracks the chosen size. Showing the item's stored base price here while the
            footer charges the variant price would put two different numbers for the same
-           item on one screen. -->
-      <span class="base-price">L.E {{ basePrice().toFixed(2) }}</span>
+           item on one screen. For a by-weight item with no sizes this prints the admin's
+           note instead of "L.E 0.00" - see PriceDisplayPipe. -->
+      <span class="base-price" [class.is-note]="isPricedOnRequest()">
+        {{ data.menuItem | priceDisplay: selectedVariant() }}
+      </span>
     </div>
     <button mat-icon-button class="modal-close" (click)="close()" aria-label="Close">
       <mat-icon>close</mat-icon>
@@ -26,6 +29,13 @@
 
     @if (data.menuItem.description) {
       <p class="description">{{ data.menuItem.description }}</p>
+    }
+
+    @if (isPricedOnRequest()) {
+      <div class="price-on-request" role="status">
+        <mat-icon aria-hidden="true">scale</mat-icon>
+        <span>{{ data.menuItem | priceDisplay }} — please call the branch to order this item.</span>
+      </div>
     }
 
     @if (allVariantsSoldOut) {
@@ -114,12 +124,19 @@
     </div>
 
     <button type="button" class="add-to-cart-btn" [disabled]="!canAddToCart()" (click)="addToCart()">
-      <mat-icon>add_shopping_cart</mat-icon>
-      <span class="add-to-cart-label">{{ isEditing ? 'Save changes' : 'Add to cart' }}</span>
-      <span class="dot">·</span>
-      <span class="price-slot" [class.rolling]="pricePulse()" (animationend)="pricePulse.set(false)">
-        L.E {{ lineTotal().toFixed(2) }}
-      </span>
+      @if (isPricedOnRequest()) {
+        <!-- No amount to charge, so the button states that rather than offering to add a
+             zero-priced line. -->
+        <mat-icon>call</mat-icon>
+        <span class="add-to-cart-label">Call to order</span>
+      } @else {
+        <mat-icon>add_shopping_cart</mat-icon>
+        <span class="add-to-cart-label">{{ isEditing ? 'Save changes' : 'Add to cart' }}</span>
+        <span class="dot">·</span>
+        <span class="price-slot" [class.rolling]="pricePulse()" (animationend)="pricePulse.set(false)">
+          L.E {{ lineTotal().toFixed(2) }}
+        </span>
+      }
     </button>
   </footer>
 </div>

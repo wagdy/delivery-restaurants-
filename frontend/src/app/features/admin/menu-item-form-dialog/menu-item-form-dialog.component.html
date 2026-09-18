@@ -39,6 +39,25 @@
         }
       </mat-form-field>
 
+      <!-- Only while the price is 0. This codebase uses Angular's built-in @if rather
+           than *ngIf - same conditional rendering, current control-flow syntax. -->
+      @if (showPriceNote()) {
+        <mat-form-field appearance="outline" class="price-note-field">
+          <mat-label>Price note</mat-label>
+          <mat-icon matPrefix>scale</mat-icon>
+          <input
+            matInput
+            formControlName="priceNote"
+            placeholder="Enter a note (e.g., Price based on weight)"
+            maxlength="100"
+          />
+          <mat-hint>Shown to customers instead of a price.</mat-hint>
+          @if (form.controls.priceNote.hasError('required') && form.controls.priceNote.touched) {
+            <mat-error>A note is required when the price is 0, or the item shows no price at all</mat-error>
+          }
+        </mat-form-field>
+      }
+
       <mat-form-field appearance="outline" class="category-field">
         <mat-label>Category</mat-label>
         <mat-select formControlName="category" (selectionChange)="onCategoryChange($event.value)">

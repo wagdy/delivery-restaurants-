@@ -459,6 +459,22 @@ public class OrderService : IOrderService
                     $"'{menuItem.Name}' does not come in different sizes.");
             }
 
+            // Price-on-request items (Price 0, explained by PriceNote) have no amount to
+            // charge. The storefront already refuses to add them to a cart, but this is
+            // the boundary that matters: without it a crafted request orders a kilo of
+            // meat for L.E 0.00, and with add-ons attached the customer would be charged
+            // for the tahini and nothing for the meat.
+            //
+            // Safe as a blanket rule because a zero base price was impossible to save
+            // until PriceNote existed - nothing in the menu predates this check.
+            var resolvedUnitPrice = variant?.Price ?? menuItem.Price;
+            if (resolvedUnitPrice <= 0)
+            {
+                return ServiceResult<List<OrderItem>>.Failure(
+                    $"'{menuItem.Name}' is priced on the day and cannot be ordered online. " +
+                    "Please call the branch to order it.");
+            }
+
             var availableAddOns = menuItem.MenuItemAddOns.ToDictionary(ma => ma.AddOnId, ma => ma.AddOn);
             var addOns = new List<OrderItemAddOn>();
 
@@ -488,7 +504,7 @@ public class OrderService : IOrderService
                 Quantity = line.Quantity,
                 // The variant's price REPLACES the base price - it is absolute, not a
                 // delta. Add-ons are what add.
-                UnitPrice = variant?.Price ?? menuItem.Price,
+                UnitPrice = resolvedUnitPrice,
                 AddOns = addOns
             });
         }
