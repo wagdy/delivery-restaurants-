@@ -334,7 +334,9 @@ export class StorefrontComponent {
     // synchronously here would still see the previous category's layout.
     setTimeout(() => {
       const root = this.elementRef.nativeElement;
-      const sectionTitle = root.querySelector('.menu-section-title') as HTMLElement | null;
+      // h2 specifically: the category heading and the sub-category headings now share
+      // .category-title, and a bare class lookup would land on whichever came first.
+      const sectionTitle = root.querySelector('h2.category-title') as HTMLElement | null;
       const stickyPanel = root.querySelector('.menu-sticky-panel') as HTMLElement | null;
       if (!sectionTitle || !stickyPanel) {
         return;

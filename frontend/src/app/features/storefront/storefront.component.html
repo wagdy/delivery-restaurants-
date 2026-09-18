@@ -203,20 +203,18 @@
 
         <div class="menu-content">
           @if (selectedSection(); as section) {
-            <h2 class="menu-section-title">{{ localizableCategory(section.category) | localName: languageService.language() }}</h2>
+            <h2 class="category-title">{{ localizableCategory(section.category) | localName: languageService.language() }}</h2>
 
             @if (section.ungroupedItems.length > 0) {
               <ng-container [ngTemplateOutlet]="itemsGrid" [ngTemplateOutletContext]="{ $implicit: section.ungroupedItems }"></ng-container>
             }
 
             @for (sub of section.subSections; track sub.subCategory.id) {
-              <!-- The h3 itself is the flex row rather than a wrapper div, so the
-                   heading semantics survive the layout change - a screen reader still
-                   gets a level-3 heading, and the rule beside it is decorative. -->
-              <h3 class="sub-category-headline">
-                <span class="sub-category-title">{{ sub.subCategory | localName: languageService.language() }}</span>
-                <span class="sub-category-rule" aria-hidden="true"></span>
-              </h3>
+              <!-- Same .category-title as the h2 above: identical type and accent bar,
+                   with h3 carrying the only difference that should survive - its level
+                   in the document outline, which a screen reader announces and a
+                   stylesheet has no business flattening. -->
+              <h3 class="category-title">{{ sub.subCategory | localName: languageService.language() }}</h3>
               <ng-container [ngTemplateOutlet]="itemsGrid" [ngTemplateOutletContext]="{ $implicit: sub.items }"></ng-container>
             }
           } @else {
