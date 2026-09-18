@@ -80,7 +80,12 @@ export interface CategoryCard {
   templateUrl: './storefront.component.html',
   // Two files rather than one - see storefront-category-grid.scss's own comment for why
   // (Angular's per-component style budget is checked per stylesheet file).
-  styleUrls: ['./storefront.component.scss', './storefront-category-grid.scss', './storefront-sticky-panel.scss']
+  styleUrls: [
+    './storefront.component.scss',
+    './storefront-category-grid.scss',
+    './storefront-sticky-panel.scss',
+    './storefront-headings.scss'
+  ]
 })
 export class StorefrontComponent {
   private readonly menuItemService = inject(MenuItemService);

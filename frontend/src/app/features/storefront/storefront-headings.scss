@@ -1,0 +1,64 @@
+// The category and sub-category headings for the item view.
+//
+// Split out of storefront.component.scss to stay inside Angular's per-stylesheet budget
+// (8kB error) - the main file went 346 bytes over once these landed. Both files are
+// listed in the component's styleUrls, so the cascade is unchanged; the budget is
+// measured per file, not per component.
+
+// The category name, with a short accent bar under it. Only a modest top margin
+// despite the heading being prominent: selectedSection() renders exactly one category
+// at a time, so this is always the first element in .menu-content - there is no
+// previous section to separate it from, and a generous margin here would just push the
+// menu down the screen. The sub-headings below are where the separation is needed.
+.menu-section-title {
+  position: relative;
+  margin: 10px 0 22px;
+  padding-bottom: 12px;
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: rgba(0, 0, 0, 0.88);
+
+  // Sits at the inline-start edge, so it tucks under the first letter in English and
+  // under the last one in Arabic without a second RTL-specific rule.
+  &::after {
+    content: '';
+    position: absolute;
+    inset-block-end: 0;
+    inset-inline-start: 0;
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--app-primary-color, #3f51b5);
+  }
+}
+
+// Title plus a rule that runs to the end of the row - a section break that does not
+// box the items in. Replaces a full-width bottom border, which read as a divider
+// belonging to the items below rather than as a heading.
+.sub-category-headline {
+  display: flex;
+  align-items: center;
+  // The generous top margin lives here, not on the category title: this is the heading
+  // that actually follows a grid of items and needs air above it.
+  margin: 34px 0 14px;
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #555;
+}
+
+.sub-category-title {
+  // Keeps a long sub-category name from squeezing the rule out of existence, and lets
+  // it wrap rather than overflow.
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.sub-category-rule {
+  flex: 1 1 auto;
+  // Logical margin and a border rather than a left/right pair: in Arabic the rule runs
+  // the other way and the gap has to follow the title, not the left edge.
+  margin-inline-start: 12px;
+  border-block-end: 1px solid #e0e0e0;
+}

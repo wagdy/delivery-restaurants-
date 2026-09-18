@@ -207,7 +207,13 @@
             }
 
             @for (sub of section.subSections; track sub.subCategory.id) {
-              <h3 class="sub-category-headline">{{ sub.subCategory | localName: languageService.language() }}</h3>
+              <!-- The h3 itself is the flex row rather than a wrapper div, so the
+                   heading semantics survive the layout change - a screen reader still
+                   gets a level-3 heading, and the rule beside it is decorative. -->
+              <h3 class="sub-category-headline">
+                <span class="sub-category-title">{{ sub.subCategory | localName: languageService.language() }}</span>
+                <span class="sub-category-rule" aria-hidden="true"></span>
+              </h3>
               <ng-container [ngTemplateOutlet]="itemsGrid" [ngTemplateOutletContext]="{ $implicit: sub.items }"></ng-container>
             }
           } @else {
