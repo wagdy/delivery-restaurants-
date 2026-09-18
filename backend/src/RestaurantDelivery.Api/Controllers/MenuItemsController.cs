@@ -20,20 +20,35 @@ public class MenuItemsController : ControllerBase
     private readonly IMenuItemService _service;
     private readonly IFileUploadService _fileUploadService;
     private readonly IBulkMenuItemImportService _bulkImportService;
+    private readonly IAuthorizationService _authorizationService;
 
     public MenuItemsController(
         IMenuItemService service,
         IFileUploadService fileUploadService,
-        IBulkMenuItemImportService bulkImportService)
+        IBulkMenuItemImportService bulkImportService,
+        IAuthorizationService authorizationService)
     {
         _service = service;
         _fileUploadService = fileUploadService;
         _bulkImportService = bulkImportService;
+        _authorizationService = authorizationService;
     }
 
     [HttpGet]
     public async Task<ActionResult<List<MenuItemResponse>>> GetAll([FromQuery] MenuItemFilterRequest filter)
     {
+        // This action is public - it is what the storefront reads - so asking to see
+        // soft-deleted rows has to be gated here. Without this check, ?deleted=All would
+        // let any customer read back everything an admin had just removed from sale.
+        if (filter.Deleted != DeletedFilter.Active)
+        {
+            var authorized = await _authorizationService.AuthorizeAsync(User, "Module.MenuItems");
+            if (!authorized.Succeeded)
+            {
+                return Forbid();
+            }
+        }
+
         return Ok(await _service.GetAllAsync(filter));
     }
 
@@ -140,6 +155,22 @@ public class MenuItemsController : ControllerBase
     public async Task<ActionResult<BulkActionResult>> BulkAvailability([FromBody] BulkAvailabilityRequest request)
     {
         var result = await _service.BulkSetAvailabilityAsync(request.Ids, request.IsAvailable);
+        if (!result.Succeeded)
+        {
+            return BadRequest(new { errors = result.Errors });
+        }
+
+        return Ok(result.Data);
+    }
+
+    // Undo for bulk-delete. Note this can also bring a category back - see
+    // MenuItemService.BulkRestoreAsync for why restoring an item into a still-deleted
+    // category would look like a restore that did nothing.
+    [Authorize(Policy = "Module.MenuItems")]
+    [HttpPost("bulk-restore")]
+    public async Task<ActionResult<BulkActionResult>> BulkRestore([FromBody] BulkIdsRequest request)
+    {
+        var result = await _service.BulkRestoreAsync(request.Ids);
         if (!result.Succeeded)
         {
             return BadRequest(new { errors = result.Errors });

@@ -142,3 +142,23 @@ table {
   width: 48px;
   padding-inline-end: 0;
 }
+
+// Deleted rows only ever appear under the "Deleted"/"Everything" filters. Tinted rather
+// than merely faded: on "Everything" they sit directly among live rows, and opacity
+// alone reads as "loading" instead of "removed from the menu".
+tr.mat-mdc-row.is-deleted {
+  background: color-mix(in srgb, #d32f2f 5%, transparent);
+
+  .mat-mdc-cell {
+    color: rgba(0, 0, 0, 0.5);
+  }
+}
+
+// Empty-state copy differs by filter, so it needs to sit on its own line rather than
+// inheriting the table's centred single-line treatment.
+.empty-state-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.55);
+}

@@ -18,5 +18,9 @@ public class MenuItemResponse
     public string? SubCategoryName { get; set; }
     public string? ImageUrl { get; set; }
     public bool IsAvailable { get; set; }
+
+    // Always present but only ever true for callers that asked for deleted rows and
+    // passed the Module.MenuItems check - the storefront never sees a true here.
+    public bool IsDeleted { get; set; }
     public List<AddOnResponse> AddOns { get; set; } = new();
 }

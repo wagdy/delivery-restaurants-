@@ -14,14 +14,22 @@ export interface MenuItem {
   subCategoryName?: string | null;
   imageUrl?: string | null;
   isAvailable: boolean;
+  // True only on rows returned by a "show deleted" admin query; the storefront's copy
+  // of this model always carries false.
+  isDeleted?: boolean;
   addOns: AddOn[];
 }
+
+export type DeletedFilter = 'Active' | 'Deleted' | 'All';
 
 export interface MenuItemFilter {
   searchQuery?: string;
   categoryId?: number;
   isAvailable?: boolean;
   hasAddons?: boolean;
+  // Matches the server's DeletedFilter. Omitted means 'active', so no existing caller
+  // changes behaviour.
+  deleted?: DeletedFilter;
 }
 
 export interface BulkMenuItemImportResult {

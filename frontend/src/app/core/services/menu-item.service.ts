@@ -60,6 +60,7 @@ export class MenuItemService {
     if (filter?.categoryId !== undefined) params = params.set('categoryId', filter.categoryId);
     if (filter?.isAvailable !== undefined) params = params.set('isAvailable', filter.isAvailable);
     if (filter?.hasAddons !== undefined) params = params.set('hasAddons', filter.hasAddons);
+    if (filter?.deleted) params = params.set('deleted', filter.deleted);
     return this.http.get<MenuItem[]>(this.baseUrl, { params });
   }
 
@@ -80,6 +81,12 @@ export class MenuItemService {
   bulkDelete(ids: number[]): Observable<BulkActionResult> {
     return this.http
       .post<BulkActionResult>(`${this.baseUrl}/bulk-delete`, { ids })
+      .pipe(tap(() => this.invalidateAvailable()));
+  }
+
+  bulkRestore(ids: number[]): Observable<BulkActionResult> {
+    return this.http
+      .post<BulkActionResult>(`${this.baseUrl}/bulk-restore`, { ids })
       .pipe(tap(() => this.invalidateAvailable()));
   }
 

@@ -23,6 +23,11 @@ public class CategoryRepository : GenericRepository<Category>, ICategoryReposito
     public Task<List<Category>> GetByIdsAsync(List<int> ids) =>
         DbSet.Where(c => ids.Contains(c.Id)).ToListAsync();
 
+    // Used only by the restore path, which needs to see past the soft-delete filter -
+    // every row it wants is one the filter is hiding.
+    public async Task<List<Category>> GetDeletedByNamesAsync(List<string> names) =>
+        await DbSet.IgnoreQueryFilters().Where(c => c.IsDeleted && names.Contains(c.Name)).ToListAsync();
+
     public Task<Category?> GetByNameAsync(string name) =>
         DbSet.FirstOrDefaultAsync(c => c.Name.ToLower() == name.ToLower());
 

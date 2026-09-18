@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RestaurantDelivery.Core.DTOs.MenuItems;
 using RestaurantDelivery.Core.Entities;
 using RestaurantDelivery.Core.Interfaces;
 using RestaurantDelivery.Infrastructure.Data;
@@ -21,12 +22,22 @@ public class MenuItemRepository : GenericRepository<MenuItem>, IMenuItemReposito
     public async Task<List<MenuItem>> GetByIdsAsync(List<int> ids) =>
         await DbSet.Where(m => ids.Contains(m.Id)).ToListAsync();
 
+    // The restore counterpart to GetByIdsAsync: it has to see past the query filter,
+    // since by definition every row it is asked for is one the filter hides.
+    public async Task<List<MenuItem>> GetByIdsIncludingDeletedAsync(List<int> ids) =>
+        await DbSet.IgnoreQueryFilters().Where(m => ids.Contains(m.Id)).ToListAsync();
+
     // Tracked for the same reason - CategoryService cascades a soft delete onto these.
     // Matched by name because MenuItem.Category is free text, not a foreign key.
     public async Task<List<MenuItem>> GetByCategoryAsync(string categoryName) =>
         await DbSet.Where(m => m.Category == categoryName).ToListAsync();
 
-    public async Task<List<MenuItem>> GetFilteredAsync(string? category, string? searchQuery, bool? isAvailable, bool? hasAddons)
+    public async Task<List<MenuItem>> GetFilteredAsync(
+        string? category,
+        string? searchQuery,
+        bool? isAvailable,
+        bool? hasAddons,
+        DeletedFilter deleted)
     {
         // AsNoTracking because every caller of this method maps straight to
         // MenuItemResponse and never writes back - MenuItemService.GetAllAsync is the only
@@ -43,6 +54,19 @@ public class MenuItemRepository : GenericRepository<MenuItem>, IMenuItemReposito
             .ThenInclude(ma => ma.AddOn)
             .Include(m => m.SubCategory)
             .AsQueryable();
+
+        if (deleted != DeletedFilter.Active)
+        {
+            // IgnoreQueryFilters is what makes deleted rows reachable at all; the Where
+            // then narrows to only those. Active takes neither branch, so the ordinary
+            // storefront query is byte for byte the query it was before.
+            query = query.IgnoreQueryFilters();
+
+            if (deleted == DeletedFilter.Deleted)
+            {
+                query = query.Where(m => m.IsDeleted);
+            }
+        }
 
         if (!string.IsNullOrWhiteSpace(category))
         {

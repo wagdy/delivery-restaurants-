@@ -12,5 +12,6 @@ public interface IMenuItemService
     Task<ServiceResult<MenuItemResponse>> UpdateAsync(int id, MenuItemRequest request);
     Task<ServiceResult<bool>> DeleteAsync(int id);
     Task<ServiceResult<BulkActionResult>> BulkDeleteAsync(IReadOnlyCollection<int> ids);
+    Task<ServiceResult<BulkActionResult>> BulkRestoreAsync(IReadOnlyCollection<int> ids);
     Task<ServiceResult<BulkActionResult>> BulkSetAvailabilityAsync(IReadOnlyCollection<int> ids, bool isAvailable);
 }

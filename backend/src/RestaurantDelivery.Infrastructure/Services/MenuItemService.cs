@@ -55,17 +55,26 @@ public class MenuItemService : IMenuItemService
         // let any caller grow the cache (and ReadThroughCache's per-key locks) without
         // limit. The remaining key space is category x availability x has-addons: a few
         // dozen combinations at most.
-        if (!string.IsNullOrWhiteSpace(filter.SearchQuery))
+        //
+        // A query that asks for deleted rows skips the cache entirely rather than adding
+        // a fourth dimension to the key. That is not an optimisation, it is a safety
+        // rule: this cache is shared with the storefront, so a key that did not account
+        // for Deleted would let one admin opening "Show deleted" publish deleted items
+        // to every customer until the entry expired. Admin recovery traffic is rare
+        // enough that reading straight through costs nothing.
+        if (!string.IsNullOrWhiteSpace(filter.SearchQuery) || filter.Deleted != DeletedFilter.Active)
         {
-            var searchResults = await _repository.GetFilteredAsync(categoryName, filter.SearchQuery, filter.IsAvailable, filter.HasAddons);
-            return searchResults.Select(MapResponse).ToList();
+            var uncached = await _repository.GetFilteredAsync(
+                categoryName, filter.SearchQuery, filter.IsAvailable, filter.HasAddons, filter.Deleted);
+            return uncached.Select(MapResponse).ToList();
         }
 
         var cacheKey = $"{categoryName ?? "*"}|{filter.IsAvailable?.ToString() ?? "*"}|{filter.HasAddons?.ToString() ?? "*"}";
 
         return await _cache.GetOrCreateAsync(CacheGroup.Menu, cacheKey, async () =>
         {
-            var items = await _repository.GetFilteredAsync(categoryName, null, filter.IsAvailable, filter.HasAddons);
+            var items = await _repository.GetFilteredAsync(
+                categoryName, null, filter.IsAvailable, filter.HasAddons, DeletedFilter.Active);
             return items.Select(MapResponse).ToList();
         });
     }
@@ -214,6 +223,52 @@ public class MenuItemService : IMenuItemService
     // One explicit target rather than a per-item flip: "make these 12 unavailable" is a
     // predictable outcome, where toggling each independently leaves a mixed selection in
     // a state the admin cannot guess from the button they pressed.
+    // The inverse of BulkDeleteAsync. Deliberately also lifts the item's category back
+    // out of deletion when that category was deleted too: deleting a category cascades
+    // to its items, so most restores start from exactly that case, and an item restored
+    // into a category that is still hidden is invisible on the storefront and
+    // unselectable in the admin category filter - a restore that appears to do nothing.
+    // MenuItem.Category is free text, so the match is by name, same as the cascade.
+    public async Task<ServiceResult<BulkActionResult>> BulkRestoreAsync(IReadOnlyCollection<int> ids)
+    {
+        if (ids.Count == 0)
+        {
+            return ServiceResult<BulkActionResult>.Failure("No menu items were selected.");
+        }
+
+        if (ids.Count > MaxBulkIds)
+        {
+            return ServiceResult<BulkActionResult>.Failure(
+                $"Too many items selected at once. Please select {MaxBulkIds} or fewer.");
+        }
+
+        var items = await _repository.GetByIdsIncludingDeletedAsync(ids.ToList());
+        foreach (var item in items)
+        {
+            item.IsDeleted = false;
+        }
+
+        var categoryNames = items
+            .Select(i => i.Category)
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Distinct()
+            .ToList();
+
+        if (categoryNames.Count > 0)
+        {
+            foreach (var category in await _categoryRepository.GetDeletedByNamesAsync(categoryNames))
+            {
+                category.IsDeleted = false;
+            }
+        }
+
+        await _repository.SaveChangesAsync();
+        _cache.Invalidate(CacheGroup.Menu);
+
+        return ServiceResult<BulkActionResult>.Success(
+            new BulkActionResult { Requested = ids.Count, Affected = items.Count });
+    }
+
     public async Task<ServiceResult<BulkActionResult>> BulkSetAvailabilityAsync(
         IReadOnlyCollection<int> ids,
         bool isAvailable)
@@ -302,6 +357,7 @@ public class MenuItemService : IMenuItemService
         SubCategoryName = item.SubCategory?.Name,
         ImageUrl = item.ImageUrl,
         IsAvailable = item.IsAvailable,
+        IsDeleted = item.IsDeleted,
         AddOns = item.MenuItemAddOns
             .Select(ma => new AddOnResponse
             {

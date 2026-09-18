@@ -19,7 +19,7 @@ import { MenuItemService } from '../../../core/services/menu-item.service';
 import { CategoryService } from '../../../core/services/category.service';
 import { SubCategoryService } from '../../../core/services/sub-category.service';
 import { AddOnService } from '../../../core/services/add-on.service';
-import { BulkActionResult, MenuItem } from '../../../core/models/menu-item.model';
+import { BulkActionResult, DeletedFilter, MenuItem } from '../../../core/models/menu-item.model';
 import { Category } from '../../../core/models/category.model';
 import { SubCategory } from '../../../core/models/sub-category.model';
 import { AddOn } from '../../../core/models/add-on.model';
@@ -77,6 +77,15 @@ export class MenuManagementComponent {
   readonly categoryFilter = signal<number | null>(null);
   readonly availabilityFilter = signal<AvailabilityFilter>('all');
   readonly addOnsFilter = signal<AddOnsFilter>('all');
+
+  // 'Active' is the default and matches the server's own default, so the table opens on
+  // the live menu exactly as it always has. The other two values are what make a soft
+  // delete recoverable without going to the database.
+  readonly deletedFilter = signal<DeletedFilter>('Active');
+
+  // True when the current view can contain deleted rows - drives whether the bulk bar
+  // offers Restore, and whether the per-row action is Delete or Restore.
+  readonly showingDeleted = signal(false);
 
   readonly displayedColumns = ['select', 'photo', 'name', 'category', 'price', 'available', 'actions'];
 
@@ -178,6 +187,46 @@ export class MenuManagementComponent {
     });
   }
 
+  // Undo for bulkDelete. No confirm dialog: restoring is the safe direction, and an
+  // admin who restores the wrong row can simply delete it again.
+  bulkRestore(): void {
+    const ids = this.selection.selected;
+    if (ids.length === 0) {
+      return;
+    }
+
+    this.bulkWorking.set(true);
+    this.menuItemService.bulkRestore(ids).subscribe({
+      next: (result) => {
+        this.bulkWorking.set(false);
+        this.clearSelection();
+        this.applyFilters();
+        this.reportBulkResult(result, 'restored');
+      },
+      error: (err) => {
+        this.bulkWorking.set(false);
+        this.snackBar.open(err.error?.errors?.[0] ?? 'Failed to restore the selected items.', 'Dismiss', { duration: 5000 });
+      }
+    });
+  }
+
+  // Row-level restore runs through the same endpoint with a single id, so there is one
+  // code path to reason about rather than two that can drift.
+  restoreItem(item: MenuItem): void {
+    this.bulkWorking.set(true);
+    this.menuItemService.bulkRestore([item.id]).subscribe({
+      next: () => {
+        this.bulkWorking.set(false);
+        this.applyFilters();
+        this.snackBar.open(`"${item.name}" is back on the menu.`, 'Dismiss', { duration: 4000 });
+      },
+      error: (err) => {
+        this.bulkWorking.set(false);
+        this.snackBar.open(err.error?.errors?.[0] ?? 'Failed to restore this item.', 'Dismiss', { duration: 5000 });
+      }
+    });
+  }
+
   bulkSetAvailability(isAvailable: boolean): void {
     const ids = this.selection.selected;
     if (ids.length === 0) {
@@ -246,6 +295,15 @@ export class MenuManagementComponent {
 
   // The unified filtering method: reads every active filter and fetches the matching
   // menu items in a single request.
+  onDeletedFilterChange(value: DeletedFilter): void {
+    this.deletedFilter.set(value);
+    // Selections do not survive the switch: the ids on screen are about to be replaced
+    // by a different population, and a Restore aimed at a live row (or a Delete aimed at
+    // an already-deleted one) is never what the admin meant.
+    this.clearSelection();
+    this.applyFilters();
+  }
+
   applyFilters(): void {
     this.loading.set(true);
     this.errorMessage.set(null);
@@ -258,11 +316,13 @@ export class MenuManagementComponent {
         searchQuery: this.searchTerm().trim() || undefined,
         categoryId: this.categoryFilter() ?? undefined,
         isAvailable: availability === 'all' ? undefined : availability === 'available',
-        hasAddons: addOns === 'all' ? undefined : addOns === 'has'
+        hasAddons: addOns === 'all' ? undefined : addOns === 'has',
+        deleted: this.deletedFilter()
       })
       .subscribe({
         next: (items) => {
           this.menuItems.set(items);
+          this.showingDeleted.set(this.deletedFilter() !== 'Active');
           // Drop anything that is no longer on screen. Without this, ticking three rows
           // and then changing the category filter leaves "3 selected" showing above a
           // table that contains none of them - and Delete would reach rows the admin
