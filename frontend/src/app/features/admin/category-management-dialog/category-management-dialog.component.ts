@@ -384,7 +384,13 @@ export class CategoryManagementDialogComponent implements OnDestroy {
     const confirmRef = this.dialog.open(ConfirmDialogComponent, {
       data: {
         title: 'Delete category',
-        message: `Delete "${category.name}"? This only works if no menu items use it.`,
+        // This used to read "This only works if no menu items use it", which was true
+        // while the server refused to delete a category in use. It now soft-deletes and
+        // cascades, so that sentence would have read as a safety net while the button
+        // quietly emptied the whole category.
+        message:
+          `Delete "${category.name}"? Every menu item in this category is removed from ` +
+          'the menu with it. Past orders keep their receipts.',
         confirmLabel: 'Delete',
         danger: true
       }
