@@ -51,6 +51,20 @@ export class CartItemComponent {
       .join(', ');
   });
 
+  // The chosen size, localised the same way. Kept separate from the add-on subtitle
+  // rather than folded into it: "1 Kilo" is what the customer is buying, while tahini
+  // and pickles are what they added to it, and a cart that runs the two together reads
+  // as though the size were just another extra.
+  protected readonly variantLabel = computed(() => {
+    const variant = this.line().selectedVariant;
+    if (!variant) {
+      return '';
+    }
+
+    const language = this.languageService.language();
+    return language === 'ar' && variant.nameAr?.trim() ? variant.nameAr.trim() : variant.name;
+  });
+
   // Dish plus add-ons, times quantity - what this line actually costs, which is the
   // number the customer is checking against their total.
   protected readonly lineTotal = computed(() => this.cart.lineUnitPrice(this.line()) * this.line().quantity);
@@ -95,7 +109,8 @@ export class CartItemComponent {
       // on save, instead of adding a second one beside it.
       editingLineKey: this.lineKey(),
       initialAddOnIds: line.selectedAddOns.map((addOn) => addOn.id),
-      initialQuantity: line.quantity
+      initialQuantity: line.quantity,
+      initialVariantId: line.selectedVariant?.id ?? null
     };
 
     // Same config the storefront opens this dialog with (see StorefrontComponent.

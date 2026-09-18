@@ -100,7 +100,23 @@ public class CheckoutService : ICheckoutService
                 .Where(availableAddOns.ContainsKey)
                 .Sum(id => availableAddOns[id].Price);
 
-            var lineTotal = item.Quantity * (menuItem.Price + addOnsTotal);
+            // Must resolve the variant the same way OrderService.BuildOrderItemsAsync
+            // does, or the promo preview quotes a discount against one subtotal and the
+            // order charges against another - the customer sees the total change between
+            // pressing "apply" and placing the order. Falls back to the base price when
+            // the variant is missing or unknown; the order endpoint is what refuses that
+            // case outright, since this path only previews a discount.
+            var unitPrice = menuItem.Price;
+            if (menuItem.Variants.Count > 0 && item.VariantId is not null)
+            {
+                var variant = menuItem.Variants.FirstOrDefault(v => v.Id == item.VariantId.Value);
+                if (variant is not null)
+                {
+                    unitPrice = variant.Price;
+                }
+            }
+
+            var lineTotal = item.Quantity * (unitPrice + addOnsTotal);
             lines.Add(new PromoDiscountCalculator.CartLine(menuItem.Id, menuItem.Category, item.Quantity, lineTotal));
         }
 

@@ -52,6 +52,7 @@ public class MenuItemRepository : GenericRepository<MenuItem>, IMenuItemReposito
             .AsNoTracking()
             .Include(m => m.MenuItemAddOns)
             .ThenInclude(ma => ma.AddOn)
+            .Include(m => m.Variants)
             .Include(m => m.SubCategory)
             .AsQueryable();
 
@@ -102,6 +103,9 @@ public class MenuItemRepository : GenericRepository<MenuItem>, IMenuItemReposito
         DbSet
             .Include(m => m.MenuItemAddOns)
             .ThenInclude(ma => ma.AddOn)
+            // Tracked, and this method also backs UpdateAsync - so the loaded Variants
+            // collection is what SyncVariants mutates in place.
+            .Include(m => m.Variants)
             .Include(m => m.SubCategory)
             .FirstOrDefaultAsync(m => m.Id == id);
 }

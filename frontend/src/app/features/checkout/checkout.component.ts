@@ -387,6 +387,10 @@ export class CheckoutComponent {
         items: this.cart.lines().map((l) => ({
           menuItemId: l.menuItem.id,
           quantity: l.quantity,
+          // Without this the promo preview prices every variant line at the item's base
+          // price while the order prices it at the variant's - so the discount quoted
+          // here would not match the total charged a moment later.
+          variantId: l.selectedVariant?.id ?? null,
           addOnIds: l.selectedAddOns.map((a) => a.id)
         }))
       })
@@ -461,6 +465,9 @@ export class CheckoutComponent {
       items: this.cart.lines().map((l) => ({
         menuItemId: l.menuItem.id,
         quantity: l.quantity,
+        // The server refuses a line that names no variant for an item that has them,
+        // so omitting this would make every variant item unorderable.
+        variantId: l.selectedVariant?.id ?? null,
         addOnIds: l.selectedAddOns.map((a) => a.id)
       })),
       paymentMethod: method,

@@ -403,3 +403,84 @@
     animation: none !important;
   }
 }
+
+// Section headings carry a Required/Optional badge, so the h3 becomes a flex row.
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.55);
+
+  // Required is the one that can block the footer button, so it is the one that earns
+  // colour. Optional stays grey - badging both equally would tell the customer nothing.
+  &.required {
+    background: color-mix(in srgb, var(--app-primary-color, #3f51b5) 12%, transparent);
+    color: var(--app-primary-color, #3f51b5);
+  }
+}
+
+// A circle, where the add-on's tick is a rounded square - the shape is what says
+// "pick one" vs "pick any", before the customer has read a word.
+.variant-radio {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.28);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s ease;
+
+  &.checked {
+    border-color: var(--app-primary-color, #3f51b5);
+
+    &::after {
+      content: '';
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--app-primary-color, #3f51b5);
+    }
+  }
+}
+
+.add-to-cart-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  // The button carries a brand-coloured glow; without this it survives the fade and
+  // leaves a coloured halo under a dead control - same guard as auth.component.scss.
+  box-shadow: none;
+}
+
+// Shown only when an item defines sizes but none are in stock - the footer button is
+// disabled alongside it, so this is the sentence that explains why.
+.variants-soldout {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(211, 47, 47, 0.08);
+  color: #b3261e;
+  font-size: 0.85rem;
+  line-height: 1.4;
+
+  mat-icon {
+    flex: 0 0 auto;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}

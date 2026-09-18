@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -11,7 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MenuItemService } from '../../../core/services/menu-item.service';
-import { MenuItem } from '../../../core/models/menu-item.model';
+import { MenuItem, MenuItemVariant } from '../../../core/models/menu-item.model';
 import { AddOn } from '../../../core/models/add-on.model';
 import { Category } from '../../../core/models/category.model';
 import { SubCategory } from '../../../core/models/sub-category.model';
@@ -23,6 +23,18 @@ export interface MenuItemFormDialogData {
   subCategories: SubCategory[];
   availableAddOns: AddOn[];
 }
+
+// Spelled out rather than inferred: buildVariantGroup() below is referenced by the
+// `variants` field's own initializer, and TypeScript cannot infer a type that depends on
+// itself. Naming it also makes the array's element shape checkable at the call sites.
+type VariantFormGroup = FormGroup<{
+  id: FormControl<number | null>;
+  name: FormControl<string>;
+  nameAr: FormControl<string>;
+  price: FormControl<number>;
+  displayOrder: FormControl<number>;
+  isAvailable: FormControl<boolean>;
+}>;
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -69,6 +81,51 @@ export class MenuItemFormDialogComponent {
     imageUrl: [this.data.menuItem?.imageUrl ?? ''],
     isAvailable: [this.data.menuItem?.isAvailable ?? true]
   });
+
+  // ---------------------------------------------------------------------------
+  // Variants (sizes/weights)
+  // ---------------------------------------------------------------------------
+
+  // A FormArray rather than a plain signal array: each row has its own required-name and
+  // min-price validation, and the dialog's single form.invalid check then covers the
+  // variant rows too instead of letting a blank size name through to the server.
+  readonly variants: FormArray<VariantFormGroup> = this.fb.array(
+    (this.data.menuItem?.variants ?? []).map((v) => this.buildVariantGroup(v))
+  );
+
+  // formArrayName needs a parent FormGroup to resolve against; the array is kept
+  // separate from the main `form` so an invalid size row cannot be missed by a
+  // form.invalid check that was written before variants existed (see submit()).
+  readonly variantsForm = this.fb.group({ variants: this.variants });
+
+  // Price on the main form becomes a fallback nobody is charged once variants exist, so
+  // the template relabels it rather than leaving two prices on screen with no
+  // explanation of which one wins.
+  readonly hasVariants = signal((this.data.menuItem?.variants ?? []).length > 0);
+
+  private buildVariantGroup(variant?: MenuItemVariant): VariantFormGroup {
+    return this.fb.nonNullable.group({
+      // Carried through so MenuItemService can match and update the existing row instead
+      // of deleting it and inserting a new id - which would detach it from the order
+      // history and from any cart holding it.
+      id: [variant?.id ?? null] as [number | null],
+      name: [variant?.name ?? '', [Validators.required, Validators.maxLength(100)]],
+      nameAr: [variant?.nameAr ?? '', [Validators.maxLength(100)]],
+      price: [variant?.price ?? 0, [Validators.required, Validators.min(0.01)]],
+      displayOrder: [variant?.displayOrder ?? 0],
+      isAvailable: [variant?.isAvailable ?? true]
+    });
+  }
+
+  addVariant(): void {
+    this.variants.push(this.buildVariantGroup());
+    this.hasVariants.set(true);
+  }
+
+  removeVariant(index: number): void {
+    this.variants.removeAt(index);
+    this.hasVariants.set(this.variants.length > 0);
+  }
 
   // Re-read on every change to the category control below, so switching category updates
   // the sub-category dropdown's options without a page reload.
@@ -150,8 +207,11 @@ export class MenuItemFormDialogComponent {
   }
 
   submit(): void {
-    if (this.form.invalid) {
+    // The variants array is a sibling of `form`, not a control inside it, so
+    // form.invalid alone would happily submit a size with a blank name.
+    if (this.form.invalid || this.variants.invalid) {
       this.form.markAllAsTouched();
+      this.variants.markAllAsTouched();
       return;
     }
 
@@ -168,7 +228,22 @@ export class MenuItemFormDialogComponent {
       subCategoryId: raw.subCategoryId || null,
       imageUrl: raw.imageUrl || null,
       isAvailable: raw.isAvailable,
-      addOnIds: Array.from(this.selectedAddOnIds())
+      addOnIds: Array.from(this.selectedAddOnIds()),
+      // Sent as the complete desired set - the server removes anything already on the
+      // item that is missing here, so deleting a row in this dialog deletes the variant.
+      // DisplayOrder is taken from the row's position rather than a field the admin has
+      // to keep in sync by hand.
+      variants: this.variants.controls.map((group: VariantFormGroup, index: number) => {
+        const value = group.getRawValue();
+        return {
+          id: value.id,
+          name: value.name.trim(),
+          nameAr: value.nameAr.trim() || null,
+          price: value.price,
+          displayOrder: index,
+          isAvailable: value.isAvailable
+        };
+      })
     };
 
     const request$ =

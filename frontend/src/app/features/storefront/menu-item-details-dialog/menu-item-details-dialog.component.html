@@ -7,7 +7,10 @@
   <header class="modal-header">
     <div class="modal-header-info">
       <h2>{{ data.menuItem | localName: languageService.language() }}</h2>
-      <span class="base-price">L.E {{ data.menuItem.price.toFixed(2) }}</span>
+      <!-- Tracks the chosen size. Showing the item's stored base price here while the
+           footer charges the variant price would put two different numbers for the same
+           item on one screen. -->
+      <span class="base-price">L.E {{ basePrice().toFixed(2) }}</span>
     </div>
     <button mat-icon-button class="modal-close" (click)="close()" aria-label="Close">
       <mat-icon>close</mat-icon>
@@ -25,16 +28,60 @@
       <p class="description">{{ data.menuItem.description }}</p>
     }
 
+    @if (allVariantsSoldOut) {
+      <div class="variants-soldout" role="status">
+        <mat-icon aria-hidden="true">info</mat-icon>
+        <span>Every size of this item is out of stock right now. Please check back later.</span>
+      </div>
+    }
+
+    <!-- Variants first: the size is what the add-on prices are added on top of, so
+         choosing it is the first decision, not an afterthought below the sauces. -->
+    @if (hasVariants) {
+      <div class="addons-section">
+        <h3 class="section-title">
+          Choose Size/Weight
+          <span class="section-badge required">Required</span>
+        </h3>
+
+        <!-- role="radiogroup" + role="radio": single choice, so arrow keys move the
+             selection and a screen reader announces "1 of 3" rather than reading three
+             unrelated buttons. -->
+        <div class="addon-list" role="radiogroup" aria-label="Choose size or weight">
+          @for (variant of availableVariants; track variant.id) {
+            <button
+              type="button"
+              class="addon-card"
+              role="radio"
+              [class.selected]="isVariantSelected(variant)"
+              [attr.aria-checked]="isVariantSelected(variant)"
+              (click)="selectVariant(variant)"
+            >
+              <span class="variant-radio" [class.checked]="isVariantSelected(variant)" aria-hidden="true"></span>
+              <span class="addon-name">{{ variant | localName: languageService.language() }}</span>
+              <!-- Absolute, no plus sign: this price REPLACES the base price. The
+                   add-ons below deliberately read differently. -->
+              <span class="addon-price">L.E {{ variant.price.toFixed(2) }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    }
+
     @if (data.menuItem.addOns.length > 0) {
       <div class="addons-section">
-        <h3>Choose your add-ons</h3>
+        <h3 class="section-title">
+          Choose your Add-ons
+          <span class="section-badge">Optional</span>
+        </h3>
         <div class="addon-list">
           @for (addOn of data.menuItem.addOns; track addOn.id) {
             <button
               type="button"
               class="addon-card"
+              role="checkbox"
               [class.selected]="isSelected(addOn)"
-              [attr.aria-pressed]="isSelected(addOn)"
+              [attr.aria-checked]="isSelected(addOn)"
               (click)="toggleAddOn(addOn)"
             >
               <span class="addon-check" [class.checked]="isSelected(addOn)">
@@ -66,7 +113,7 @@
       <button type="button" class="cancel-link" (click)="close()">Cancel</button>
     </div>
 
-    <button type="button" class="add-to-cart-btn" (click)="addToCart()">
+    <button type="button" class="add-to-cart-btn" [disabled]="!canAddToCart()" (click)="addToCart()">
       <mat-icon>add_shopping_cart</mat-icon>
       <span class="add-to-cart-label">{{ isEditing ? 'Save changes' : 'Add to cart' }}</span>
       <span class="dot">·</span>

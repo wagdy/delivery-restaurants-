@@ -214,3 +214,12 @@
     height: 15px;
   }
 }
+
+// The size reads as part of what was ordered, so it sits closer to the dish name than
+// the add-on list does and carries the item's own weight rather than the subtitle grey.
+.cart-item-variant {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.72);
+}

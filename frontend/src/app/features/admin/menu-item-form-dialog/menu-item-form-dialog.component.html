@@ -25,7 +25,10 @@
 
     <div class="row">
       <mat-form-field appearance="outline" class="price-field">
-        <mat-label>Price</mat-label>
+        <!-- Once sizes exist, nobody is charged this number - each size carries its own
+             full price. Saying so in the label beats leaving two prices on screen with
+             no indication of which one wins. -->
+        <mat-label>{{ hasVariants() ? 'Base price (unused - sizes set their own)' : 'Price' }}</mat-label>
         <span matPrefix>L.E&nbsp;</span>
         <input matInput type="number" step="0.01" min="0.01" formControlName="price" />
         @if (form.controls.price.hasError('required') && form.controls.price.touched) {
@@ -109,6 +112,52 @@
         <mat-label>Image URL (optional)</mat-label>
         <input matInput formControlName="imageUrl" placeholder="Or paste an external image URL" />
       </mat-form-field>
+    </div>
+
+    <!-- Variants sit above add-ons here for the same reason they do in the customer's
+         bottom sheet: the size is the price, the add-ons are what get added to it. -->
+    <div class="variants-section" [formGroup]="variantsForm">
+      <div class="variants-header">
+        <span class="addons-label">Sizes / weights</span>
+        <button type="button" mat-stroked-button (click)="addVariant()">
+          <mat-icon>add</mat-icon>
+          Add size
+        </button>
+      </div>
+
+      @if (variants.length === 0) {
+        <p class="variants-hint">
+          Leave empty for a single-price item. Add sizes (e.g. "500g", "1 Kilo") and the
+          customer must pick one - each size sets its own full price, replacing the price above.
+        </p>
+      } @else {
+        <div formArrayName="variants">
+          @for (group of variants.controls; track $index; let i = $index) {
+            <div class="variant-row" [formGroupName]="i">
+              <mat-form-field appearance="outline" class="variant-name" subscriptSizing="dynamic">
+                <mat-label>Name</mat-label>
+                <input matInput formControlName="name" placeholder="1 Kilo" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="variant-name-ar" subscriptSizing="dynamic">
+                <mat-label>Arabic name</mat-label>
+                <input matInput formControlName="nameAr" placeholder="كيلو" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="variant-price" subscriptSizing="dynamic">
+                <mat-label>Price</mat-label>
+                <input matInput type="number" step="0.01" min="0.01" formControlName="price" />
+              </mat-form-field>
+
+              <mat-slide-toggle formControlName="isAvailable" class="variant-toggle">In stock</mat-slide-toggle>
+
+              <button type="button" mat-icon-button color="warn" (click)="removeVariant(i)" aria-label="Remove size">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+      }
     </div>
 
     @if (data.availableAddOns.length > 0) {

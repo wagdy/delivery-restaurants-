@@ -114,7 +114,17 @@ public class MenuItemService : IMenuItemService
             SubCategory = subCategoryResult.Data,
             ImageUrl = request.ImageUrl,
             IsAvailable = request.IsAvailable,
-            MenuItemAddOns = addOnsResult.Data!.Select(a => new MenuItemAddOn { AddOn = a }).ToList()
+            MenuItemAddOns = addOnsResult.Data!.Select(a => new MenuItemAddOn { AddOn = a }).ToList(),
+            Variants = request.Variants
+                .Select(v => new MenuItemVariant
+                {
+                    Name = v.Name.Trim(),
+                    NameAr = OptionalText.NullIfBlank(v.NameAr),
+                    Price = v.Price,
+                    DisplayOrder = v.DisplayOrder,
+                    IsAvailable = v.IsAvailable
+                })
+                .ToList()
         };
 
         await _repository.AddAsync(item);
@@ -158,6 +168,8 @@ public class MenuItemService : IMenuItemService
         {
             item.MenuItemAddOns.Add(new MenuItemAddOn { MenuItemId = item.Id, AddOnId = addOn.Id, AddOn = addOn });
         }
+
+        SyncVariants(item, request.Variants);
 
         await _repository.SaveChangesAsync();
         _cache.Invalidate(CacheGroup.Menu);
@@ -345,6 +357,50 @@ public class MenuItemService : IMenuItemService
         return ServiceResult<SubCategory?>.Success(subCategory);
     }
 
+    // Updates variants in place rather than clear-and-re-add.
+    //
+    // Clearing would delete every row and insert new ones with new ids, which silently
+    // breaks two things: the VariantId recorded on past OrderItems stops matching
+    // anything for reporting, and a customer holding the item in their cart has a
+    // variant id that no longer exists. Matching on Id keeps an edited "1 Kilo" the same
+    // "1 Kilo" it was.
+    private static void SyncVariants(MenuItem item, List<MenuItemVariantRequest> requested)
+    {
+        var keptIds = requested.Where(v => v.Id.HasValue).Select(v => v.Id!.Value).ToHashSet();
+
+        foreach (var removed in item.Variants.Where(v => !keptIds.Contains(v.Id)).ToList())
+        {
+            item.Variants.Remove(removed);
+        }
+
+        foreach (var incoming in requested)
+        {
+            var existing = incoming.Id.HasValue
+                ? item.Variants.FirstOrDefault(v => v.Id == incoming.Id.Value)
+                : null;
+
+            if (existing is null)
+            {
+                item.Variants.Add(new MenuItemVariant
+                {
+                    MenuItemId = item.Id,
+                    Name = incoming.Name.Trim(),
+                    NameAr = OptionalText.NullIfBlank(incoming.NameAr),
+                    Price = incoming.Price,
+                    DisplayOrder = incoming.DisplayOrder,
+                    IsAvailable = incoming.IsAvailable
+                });
+                continue;
+            }
+
+            existing.Name = incoming.Name.Trim();
+            existing.NameAr = OptionalText.NullIfBlank(incoming.NameAr);
+            existing.Price = incoming.Price;
+            existing.DisplayOrder = incoming.DisplayOrder;
+            existing.IsAvailable = incoming.IsAvailable;
+        }
+    }
+
     private static MenuItemResponse MapResponse(MenuItem item) => new()
     {
         Id = item.Id,
@@ -371,6 +427,22 @@ public class MenuItemService : IMenuItemService
             // language, and add-on lists are short enough that alphabetical-in-Arabic
             // buys nothing.
             .OrderBy(a => a.Name)
+            .ToList(),
+        Variants = item.Variants
+            .Select(v => new MenuItemVariantResponse
+            {
+                Id = v.Id,
+                Name = v.Name,
+                NameAr = v.NameAr,
+                Price = v.Price,
+                DisplayOrder = v.DisplayOrder,
+                IsAvailable = v.IsAvailable
+            })
+            // DisplayOrder first so the admin controls the sequence, then price - which
+            // means an admin who never touches DisplayOrder still gets cheapest-first,
+            // matching what the client pre-selects.
+            .OrderBy(v => v.DisplayOrder)
+            .ThenBy(v => v.Price)
             .ToList()
     };
 }

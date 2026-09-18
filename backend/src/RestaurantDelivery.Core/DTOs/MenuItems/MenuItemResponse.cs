@@ -23,4 +23,9 @@ public class MenuItemResponse
     // passed the Module.MenuItems check - the storefront never sees a true here.
     public bool IsDeleted { get; set; }
     public List<AddOnResponse> AddOns { get; set; } = new();
+
+    // Empty for most items. When non-empty the client MUST make the customer choose one,
+    // and Price above is a fallback nobody pays - the server refuses an order for an
+    // item with variants that does not name one.
+    public List<MenuItemVariantResponse> Variants { get; set; } = new();
 }

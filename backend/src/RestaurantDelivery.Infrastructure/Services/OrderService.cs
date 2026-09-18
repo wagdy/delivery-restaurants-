@@ -422,6 +422,43 @@ public class OrderService : IOrderService
                 return ServiceResult<List<OrderItem>>.Failure($"'{menuItem.Name}' is currently unavailable.");
             }
 
+            // Variant resolution, before anything is priced.
+            //
+            // Both directions are refused rather than guessed at. An item WITH variants
+            // has no meaningful base price - falling back to MenuItem.Price would charge
+            // a customer who picked "1 Kilo" whatever the placeholder base happens to be.
+            // An item WITHOUT variants that arrives carrying one means the client is
+            // confused about what it is ordering, and silently dropping the id would hide
+            // that. The lookup is scoped to THIS item's own variants, so naming a cheap
+            // variant belonging to something else fails rather than underpricing.
+            MenuItemVariant? variant = null;
+            if (menuItem.Variants.Count > 0)
+            {
+                if (line.VariantId is null)
+                {
+                    return ServiceResult<List<OrderItem>>.Failure(
+                        $"Please choose a size for '{menuItem.Name}'.");
+                }
+
+                variant = menuItem.Variants.FirstOrDefault(v => v.Id == line.VariantId.Value);
+                if (variant is null)
+                {
+                    return ServiceResult<List<OrderItem>>.Failure(
+                        $"The selected size is not available for '{menuItem.Name}'.");
+                }
+
+                if (!variant.IsAvailable)
+                {
+                    return ServiceResult<List<OrderItem>>.Failure(
+                        $"'{variant.Name}' of '{menuItem.Name}' is currently unavailable.");
+                }
+            }
+            else if (line.VariantId is not null)
+            {
+                return ServiceResult<List<OrderItem>>.Failure(
+                    $"'{menuItem.Name}' does not come in different sizes.");
+            }
+
             var availableAddOns = menuItem.MenuItemAddOns.ToDictionary(ma => ma.AddOnId, ma => ma.AddOn);
             var addOns = new List<OrderItemAddOn>();
 
@@ -444,8 +481,14 @@ public class OrderService : IOrderService
                 // what lets a menu item be soft-deleted without taking every past order
                 // containing it down with it.
                 MenuItemName = menuItem.Name,
+                VariantId = variant?.Id,
+                // Snapshotted for the same reason as MenuItemName: a variant cascades
+                // away with its menu item, so the receipt cannot depend on it existing.
+                VariantName = variant?.Name,
                 Quantity = line.Quantity,
-                UnitPrice = menuItem.Price,
+                // The variant's price REPLACES the base price - it is absolute, not a
+                // delta. Add-ons are what add.
+                UnitPrice = variant?.Price ?? menuItem.Price,
                 AddOns = addOns
             });
         }
@@ -531,6 +574,7 @@ public class OrderService : IOrderService
             // throw. Falls back to the live row only for orders placed before the
             // snapshot column existed and somehow missed the migration's backfill.
             MenuItemName = string.IsNullOrEmpty(oi.MenuItemName) ? oi.MenuItem?.Name ?? string.Empty : oi.MenuItemName,
+            VariantName = oi.VariantName,
             Quantity = oi.Quantity,
             UnitPrice = oi.UnitPrice,
             AddOns = oi.AddOns.Select(a => new OrderItemAddOnResponse { Name = a.Name, Price = a.Price }).ToList()

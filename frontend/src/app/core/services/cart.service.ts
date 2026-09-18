@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { CartLine } from '../models/cart.model';
-import { MenuItem } from '../models/menu-item.model';
+import { MenuItem, MenuItemVariant } from '../models/menu-item.model';
 import { AddOn } from '../models/add-on.model';
 import { SettingsService } from './settings.service';
 
@@ -9,12 +9,20 @@ const STORAGE_KEY = 'rd_cart';
 // Two lines can share the same base menu item with different add-on selections
 // (e.g. one burger plain, one with extra cheese) — they must stay distinct lines,
 // so cart lines are identified by this composite key rather than menuItem.id alone.
-export function cartLineKey(menuItemId: number, addOnIds: number[]): string {
-  return `${menuItemId}:${[...addOnIds].sort((a, b) => a - b).join(',')}`;
+//
+// The variant is part of that identity for the same reason and a sharper one: 500g and
+// 1 Kilo of the same tray cost different amounts, so folding them into one line would
+// charge one of the two prices for both.
+export function cartLineKey(menuItemId: number, addOnIds: number[], variantId: number | null = null): string {
+  return `${menuItemId}:${variantId ?? ''}:${[...addOnIds].sort((a, b) => a - b).join(',')}`;
 }
 
+// The single definition of what one unit of a cart line costs, mirrored server-side by
+// OrderService.BuildOrderItemsAsync. The variant REPLACES the base price; add-ons ADD to
+// whichever of the two applies.
 function lineUnitPrice(line: CartLine): number {
-  return line.menuItem.price + line.selectedAddOns.reduce((sum, a) => sum + a.price, 0);
+  const base = line.selectedVariant?.price ?? line.menuItem.price;
+  return base + line.selectedAddOns.reduce((sum, a) => sum + a.price, 0);
 }
 
 @Injectable({ providedIn: 'root' })
@@ -37,17 +45,27 @@ export class CartService {
   readonly estimatedTotal = computed(() => this.subtotal() + this.deliveryFee());
 
   keyFor(line: CartLine): string {
-    return cartLineKey(line.menuItem.id, line.selectedAddOns.map((a) => a.id));
+    return cartLineKey(
+      line.menuItem.id,
+      line.selectedAddOns.map((a) => a.id),
+      line.selectedVariant?.id ?? null
+    );
   }
 
   lineUnitPrice(line: CartLine): number {
     return lineUnitPrice(line);
   }
 
-  add(menuItem: MenuItem, selectedAddOns: AddOn[] = [], quantity = 1): void {
+  add(
+    menuItem: MenuItem,
+    selectedAddOns: AddOn[] = [],
+    quantity = 1,
+    selectedVariant: MenuItemVariant | null = null
+  ): void {
     const key = cartLineKey(
       menuItem.id,
-      selectedAddOns.map((a) => a.id)
+      selectedAddOns.map((a) => a.id),
+      selectedVariant?.id ?? null
     );
     const lines = this._lines();
     const existing = lines.find((l) => this.keyFor(l) === key);
@@ -57,7 +75,7 @@ export class CartService {
       return;
     }
 
-    this.persist([...lines, { menuItem, quantity, selectedAddOns }]);
+    this.persist([...lines, { menuItem, quantity, selectedAddOns, selectedVariant }]);
   }
 
   increment(lineKey: string): void {
@@ -108,8 +126,16 @@ export class CartService {
     }
     try {
       const parsed = JSON.parse(raw) as CartLine[];
-      // Defensive default for carts persisted before add-ons existed.
-      return parsed.map((l) => ({ ...l, selectedAddOns: l.selectedAddOns ?? [] }));
+      // Defensive defaults for carts persisted before add-ons, and before variants,
+      // existed. A returning customer's localStorage predates both: without the
+      // menuItem.variants default, reopening such a line for edit reads .length off
+      // undefined and the dialog throws instead of opening.
+      return parsed.map((l) => ({
+        ...l,
+        selectedAddOns: l.selectedAddOns ?? [],
+        selectedVariant: l.selectedVariant ?? null,
+        menuItem: { ...l.menuItem, variants: l.menuItem?.variants ?? [] }
+      }));
     } catch {
       return [];
     }

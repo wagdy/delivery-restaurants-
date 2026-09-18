@@ -57,9 +57,14 @@ public class OrderRepository : GenericRepository<Order>, IOrderRepository
             .OrderByDescending(o => o.CreatedAt)
             .ToListAsync();
 
+    // Variants are included for the same reason add-ons are: BuildOrderItemsAsync prices
+    // and validates against them. Without the Include, Variants comes back empty, the
+    // "please choose a size" check never fires, and every variant item is quietly
+    // charged at its placeholder base price.
     public Task<List<MenuItem>> GetMenuItemsByIdsAsync(IEnumerable<int> ids) =>
         Context.Set<MenuItem>()
             .Include(m => m.MenuItemAddOns).ThenInclude(ma => ma.AddOn)
+            .Include(m => m.Variants)
             .Where(m => ids.Contains(m.Id))
             .ToListAsync();
 

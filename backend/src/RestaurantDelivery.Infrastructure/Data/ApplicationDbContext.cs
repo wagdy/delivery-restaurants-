@@ -12,6 +12,7 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     }
 
     public DbSet<MenuItem> MenuItems => Set<MenuItem>();
+    public DbSet<MenuItemVariant> MenuItemVariants => Set<MenuItemVariant>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<RestaurantSettings> RestaurantSettings => Set<RestaurantSettings>();

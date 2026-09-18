@@ -93,3 +93,51 @@ mat-slide-toggle {
   color: var(--mat-sys-error, #b3261e);
   font-size: 0.875rem;
 }
+
+.variants-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+}
+
+.variants-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.variants-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+// Wraps rather than scrolls: at a narrow width the toggle and delete drop to a second
+// line instead of pushing the price field out of reach.
+.variant-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  .variant-name {
+    flex: 2 1 140px;
+  }
+
+  .variant-name-ar {
+    flex: 2 1 120px;
+  }
+
+  .variant-price {
+    flex: 1 1 100px;
+  }
+
+  .variant-toggle {
+    flex: 0 0 auto;
+  }
+}

@@ -17,7 +17,23 @@ export interface MenuItem {
   // True only on rows returned by a "show deleted" admin query; the storefront's copy
   // of this model always carries false.
   isDeleted?: boolean;
+  // Empty for most items. When non-empty the customer MUST choose one, and `price`
+  // above is a placeholder nobody pays - the server refuses a line that names no
+  // variant for an item that has them.
+  variants: MenuItemVariant[];
   addOns: AddOn[];
+}
+
+// One purchasable size/weight of an item. `price` is ABSOLUTE - it replaces the item's
+// base price rather than adding to it. That is the whole difference between a variant
+// and an add-on, and it is why the two render with different price formatting.
+export interface MenuItemVariant {
+  id: number;
+  name: string;
+  nameAr?: string | null;
+  price: number;
+  displayOrder: number;
+  isAvailable: boolean;
 }
 
 export type DeletedFilter = 'Active' | 'Deleted' | 'All';

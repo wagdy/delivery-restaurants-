@@ -4,6 +4,10 @@
   <div class="cart-item-details">
     <h3 class="cart-item-title">{{ line().menuItem | localName: languageService.language() }}</h3>
 
+    @if (variantLabel(); as variant) {
+      <p class="cart-item-variant">{{ variant }}</p>
+    }
+
     @if (addOnSummary(); as addOns) {
       <p class="cart-item-addons">{{ addOns }}</p>
     }

@@ -35,4 +35,8 @@ public class MenuItem
 
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
     public ICollection<MenuItemAddOn> MenuItemAddOns { get; set; } = new List<MenuItemAddOn>();
+
+    // Sizes/weights. Empty for most items; when non-empty, Price above is never what the
+    // customer pays - the chosen variant's price is. See MenuItemVariant.
+    public ICollection<MenuItemVariant> Variants { get; set; } = new List<MenuItemVariant>();
 }

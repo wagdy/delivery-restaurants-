@@ -32,4 +32,8 @@ public class MenuItemRequest
     public bool IsAvailable { get; set; } = true;
 
     public List<int> AddOnIds { get; set; } = new();
+
+    // The complete desired set of variants. Anything already on the item and missing
+    // from this list is removed, so the admin form can send exactly what it shows.
+    public List<MenuItemVariantRequest> Variants { get; set; } = new();
 }

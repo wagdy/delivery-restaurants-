@@ -7,6 +7,10 @@ public class PromoCartItemRequest
     [Required]
     public int MenuItemId { get; set; }
 
+    // Mirrors OrderItemRequest.VariantId so the promo preview prices the same line the
+    // order will. Optional here: this endpoint only quotes a discount, it never charges.
+    public int? VariantId { get; set; }
+
     [Range(1, 100)]
     public int Quantity { get; set; }
 
