@@ -34,6 +34,16 @@ public class MenuItem
     // none. Purely a display string - it is not parsed and never becomes a charge.
     public string? PriceNote { get; set; }
 
+    // "This item's price IS the sum of its add-ons" - a kilo of mixed grill where the
+    // customer picks the cuts, and the total is whatever they choose.
+    //
+    // Price is forced to 0 when this is set, and the item MUST have at least one add-on
+    // (enforced on create and update) - otherwise there is nothing for the total to be
+    // built from and the line would come to zero. The customer-facing half of that rule
+    // lives in OrderService: at least one add-on must actually be SELECTED, since having
+    // add-ons available and choosing none still adds up to nothing.
+    public bool IsPriceBasedOnAddons { get; set; }
+
 
     // Optional finer-grained grouping within Category above (e.g. "Hot Drinks" inside
     // "Drinks") - unlike Category, this is a real FK, not free text, since SubCategory

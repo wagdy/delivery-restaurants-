@@ -111,9 +111,20 @@ export class MenuItemDetailsDialogComponent {
 
   // An item with variants cannot be ordered without one. The footer button is disabled
   // rather than hidden, so the reason is visible instead of the control just missing.
-  // True when there is no payable figure: a by-weight item with a 0 base and no sized
-  // options. The note explains it on screen; this is what stops it being ordered.
-  readonly isPricedOnRequest = computed(() => this.basePrice() <= 0);
+  // This item's price IS its add-ons. The admin form guarantees at least one is
+  // attached; what it cannot guarantee is that the customer picks any, and none picked
+  // still adds up to nothing - so here the add-ons section is a required choice.
+  readonly priceFromAddOns = this.data.menuItem.isPriceBasedOnAddons === true;
+
+  // True only when there is no payable figure AND no way to build one: a by-weight item
+  // with a 0 base, no sized options, and not priced from its add-ons. Excluding the
+  // dynamic case matters - those items are perfectly orderable, they just need a
+  // selection first, so blocking them outright would be wrong.
+  readonly isPricedOnRequest = computed(() => !this.priceFromAddOns && this.basePrice() <= 0);
+
+  // The money test rather than a count: an item whose only selected add-on is a free one
+  // still comes to zero, and the server refuses it on exactly this basis.
+  readonly needsAddOnChoice = computed(() => this.priceFromAddOns && this.addOnsTotal() <= 0);
 
   // Three ways to be un-orderable, all of them ending in a disabled button with a
   // visible reason rather than a line the server would reject at checkout:
@@ -126,7 +137,10 @@ export class MenuItemDetailsDialogComponent {
   // MenuItem.Price, so a kilo of meat would be delivered free. Add-ons make it worse,
   // not better - the customer would be charged for the tahini and nothing for the meat.
   readonly canAddToCart = computed(
-    () => (!this.definesVariants || this.selectedVariant() !== null) && !this.isPricedOnRequest()
+    () =>
+      (!this.definesVariants || this.selectedVariant() !== null) &&
+      !this.isPricedOnRequest() &&
+      !this.needsAddOnChoice()
   );
 
   private resolveInitialVariantId(): number | null {

@@ -20,6 +20,9 @@ export interface MenuItem {
   // Set only when `price` is 0 - what to show in place of the currency for items priced
   // on the day (meat, fish sold by weight). See PriceNotePipe.
   priceNote?: string | null;
+  // When true the item's price IS the sum of its selected add-ons, and the add-ons
+  // section becomes a required choice rather than an optional one.
+  isPriceBasedOnAddons?: boolean;
   // Empty for most items. When non-empty the customer MUST choose one, and `price`
   // above is a placeholder nobody pays - the server refuses a line that names no
   // variant for an item that has them.

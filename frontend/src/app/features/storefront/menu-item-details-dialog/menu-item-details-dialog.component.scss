@@ -520,3 +520,13 @@
   // being reordered around them.
   unicode-bidi: plaintext;
 }
+
+// The admin's note, restated where the choice is actually made - the header shows it
+// too, but by the time the customer is reading add-ons the header has scrolled away.
+.addons-pricing-hint {
+  margin: -4px 0 10px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: rgba(0, 0, 0, 0.62);
+  unicode-bidi: plaintext;
+}

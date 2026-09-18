@@ -82,11 +82,55 @@ export class MenuItemFormDialogComponent {
     // precisely to carry a concrete price.
     price: [this.data.menuItem?.price ?? 0, [Validators.required, Validators.min(0)]],
     priceNote: [this.data.menuItem?.priceNote ?? '', [Validators.maxLength(100)]],
+    isPriceBasedOnAddons: [this.data.menuItem?.isPriceBasedOnAddons ?? false],
     category: [this.data.menuItem?.category ?? '', [Validators.required, Validators.maxLength(100)]],
     subCategoryId: [this.data.menuItem?.subCategoryId ?? null] as [number | null],
     imageUrl: [this.data.menuItem?.imageUrl ?? ''],
     isAvailable: [this.data.menuItem?.isAvailable ?? true]
   });
+
+  // ---------------------------------------------------------------------------
+  // Pricing mode
+  // ---------------------------------------------------------------------------
+
+  // Mirrors the isPriceBasedOnAddons control so the template can read it as a signal
+  // alongside the other derived state.
+  readonly priceFromAddOns = signal(this.data.menuItem?.isPriceBasedOnAddons ?? false);
+
+  // The rule the admin must satisfy: an item whose price IS its add-ons needs at least
+  // one add-on attached, or every order of it comes to zero. Exposed as a signal rather
+  // than a form validator because the add-on selection lives in selectedAddOnIds (a
+  // signal, not a control) - a validator on the form group would not re-run when it
+  // changes, and would silently report stale validity.
+  readonly dynamicPricingError = computed(() =>
+    this.priceFromAddOns() && this.selectedAddOnIds().size === 0
+      ? 'You must set a base price OR add at least one Add-on to calculate the price. ' +
+        '(يجب تحديد سعر أساسي أو ربط إضافات بهذا المنتج)'
+      : null
+  );
+
+  onPriceFromAddOnsChange(checked: boolean): void {
+    this.priceFromAddOns.set(checked);
+    this.form.controls.isPriceBasedOnAddons.setValue(checked, { emitEvent: false });
+
+    const price = this.form.controls.price;
+    if (checked) {
+      // Zeroed AND disabled: the price is no longer the admin's to set, and leaving the
+      // old figure sitting in a greyed box invites the belief that it still applies.
+      // getRawValue() in submit() still reads a disabled control, so the 0 is submitted.
+      price.setValue(0);
+      price.disable({ emitEvent: false });
+    } else {
+      price.enable({ emitEvent: false });
+    }
+
+    // The price note field follows the price, and setValue above does not fire while
+    // the control is being disabled in the same breath - so drive it directly.
+    this.applyPriceNoteState(0);
+    if (!checked) {
+      this.applyPriceNoteState(price.value);
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Price note - shown only while the price is 0
@@ -95,6 +139,10 @@ export class MenuItemFormDialogComponent {
   // Drives the field's visibility in the template. Seeded from the loaded item so
   // editing an existing by-weight item opens with the note already showing.
   readonly showPriceNote = signal((this.data.menuItem?.price ?? 0) <= 0);
+
+  private readonly initialPricingMode = this.data.menuItem?.isPriceBasedOnAddons
+    ? this.form.controls.price.disable({ emitEvent: false })
+    : undefined;
 
   // startWith so the rule is applied on open too, not only on the first edit - otherwise
   // reopening a saved by-weight item shows the field (the signal above is seeded) while
@@ -255,7 +303,9 @@ export class MenuItemFormDialogComponent {
   submit(): void {
     // The variants array is a sibling of `form`, not a control inside it, so
     // form.invalid alone would happily submit a size with a blank name.
-    if (this.form.invalid || this.variants.invalid) {
+    // dynamicPricingError is checked alongside the two form trees because it is the one
+    // rule that spans a control and a signal - see its definition above.
+    if (this.form.invalid || this.variants.invalid || this.dynamicPricingError()) {
       this.form.markAllAsTouched();
       this.variants.markAllAsTouched();
       return;
@@ -273,6 +323,7 @@ export class MenuItemFormDialogComponent {
       // Sent as null above zero so the stored shape matches what the server would
       // normalise it to anyway - one value for "no note", never an empty string.
       priceNote: raw.price > 0 ? null : raw.priceNote.trim() || null,
+      isPriceBasedOnAddons: raw.isPriceBasedOnAddons,
       category: raw.category,
       subCategoryId: raw.subCategoryId || null,
       imageUrl: raw.imageUrl || null,

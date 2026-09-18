@@ -147,3 +147,40 @@ mat-slide-toggle {
 .price-note-field {
   flex: 1 1 100%;
 }
+
+.pricing-mode {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pricing-mode-hint {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: rgba(0, 0, 0, 0.58);
+  // Clears the checkbox's own control width so the sentence lines up with its label.
+  margin-inline-start: 34px;
+}
+
+// Blocks saving, so it is styled as an error rather than a hint - the admin needs to
+// connect it to the greyed-out Save button.
+.pricing-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(211, 47, 47, 0.08);
+  color: #b3261e;
+  font-size: 0.83rem;
+  line-height: 1.45;
+  unicode-bidi: plaintext;
+
+  mat-icon {
+    flex: 0 0 auto;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}

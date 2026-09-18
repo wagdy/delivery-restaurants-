@@ -82,8 +82,18 @@
       <div class="addons-section">
         <h3 class="section-title">
           Choose your Add-ons
-          <span class="section-badge">Optional</span>
+          <!-- For a dynamically priced item these ARE the price, so the same section
+               that is optional elsewhere is the required choice here. -->
+          <span class="section-badge" [class.required]="priceFromAddOns">
+            {{ priceFromAddOns ? 'Required' : 'Optional' }}
+          </span>
         </h3>
+
+        @if (priceFromAddOns) {
+          <p class="addons-pricing-hint">
+            {{ data.menuItem.priceNote?.trim() || 'This item is priced by what you choose below.' }}
+          </p>
+        }
         <div class="addon-list">
           @for (addOn of data.menuItem.addOns; track addOn.id) {
             <button
@@ -129,6 +139,10 @@
              zero-priced line. -->
         <mat-icon>call</mat-icon>
         <span class="add-to-cart-label">Call to order</span>
+      } @else if (needsAddOnChoice()) {
+        <!-- Orderable, just not yet: the total is built from the selection above. -->
+        <mat-icon>checklist</mat-icon>
+        <span class="add-to-cart-label">Choose your add-ons</span>
       } @else {
         <mat-icon>add_shopping_cart</mat-icon>
         <span class="add-to-cart-label">{{ isEditing ? 'Save changes' : 'Add to cart' }}</span>

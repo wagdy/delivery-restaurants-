@@ -27,6 +27,10 @@ public class MenuItemRequest
     [MaxLength(100)]
     public string? PriceNote { get; set; }
 
+    // When true the service forces Price to 0 and refuses the request unless AddOnIds
+    // has at least one entry.
+    public bool IsPriceBasedOnAddons { get; set; }
+
     [Required, MaxLength(100)]
     public string Category { get; set; } = string.Empty;
 

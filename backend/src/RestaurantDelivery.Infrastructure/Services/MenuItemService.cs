@@ -104,13 +104,20 @@ public class MenuItemService : IMenuItemService
             return ServiceResult<MenuItemResponse>.Failure(subCategoryResult.Errors.ToArray());
         }
 
+        var dynamicPricingError = ValidateDynamicPricing(request);
+        if (dynamicPricingError is not null)
+        {
+            return ServiceResult<MenuItemResponse>.Failure(dynamicPricingError);
+        }
+
         var item = new MenuItem
         {
             Name = request.Name,
             NameAr = OptionalText.NullIfBlank(request.NameAr),
             Description = request.Description,
-            Price = request.Price,
-            PriceNote = ResolvePriceNote(request.Price, request.PriceNote),
+            Price = ResolvePrice(request),
+            PriceNote = ResolvePriceNote(ResolvePrice(request), request.PriceNote),
+            IsPriceBasedOnAddons = request.IsPriceBasedOnAddons,
             Category = request.Category,
             SubCategory = subCategoryResult.Data,
             ImageUrl = request.ImageUrl,
@@ -155,11 +162,18 @@ public class MenuItemService : IMenuItemService
             return ServiceResult<MenuItemResponse>.Failure(subCategoryResult.Errors.ToArray());
         }
 
+        var dynamicPricingError = ValidateDynamicPricing(request);
+        if (dynamicPricingError is not null)
+        {
+            return ServiceResult<MenuItemResponse>.Failure(dynamicPricingError);
+        }
+
         item.Name = request.Name;
         item.NameAr = OptionalText.NullIfBlank(request.NameAr);
         item.Description = request.Description;
-        item.Price = request.Price;
-        item.PriceNote = ResolvePriceNote(request.Price, request.PriceNote);
+        item.Price = ResolvePrice(request);
+        item.PriceNote = ResolvePriceNote(item.Price, request.PriceNote);
+        item.IsPriceBasedOnAddons = request.IsPriceBasedOnAddons;
         item.Category = request.Category;
         item.SubCategory = subCategoryResult.Data;
         item.ImageUrl = request.ImageUrl;
@@ -407,6 +421,20 @@ public class MenuItemService : IMenuItemService
     // trusting the client keeps one impossible state out of the database: an item with
     // both a real price AND a note explaining why it has none, which the storefront
     // would then have to guess between.
+    // An item priced from its add-ons with no add-ons attached has nothing to build a
+    // total from - every order of it would come to zero. Checked on create AND update,
+    // because the dangerous edit is removing the last add-on from an item that is
+    // already flagged, not creating a new one.
+    private static string? ValidateDynamicPricing(MenuItemRequest request) =>
+        request.IsPriceBasedOnAddons && request.AddOnIds.Count == 0
+            ? "Item marked as dynamically priced must have at least one add-on."
+            : null;
+
+    // A dynamically priced item has no base price by definition. Forced to 0 rather than
+    // trusting the client so the flag and the number can never disagree.
+    private static decimal ResolvePrice(MenuItemRequest request) =>
+        request.IsPriceBasedOnAddons ? 0m : request.Price;
+
     private static string? ResolvePriceNote(decimal price, string? note) =>
         price > 0 ? null : OptionalText.NullIfBlank(note);
 
@@ -418,6 +446,7 @@ public class MenuItemService : IMenuItemService
         Description = item.Description,
         Price = item.Price,
         PriceNote = item.PriceNote,
+        IsPriceBasedOnAddons = item.IsPriceBasedOnAddons,
         Category = item.Category,
         SubCategoryId = item.SubCategoryId,
         SubCategoryName = item.SubCategory?.Name,

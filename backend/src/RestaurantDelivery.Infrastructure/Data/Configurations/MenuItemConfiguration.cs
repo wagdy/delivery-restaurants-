@@ -30,6 +30,9 @@ public class MenuItemConfiguration : IEntityTypeConfiguration<MenuItem>
         builder.Property(m => m.PriceNote)
             .HasMaxLength(100);
 
+        builder.Property(m => m.IsPriceBasedOnAddons)
+            .HasDefaultValue(false);
+
         builder.HasIndex(m => m.Category);
 
         // SubCategoryService.DeleteAsync already blocks deleting a sub-category that

@@ -459,21 +459,7 @@ public class OrderService : IOrderService
                     $"'{menuItem.Name}' does not come in different sizes.");
             }
 
-            // Price-on-request items (Price 0, explained by PriceNote) have no amount to
-            // charge. The storefront already refuses to add them to a cart, but this is
-            // the boundary that matters: without it a crafted request orders a kilo of
-            // meat for L.E 0.00, and with add-ons attached the customer would be charged
-            // for the tahini and nothing for the meat.
-            //
-            // Safe as a blanket rule because a zero base price was impossible to save
-            // until PriceNote existed - nothing in the menu predates this check.
             var resolvedUnitPrice = variant?.Price ?? menuItem.Price;
-            if (resolvedUnitPrice <= 0)
-            {
-                return ServiceResult<List<OrderItem>>.Failure(
-                    $"'{menuItem.Name}' is priced on the day and cannot be ordered online. " +
-                    "Please call the branch to order it.");
-            }
 
             var availableAddOns = menuItem.MenuItemAddOns.ToDictionary(ma => ma.AddOnId, ma => ma.AddOn);
             var addOns = new List<OrderItemAddOn>();
@@ -487,6 +473,36 @@ public class OrderService : IOrderService
                 }
 
                 addOns.Add(new OrderItemAddOn { AddOnId = addOn.Id, Name = addOn.Name, Price = addOn.Price });
+            }
+
+            // Zero-price rules, applied AFTER add-ons are resolved because for a
+            // dynamically priced item the add-ons ARE the price.
+            //
+            // Two different zero states, and collapsing them would break one or the
+            // other: an item priced from its add-ons is perfectly orderable as long as
+            // the customer actually picked some, while an item priced on the day has no
+            // figure at all and is not orderable online.
+            if (menuItem.IsPriceBasedOnAddons)
+            {
+                // Having add-ons available is guaranteed by MenuItemService; having any
+                // SELECTED is not, and none selected still adds up to nothing. A
+                // selection of only free add-ons lands here too, which is why the test
+                // is on the money rather than on the count.
+                if (addOns.Sum(a => a.Price) <= 0)
+                {
+                    return ServiceResult<List<OrderItem>>.Failure(
+                        $"Please choose at least one paid option for '{menuItem.Name}'.");
+                }
+            }
+            else if (resolvedUnitPrice <= 0)
+            {
+                // Priced on the day (Price 0, explained by PriceNote). Without this a
+                // crafted request orders a kilo of meat for L.E 0.00 - and with add-ons
+                // attached the customer would be charged for the tahini and nothing for
+                // the meat.
+                return ServiceResult<List<OrderItem>>.Failure(
+                    $"'{menuItem.Name}' is priced on the day and cannot be ordered online. " +
+                    "Please call the branch to order it.");
             }
 
             orderItems.Add(new OrderItem

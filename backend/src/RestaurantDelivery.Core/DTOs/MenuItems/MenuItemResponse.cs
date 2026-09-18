@@ -15,6 +15,10 @@ public class MenuItemResponse
     // Non-null only when Price is 0. The client shows this string instead of the
     // currency rather than rendering "L.E 0.00".
     public string? PriceNote { get; set; }
+
+    // The client makes the add-ons section REQUIRED when this is true, and prices the
+    // line purely from the selection.
+    public bool IsPriceBasedOnAddons { get; set; }
     public string Category { get; set; } = string.Empty;
     public int? SubCategoryId { get; set; }
     // Denormalized alongside SubCategoryId, mirroring OrderItemResponse.MenuItemName -
