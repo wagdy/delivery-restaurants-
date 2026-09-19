@@ -51,7 +51,15 @@ public interface IWhatsAppNotificationService
     // meaningful for a registered customer (a guest order has no loyalty profile to
     // credit points to) - see SendGuestDeliveryThankYouAsync below for the guest
     // counterpart. The caller is responsible for choosing between the two.
-    Task SendPostDeliveryPointsNotificationAsync(string phoneNumber, string customerName, int earnedPoints, int newTotalPoints);
+    // redeemedPoints comes from Order.PointsRedeemed - what the customer spent at
+    // checkout on THIS order - so the message can report the full round trip rather than
+    // only the half that was earned back.
+    Task SendPostDeliveryPointsNotificationAsync(
+        string phoneNumber,
+        string customerName,
+        int earnedPoints,
+        int redeemedPoints,
+        int newTotalPoints);
 
     // The Delivered-touchpoint counterpart for a *guest* order (order.UserId is null) -
     // no points/balance line, since a guest has no LoyaltyProfile for either figure to

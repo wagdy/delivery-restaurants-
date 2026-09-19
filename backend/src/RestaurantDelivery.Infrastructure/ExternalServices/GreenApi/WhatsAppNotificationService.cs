@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RestaurantDelivery.Core.Entities;
 using RestaurantDelivery.Core.Interfaces;
+using RestaurantDelivery.Infrastructure.ExternalServices;
 
 namespace RestaurantDelivery.Infrastructure.ExternalServices.GreenApi;
 
@@ -103,35 +104,28 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         return SendMessageAsync(phoneNumber, message);
     }
 
-    public Task SendPostDeliveryPointsNotificationAsync(string phoneNumber, string customerName, int earnedPoints, int newTotalPoints)
+    public Task SendPostDeliveryPointsNotificationAsync(
+        string phoneNumber,
+        string customerName,
+        int earnedPoints,
+        int redeemedPoints,
+        int newTotalPoints)
     {
-        // A 0-point delivery is possible (e.g. an order small enough that the
-        // currency-per-point formula rounds down to nothing) - "✅ تم إضافة 0 نقاط" would
-        // read as broken rather than encouraging, so this touchpoint simply doesn't fire
-        // for it. The old order-summary message has been removed entirely, not just
-        // superseded here - a 0-point registered delivery now sends nothing at all,
+        // Nothing earned AND nothing redeemed means nothing to report, so this
+        // touchpoint stays silent - the same rule as before, except a redemption now
+        // counts as something worth reporting on its own. The old order-summary message
+        // has been removed entirely, so a silent delivery here sends nothing at all,
         // same as it would for a guest (see SendGuestDeliveryThankYouAsync below).
-        if (earnedPoints <= 0)
+        if (!DeliveryPointsMessage.ShouldSend(earnedPoints, redeemedPoints))
         {
             return Task.CompletedTask;
         }
 
-        // A specified, exact template - deliberately its own literal text rather than
-        // delegating to SendLoyaltyWalletUpdateAsync below, since it differs from that
-        // method's template in three small ways: no "،" after the customer's name, no
-        // blank line between the greeting and the wallet-update line, and "نقاط ."
-        // (plural, with a space before the period) instead of "نقطة." on the
-        // earned-points line. Written with \n concatenation (matching every other
-        // template in this file) rather than a verbatim string literal, so the actual
-        // line endings sent to WhatsApp can't vary with how this source file happens to
-        // be checked out (CRLF vs LF) - the rendered message is identical either way.
-        var message =
-            $"مرحباً {customerName}\n" +
-            "💳 تحديث جديد لمحفظة نقاط أوتانتيك الخاصة بك:\n" +
-            $"✅ تم إضافة {earnedPoints} نقاط .\n" +
-            $"رصيدك الحالي هو: {newTotalPoints} نقطة.\n\n" +
-            "يسعدنا دائماً خدمتك! شاركنا تقييمك لتجربتك اليوم عبر الرابط التالي:\n" +
-            $"{RatingBaseUrl}/rate/store";
+        // Template lives in DeliveryPointsMessage, shared with the OpenWA provider - the
+        // two carried byte-identical Arabic and drifting copy about a customer's points
+        // balance is not a risk worth keeping for the sake of a local string literal.
+        var message = DeliveryPointsMessage.Build(
+            customerName, earnedPoints, redeemedPoints, newTotalPoints, RatingBaseUrl);
 
         return SendMessageAsync(phoneNumber, message);
     }

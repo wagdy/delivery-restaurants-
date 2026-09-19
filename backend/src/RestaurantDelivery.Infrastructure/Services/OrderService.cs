@@ -395,8 +395,21 @@ public class OrderService : IOrderService
             // throws), as SendOrderNotificationsAsync in OrderService.CreateAsync.
             if (order.UserId is not null)
             {
+                // All three figures are already to hand and none needs a second query:
+                //   order.PointsRedeemed  - snapshotted on the order when the customer
+                //                           spent them at checkout.
+                //   PointsEarned          - what ProcessOrderDeliveredAsync just awarded
+                //                           on the amount actually paid.
+                //   NewTotalPoints        - read from the profile straight after that
+                //                           award. The redemption was deducted back at
+                //                           checkout, so this balance already reflects
+                //                           both sides and needs no adjusting here.
                 _ = _whatsAppNotificationService.SendPostDeliveryPointsNotificationAsync(
-                    order.CustomerPhone, order.CustomerName, loyaltyResult.PointsEarned, loyaltyResult.NewTotalPoints);
+                    order.CustomerPhone,
+                    order.CustomerName,
+                    loyaltyResult.PointsEarned,
+                    order.PointsRedeemed,
+                    loyaltyResult.NewTotalPoints);
             }
             else
             {

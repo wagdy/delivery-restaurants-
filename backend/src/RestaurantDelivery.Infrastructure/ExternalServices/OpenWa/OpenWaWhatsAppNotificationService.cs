@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RestaurantDelivery.Core.Entities;
 using RestaurantDelivery.Core.Interfaces;
+using RestaurantDelivery.Infrastructure.ExternalServices;
 
 namespace RestaurantDelivery.Infrastructure.ExternalServices.OpenWa;
 
@@ -89,20 +90,20 @@ public class OpenWaWhatsAppNotificationService : IWhatsAppNotificationService
         return SendMessageAsync(phoneNumber, message);
     }
 
-    public Task SendPostDeliveryPointsNotificationAsync(string phoneNumber, string customerName, int earnedPoints, int newTotalPoints)
+    public Task SendPostDeliveryPointsNotificationAsync(
+        string phoneNumber,
+        string customerName,
+        int earnedPoints,
+        int redeemedPoints,
+        int newTotalPoints)
     {
-        if (earnedPoints <= 0)
+        if (!DeliveryPointsMessage.ShouldSend(earnedPoints, redeemedPoints))
         {
             return Task.CompletedTask;
         }
 
-        var message =
-            $"مرحباً {customerName}\n" +
-            "💳 تحديث جديد لمحفظة نقاط أوتانتيك الخاصة بك:\n" +
-            $"✅ تم إضافة {earnedPoints} نقاط .\n" +
-            $"رصيدك الحالي هو: {newTotalPoints} نقطة.\n\n" +
-            "يسعدنا دائماً خدمتك! شاركنا تقييمك لتجربتك اليوم عبر الرابط التالي:\n" +
-            $"{RatingBaseUrl}/rate/store";
+        var message = DeliveryPointsMessage.Build(
+            customerName, earnedPoints, redeemedPoints, newTotalPoints, RatingBaseUrl);
 
         return SendMessageAsync(phoneNumber, message);
     }
